@@ -353,9 +353,6 @@ const letters = Object.entries(letterModules)
 					pin: true,
 					pinSpacing: true,
 					scrub: true,
-					// Softens the moment the pin engages — without it, a fast
-					// scroll can make the section visibly "snap" into place a
-					// frame late instead of catching it right as it arrives.
 					anticipatePin: 1,
 				},
 			},
@@ -364,9 +361,41 @@ const letters = Object.entries(letterModules)
 	}
 
 	document.addEventListener("astro:page-load", initSection3Reveal);
+
+	let section4Trigger: ScrollTrigger | null = null;
+
+	function initSection4Reveal() {
+		section4Trigger?.kill();
+
+		const cols = document.querySelectorAll<HTMLElement>(".index-section-4-col");
+		if (!cols.length) return;
+
+		const tween = gsap.fromTo(
+			cols,
+			{ opacity: 0, filter: "blur(30px)" },
+			{
+				opacity: 1,
+				filter: "blur(0px)",
+				duration: 1,
+				stagger: 0.2,
+				ease: "power2.out",
+				scrollTrigger: {
+					trigger: ".index-section-4-row.row",
+					start: "top 85%",
+					scrub: 1
+				},
+			},
+		);
+		section4Trigger = tween.scrollTrigger ?? null;
+	}
+
+	document.addEventListener("astro:page-load", initSection4Reveal);
+
 	document.addEventListener("astro:before-swap", () => {
 		section3Trigger?.kill();
 		section3Trigger = null;
+		section4Trigger?.kill();
+		section4Trigger = null;
 	});
 </script>
 
