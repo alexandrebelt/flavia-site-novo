@@ -190,7 +190,10 @@ const letters = Object.entries(letterModules)
 
 <script>
 	import gsap from "gsap";
+	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { MathUtils } from "three";
+
+	gsap.registerPlugin(ScrollTrigger);
 
 	// Experimental: subtle 3D perspective tilt of the hero title, following
 	// the mouse across the whole viewport. Self-contained — safe to remove
@@ -284,6 +287,11 @@ const letters = Object.entries(letterModules)
 				onComplete: enableHoverTilt,
 			},
 		);
+		gsap.fromTo(
+			".hero-section-wrapper h6",
+			{ opacity: 0 },
+			{ opacity: 1, duration: 1, delay: 1 },
+		);
 	}
 
 	document.addEventListener("astro:page-load", playHeroReveal);
@@ -322,6 +330,40 @@ const letters = Object.entries(letterModules)
 	}
 
 	document.addEventListener("astro:page-load", applyHomeSettings);
+
+	let section3Trigger: ScrollTrigger | null = null;
+
+	function initSection3Reveal() {
+		section3Trigger?.kill();
+
+		const cols = document.querySelectorAll<HTMLElement>(".index-section-3-col");
+		if (!cols.length) return;
+
+		const tween = gsap.fromTo(
+			cols,
+			{ opacity: 0, filter: "blur(30px)" },
+			{
+				opacity: 1,
+				stagger: 1,
+				filter: "blur(0px)",
+				scrollTrigger: {
+					trigger: ".full-height.index-section-3",
+					start: "top top",
+					end: "+=3000",
+					pin: true,
+					pinSpacing: true,
+					scrub: true,
+				},
+			},
+		);
+		section3Trigger = tween.scrollTrigger ?? null;
+	}
+
+	document.addEventListener("astro:page-load", initSection3Reveal);
+	document.addEventListener("astro:before-swap", () => {
+		section3Trigger?.kill();
+		section3Trigger = null;
+	});
 </script>
 
 <style>
@@ -491,9 +533,8 @@ const letters = Object.entries(letterModules)
 		.about-flavia-img-wrapper {
 			display: flex;
 			justify-content: center;
-			
 		}
-		.about-flavia-img-wrapper img{
+		.about-flavia-img-wrapper img {
 			padding-left: calc(var(--padding-sides) + 0.6rem);
 			padding-right: calc(var(--padding-sides) + 0.6rem);
 		}
