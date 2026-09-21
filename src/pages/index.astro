@@ -341,11 +341,10 @@ const letters = Object.entries(letterModules)
 
 		const tween = gsap.fromTo(
 			cols,
-			{ opacity: 0, filter: "blur(30px)" },
+			{ opacity: 0 },
 			{
 				opacity: 1,
 				stagger: 1,
-				filter: "blur(0px)",
 				scrollTrigger: {
 					trigger: ".full-height.index-section-3",
 					start: "top top",
@@ -372,10 +371,9 @@ const letters = Object.entries(letterModules)
 
 		const tween = gsap.fromTo(
 			cols,
-			{ opacity: 0, filter: "blur(30px)" },
+			{ opacity: 0 },
 			{
 				opacity: 1,
-				filter: "blur(0px)",
 				duration: 1,
 				stagger: 0.2,
 				ease: "power2.out",
