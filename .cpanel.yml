@@ -1,0 +1,35 @@
+---
+# Runs automatically when you click "Deploy HEAD Commit" in cPanel's
+# Git™ Version Control (or on push, if you wire that up later). Copies this
+# repo's checkout into the live app directory, installs deps, builds, and
+# restarts the Node.js app (cPanel's Node.js Selector/Passenger watches for
+# tmp/restart.txt and reloads the app when that file's mtime changes).
+#
+# IMPORTANT — before this works, fill in the two TODOs below using the exact
+# values shown on cPanel's "Setup Node.js App" page for this app:
+#   1. NODE_ACTIVATE: the "source .../bin/activate" command shown there
+#      (it embeds the Node version cPanel assigned to the app).
+#   2. Nothing else to fill in — DEPLOYPATH is already set to the directory
+#      from the "cannot use this directory" error, which is this app's root.
+#
+# Data files are preserved on purpose: projects.json, settings.json and
+# public/uploads are edited live by the admin panel on the server. A plain
+# file copy from git would silently overwrite (and lose) whatever was
+# changed through the admin panel since the last deploy, so this task
+# backs them up, copies the new code over, then restores them — the
+# versions in this git repo only matter for the very first deploy (when
+# nothing exists yet to back up).
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home1/epled137/staging.flaviajackeline.com/
+    - export DATAFILES="src/data/projects.json src/data/settings.json"
+    - export BACKUPDIR=/home1/epled137/.deploy-backup-tmp
+    - /bin/mkdir -p $BACKUPDIR
+    - for f in $DATAFILES; do [ -f "$DEPLOYPATH$f" ] && /bin/cp "$DEPLOYPATH$f" "$BACKUPDIR/$(basename $f)" || true; done
+    - if [ -d "$DEPLOYPATH/public/uploads" ]; then /bin/rm -rf "$BACKUPDIR/uploads" && /bin/cp -R "$DEPLOYPATH/public/uploads" "$BACKUPDIR/uploads"; fi
+    - /bin/cp -R * $DEPLOYPATH
+    - for f in $DATAFILES; do [ -f "$BACKUPDIR/$(basename $f)" ] && /bin/cp "$BACKUPDIR/$(basename $f)" "$DEPLOYPATH$f" || true; done
+    - if [ -d "$BACKUPDIR/uploads" ]; then /bin/rm -rf "$DEPLOYPATH/public/uploads" && /bin/cp -R "$BACKUPDIR/uploads" "$DEPLOYPATH/public/uploads"; fi
+    - source /home1/epled137/nodevenv/staging.flaviajackeline.com/TODO_NODE_VERSION/bin/activate && cd $DEPLOYPATH && npm install && npm run build
+    - /bin/mkdir -p $DEPLOYPATH/tmp
+    - /bin/touch $DEPLOYPATH/tmp/restart.txt
