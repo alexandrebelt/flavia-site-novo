@@ -1,0 +1,328 @@
+/* Shared admin UI primitives: cards, tables, forms, buttons, icon buttons. */
+
+.admin-card {
+	background: #fff;
+	border: 1px solid rgba(14, 14, 14, 0.08);
+	border-radius: 10px;
+	padding: 1.5rem;
+	box-shadow: 0 1px 2px rgba(14, 14, 14, 0.04);
+}
+
+.admin-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.admin-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	border: 1px solid var(--color-black);
+	background: var(--color-black);
+	color: #fff;
+	font-family: var(--font-sans);
+	font-size: 0.85rem;
+	padding: 0.6rem 1.15rem;
+	border-radius: 7px;
+	cursor: pointer;
+	text-decoration: none;
+	transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-btn:hover {
+	opacity: 0.85;
+}
+
+.admin-btn:active {
+	transform: scale(0.97);
+}
+
+.admin-btn.secondary {
+	background: transparent;
+	color: var(--color-black);
+	border-color: rgba(14, 14, 14, 0.2);
+}
+
+.admin-btn.secondary:hover {
+	background: rgba(14, 14, 14, 0.04);
+	opacity: 1;
+	border-color: rgba(14, 14, 14, 0.35);
+}
+
+.admin-btn.danger {
+	background: #b3261e;
+	border-color: #b3261e;
+}
+
+.admin-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	transform: none;
+}
+
+/* Small round icon-only buttons: remove, drag handles, etc. Deliberately
+   quiet at rest (no border/background) so they read as affordances on
+   hover, not as extra buttons competing with the primary actions. */
+.icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	flex-shrink: 0;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--color-gray);
+	cursor: pointer;
+	font-size: 1rem;
+	line-height: 1;
+	padding: 0;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.icon-btn:hover {
+	background: rgba(14, 14, 14, 0.06);
+	color: var(--color-black);
+}
+
+.icon-btn.danger:hover {
+	background: rgba(179, 38, 30, 0.1);
+	color: #b3261e;
+}
+
+.icon-btn:active {
+	background: rgba(14, 14, 14, 0.1);
+}
+
+.icon-btn svg {
+	width: 16px;
+	height: 16px;
+}
+
+.icon-btn.drag-handle {
+	cursor: grab;
+}
+
+.icon-btn.drag-handle:active {
+	cursor: grabbing;
+}
+
+.admin-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.admin-table th {
+	text-align: left;
+	text-transform: uppercase;
+	font-size: 0.7rem;
+	letter-spacing: 0.05em;
+	color: var(--color-gray);
+	padding: 0.6rem 0.75rem;
+	border-bottom: 1px solid rgba(14, 14, 14, 0.1);
+}
+
+.admin-table td {
+	padding: 0.75rem;
+	border-bottom: 1px solid rgba(14, 14, 14, 0.06);
+	vertical-align: middle;
+	transition: background-color 0.15s ease;
+}
+
+.admin-table tr:hover td {
+	background: rgba(14, 14, 14, 0.02);
+}
+
+.admin-table tr:last-child td {
+	border-bottom: none;
+}
+
+.admin-table a {
+	color: inherit;
+}
+
+.admin-empty {
+	color: var(--color-gray);
+	padding: 2rem 0;
+	text-align: center;
+}
+
+.admin-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin-bottom: 1.25rem;
+}
+
+.admin-field label {
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--color-dark-gray);
+}
+
+.admin-field input,
+.admin-field select,
+.admin-field textarea {
+	font-family: var(--font-sans);
+	font-size: 0.95rem;
+	padding: 0.65rem 0.8rem;
+	border: 1px solid rgba(14, 14, 14, 0.14);
+	border-radius: 7px;
+	background: #fff;
+	color: var(--color-black);
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-field input::placeholder,
+.admin-field textarea::placeholder {
+	color: var(--color-gray);
+	opacity: 0.8;
+}
+
+.admin-field input:hover,
+.admin-field select:hover,
+.admin-field textarea:hover {
+	border-color: rgba(14, 14, 14, 0.24);
+}
+
+.admin-field input:focus,
+.admin-field select:focus,
+.admin-field textarea:focus {
+	outline: none;
+	border-color: var(--color-black);
+	box-shadow: 0 0 0 3px rgba(14, 14, 14, 0.08);
+}
+
+.admin-field input:disabled {
+	background: var(--color-offwhite);
+	color: var(--color-gray);
+}
+
+.admin-field-row {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 1rem;
+}
+
+.admin-hint {
+	font-size: 0.75rem;
+	color: var(--color-gray);
+}
+
+.admin-form-actions {
+	display: flex;
+	gap: 0.75rem;
+	margin-top: 1.5rem;
+}
+
+.admin-toast {
+	position: fixed;
+	bottom: 1.5rem;
+	right: 1.5rem;
+	background: var(--color-black);
+	color: #fff;
+	padding: 0.75rem 1.25rem;
+	border-radius: 8px;
+	font-size: 0.85rem;
+	box-shadow: 0 8px 24px rgba(14, 14, 14, 0.18);
+	opacity: 0;
+	transform: translateY(8px);
+	transition: opacity 0.2s, transform 0.2s;
+	pointer-events: none;
+}
+
+.admin-toast.visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+.admin-toast.error {
+	background: #b3261e;
+}
+
+.admin-media-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: 1rem;
+}
+
+.admin-media-item {
+	border: 1px solid rgba(14, 14, 14, 0.08);
+	border-radius: 10px;
+	overflow: hidden;
+	background: var(--color-offwhite);
+	transition: box-shadow 0.15s ease;
+}
+
+.admin-media-item:hover {
+	box-shadow: 0 4px 16px rgba(14, 14, 14, 0.1);
+}
+
+.admin-media-item img {
+	width: 100%;
+	aspect-ratio: 1;
+	object-fit: cover;
+	display: block;
+}
+
+.admin-media-item-info {
+	padding: 0.5rem 0.6rem;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.admin-media-item-info span {
+	font-size: 0.7rem;
+	color: var(--color-gray);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-dropzone {
+	border: 2px dashed rgba(14, 14, 14, 0.2);
+	border-radius: 12px;
+	padding: 2.5rem 1.5rem;
+	text-align: center;
+	color: var(--color-gray);
+	margin-bottom: 2rem;
+	cursor: pointer;
+	transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.admin-dropzone:hover {
+	border-color: rgba(14, 14, 14, 0.35);
+}
+
+.admin-dropzone.dragover {
+	border-color: var(--color-black);
+	color: var(--color-black);
+	background: var(--color-offwhite);
+}
+
+.admin-dashboard-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 1rem;
+}
+
+.admin-stat-value {
+	font-family: var(--font-serif);
+	font-size: 2.5rem;
+	font-weight: 200;
+}
+
+.admin-stat-label {
+	font-size: 0.8rem;
+	text-transform: uppercase;
+	color: var(--color-gray);
+	letter-spacing: 0.04em;
+}

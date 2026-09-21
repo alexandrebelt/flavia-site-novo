@@ -1,0 +1,186 @@
+---
+import { Image } from "astro:assets";
+import { projects } from "../data/projects.js";
+import leonBergara from "../assets/1-leonbergara-world-brand-design 1.png";
+
+interface Props {
+	/** Max number of projects to show. Omit to show all of them. */
+	limit?: number;
+}
+
+const { limit } = Astro.props;
+
+const visibleProjects =
+	typeof limit === "number" ? projects.slice(0, limit) : projects;
+const showViewAll = typeof limit === "number";
+---
+
+{
+	visibleProjects.length === 0 ? (
+		<p class="empty">Projects will be added here soon.</p>
+	) : (
+		<ul class="project-list">
+			{visibleProjects.map((project, i) => (
+				<li class="project-item">
+					<a
+						class="project-row row"
+						href={`/portfolio/${project.slug}`}
+					>
+						<div class="project-col project-col--index col">
+							<span class="project-number">
+								{String(i + 1).padStart(2, "0")}
+							</span>
+							<h4>{project.client}</h4>
+						</div>
+
+						<div class="project-col project-col--media col">
+							<Image
+								src={leonBergara}
+								alt={project.client}
+								loading="lazy"
+							/>
+						</div>
+
+						<div class="project-col project-col--meta col">
+							<span class="project-year">{project.year}</span>
+							<p class="project-tags">
+								{[project.category, ...project.tags].join(", ")}
+							</p>
+						</div>
+					</a>
+				</li>
+			))}
+		</ul>
+	)
+}
+
+{
+	showViewAll && (
+		<div class="project-list-footer">
+			<a href="/portfolio" class="btn-primary">
+				View all projects
+			</a>
+		</div>
+	)
+}
+
+<style>
+	.empty {
+		color: var(--color-gray);
+		font-size: 1.05rem;
+	}
+
+	.project-list {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		padding-top: 6rem;
+	}
+
+	.project-row {
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
+		flex-wrap: wrap;
+		row-gap: 1rem;
+		border-top: 1px solid var(--color-dark-gray);
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.project-list .project-item:last-child .project-row {
+		border-bottom: 1px solid var(--color-dark-gray);
+	}
+
+	.project-col {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		/* flex items default to min-width: auto, which blocks shrinking
+		   below the content's natural width — that's what was pushing
+		   these columns (and their text) past the viewport instead of
+		   wrapping/shrinking. */
+		min-width: 0;
+	}
+
+	.project-col--index {
+		flex: 1 1 12rem;
+		padding-top: 2em;
+	}
+	.project-col--index h4 {
+		margin: 0;
+	}
+	.project-col--media {
+		flex: 1 1 14rem;
+	}
+
+	.project-col--meta {
+		flex: 1 1 12rem;
+		text-transform: uppercase;
+		align-self: center;
+		padding-left: clamp(0px, 4vw, 5rem);
+	}
+
+	.project-number {
+		font-size: var(--font-size-h6);
+		color: var(--color-gray);
+	}
+
+	.project-col--index h3 {
+		margin: 0;
+	}
+
+	.project-col--media img {
+		width: 100%;
+		aspect-ratio: 36/20;
+		object-fit: cover;
+		height: auto;
+		display: block;
+	}
+
+	.project-year {
+		font-size: var(--font-size-h6);
+		color: var(--color-gray);
+	}
+
+	.project-tags {
+		margin: 0;
+		color: var(--color-gray);
+		overflow-wrap: anywhere;
+		font-size: 13px;
+	}
+
+	.project-list-footer {
+		display: flex;
+		justify-content: flex-end;
+		padding-top: 2rem;
+	}
+
+	@media (max-width: 800px) {
+		.project-list {
+			padding-top: 3rem !important;
+		}
+	}
+	@media (max-width: 667px) {
+		.project-list-footer {
+			justify-content: center !important;
+		}
+		.project-col.project-col--media.col {
+			order: 3;
+			padding-bottom: 5rem;
+		}
+		.project-col.project-col--index.col {
+			padding-top: 1rem;
+		}
+		.project-col.project-col--meta.col {
+			align-self: auto;
+			padding-top: 1rem;
+		}
+	}
+	@media (max-width: 462px) {
+		.project-col.project-col--meta.col {
+			padding-left: 0;
+			padding-top: 1rem;
+		}
+	}
+</style>

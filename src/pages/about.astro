@@ -1,0 +1,275 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+import Page from "../components/Page.astro";
+import HeroFlavia from "../assets/flavia-jackeline2.webp";
+import ExperiencesText from "../components/ExperiencesText.astro";
+import CtaInquire from "../components/CtaInquire.astro";
+---
+
+<Layout
+	title="Flávia — About"
+	description="Founded by Brazilian designer Flávia Jackeline, the studio has developed more than 150 brand identity projects for clients across 13+ countries."
+>
+	<section class="full-height hero-about-section">
+		<div class="hero-about-wrapper">
+			<img
+				id="about-hero-img"
+				src={HeroFlavia.src}
+				alt="Flávia Jackeline"
+			/>
+			<div class="hero-about-section-row row limit">
+				<span>
+					Flavia jackeline <br />Brand Designer
+				</span>
+				<span>
+					Creating refined identities<br />for thoughtful brands.
+				</span>
+				<span>
+					Minimal, strategic, <br />and quietly distinctive.
+				</span>
+				<span>
+					Based in Brazil<br />working worldwide.
+				</span>
+			</div>
+		</div>
+	</section>
+	<section class="full-height about-section-2">
+		<div class="about-section-2-wrapper limit">
+			<div class="about-section-2-row row">
+				<div class="about-section-2-col col">
+					<h4>
+						Flávia Jackeline is an independent Brazilian brand
+						studio creating distinctive identities for brands that
+						value considered design.
+					</h4>
+					<div class="about-section-2-contact-row">
+						<ul class="about-section-social-media-ul">
+							<li>Email</li>
+							<li>Instagram</li>
+							<li>Linkedin</li>
+							<li>Behance</li>
+						</ul>
+					</div>
+				</div>
+				<div class="about-section-2-col col">
+					<div class="about-section-2-col-wrapper">
+						<p>
+							Founded and led by Brazilian designer Flávia
+							Jackeline, the studio works with founders and
+							businesses across fashion, hospitality, wellness,
+							beauty and other design-led industries around the
+							world.
+						</p>
+						<p>
+							With a background in Fashion Design, Graphic Design
+							and an MBA in Digital Design and Branding, Flávia
+							brings a particular sensitivity to typography,
+							composition, materiality and detail. This
+							multidisciplinary perspective shapes the studio’s
+							approach to identity, combining visual refinement
+							with thoughtful direction and a strong understanding
+							of how brands need to function in the real world.
+						</p>
+						<p>
+							Over seven years, the studio has developed more than
+							150 projects for clients across 13+ countries, with
+							work recognized by Behance, Best of Behance, the
+							World Brand Design Society, Brands On Cue and other
+							international design platforms.
+						</p>
+						<p>
+							Every project is led personally by Flávia from
+							initial direction through final delivery, with
+							trusted collaborators brought in only when the scope
+							calls for it.
+						</p>
+					</div>
+				</div>
+			</div>
+			<div class="about-section-2-row row">
+				<ExperiencesText />
+			</div>
+		</div>
+	</section>
+	<section class="full-height about-section-3 bg-black">
+		<div class="about-section-3-wrapper limit">
+			<div class="about-section-3-row row">
+				<div class="about-section-3-col col">
+					<h6>SELECTED RECOGNITION</h6>
+				</div>
+				<div class="about-section-3-col col">
+					<ul id="about-recognitions-list">
+						<li>Behance — 12 Featured Projects ↑</li>
+						<li>World Brand Design Society — Cedar Coast ↑</li>
+						<li>Kittl — Women in Graphic Design ↑</li>
+						<li>Behance — Best of 2024 ↑</li>
+						<li>Brands On Cue — Featured Designer ↑</li>
+						<li>Brands On Cue — Vol. 1, Featured in Book ↑</li>
+						<li>Design do Brasil — Selected Designer ↑</li>
+						<li>Abduzeedo — Bruno X ↑</li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</section>
+	<CtaInquire />
+</Layout>
+
+<script>
+	async function applyAboutSettings() {
+		const heroImg = document.getElementById(
+			"about-hero-img",
+		) as HTMLImageElement | null;
+		const list = document.getElementById(
+			"about-recognitions-list",
+		) as HTMLUListElement | null;
+		if (!heroImg && !list) return;
+		try {
+			const res = await fetch("/api/site-settings");
+			if (!res.ok) return;
+			const { about } = await res.json();
+
+			if (heroImg && about?.heroImageUrl)
+				heroImg.src = about.heroImageUrl;
+
+			if (
+				list &&
+				Array.isArray(about?.recognitions) &&
+				about.recognitions.length > 0
+			) {
+				list.innerHTML = "";
+				for (const text of about.recognitions) {
+					const li = document.createElement("li");
+					li.textContent = text;
+					list.appendChild(li);
+				}
+			}
+		} catch {
+			// keep the bundled defaults on any error
+		}
+	}
+
+	document.addEventListener("astro:page-load", applyAboutSettings);
+</script>
+
+<style is:global>
+	/* #about-recognitions-list is rebuilt at runtime (applyAboutSettings)
+	   with freshly created <li> elements, which never get Astro's
+	   scoped-style attribute — this whole block has to be global. */
+	.hero-about-section {
+		max-height: 100vh;
+		overflow: hidden;
+		position: relative;
+	}
+	.hero-about-wrapper {
+		width: 100%;
+	}
+	.hero-about-section img {
+		width: 100vw;
+		position: absolute;
+		left: 50%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		z-index: 1;
+	}
+	.hero-about-section-row {
+		position: relative;
+		z-index: 2;
+		width: 100%;
+		display: flex;
+		align-self: stretch;
+		justify-content: space-between;
+	}
+	.hero-about-section-row span {
+		color: var(--color-offwhite);
+		text-transform: uppercase;
+	}
+	.hero-about-section-row span:nth-of-type(1),
+	.hero-about-section-row span:nth-last-of-type(1) {
+		font-weight: 500;
+	}
+	.about-section-2-row.row {
+		justify-content: space-between;
+	}
+
+	.about-section-2-contact-row ul {
+		flex-direction: row;
+		display: flex;
+		gap: 1.2rem;
+		padding: 0;
+		text-transform: uppercase;
+		font-size: 10px;
+		padding-top: 2em;
+	}
+	.about-section-2-contact-row li {
+		align-content: center !important;
+		justify-content: center;
+		display: flex;
+	}
+	.about-section-2-col:nth-of-type(1) {
+		max-width: clamp(46ch, 35vw, 53ch);
+	}
+	.about-section-2-col:nth-of-type(2) {
+		max-width: 57ch;
+	}
+	.about-section-2-contact-row li::before {
+		content: "●";
+		margin-right: 8px;
+	}
+	.about-section-2-wrapper.limit {
+		display: flex;
+		flex-direction: column;
+		align-self: stretch;
+		justify-content: space-between;
+	}
+	.about-section-3-row.row h6 {
+		letter-spacing: 0.05em;
+	}
+	.full-height.about-section-3 {
+		align-items: baseline;
+	}
+	.about-section-3-row.row {
+		justify-content: space-between;
+	}
+	#about-recognitions-list li {
+		display: flex;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+		width: fit-content;
+		margin-bottom: 3px;
+	}
+
+	@media (max-width: 885px) {
+		.hero-about-section-row.row.limit {
+			flex-direction: column;
+			gap: 1rem;
+		}
+		.hero-about-section-row span {
+			font-size: clamp(10px, 1.8vw, 16px) !important;
+		}
+		.hero-about-wrapper img {
+			height: 100%;
+			object-fit: cover;
+		}
+		.about-section-2-row {
+			flex-direction: column;
+			gap: 3rem;
+		}
+		.about-section-2-col:nth-of-type(2) {
+			max-width: 100% !important;
+		}
+		.about-section-2-col.col {
+			max-width: 100%;
+		}
+		.about-section-3-row.row {
+			flex-direction: column;
+		}
+		.about-section-3-row.row ul {
+			padding: 0;
+			padding-top: 1rem;
+		}
+		.full-height.about-section-3 {
+			min-height: auto;
+		}
+	}
+</style>

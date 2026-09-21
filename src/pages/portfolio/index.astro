@@ -1,0 +1,58 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import Page from "../../components/Page.astro";
+import ProjectsGrid from "../../components/ProjectsGrid.astro";
+---
+
+<Layout
+	title="Flávia — Portfolio"
+	description="A collection of brand identity projects built for founders who treat branding as an investment — distinctive, considered and built to last."
+>
+	<section class="portfolio-section limit">
+		<div class="portfolio-top-section-row row">
+			<div class="portfolio-top-section-col col">
+				<h5>
+					A collection of identities built for founders who treat
+					branding as an investment.
+				</h5>
+			</div>
+			<div class="portfolio-top-section-col col">
+				<p>
+					Each project is shaped into a distinct visual world,
+					designed to feel considered, ownable and built to last.
+				</p>
+			</div>
+		</div>
+
+		<ProjectsGrid />
+	</section>
+</Layout>
+
+<style>
+	.portfolio-top-section-row {
+		width: 100%;
+		align-items: flex-start;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 2rem;
+	}
+	.portfolio-top-section-col {
+		max-width: clamp(450px, 45vw, 560px);
+	}
+	.portfolio-top-section-col p {
+		max-width: 25rem;
+	}
+
+	@media(max-width: 941px){
+		.portfolio-top-section-row{
+			gap: 0;
+		} 
+	}
+	@media(max-width: 695px){
+		.portfolio-section{
+			padding-bottom: 0 !important;
+		}
+	}
+		
+</style>

@@ -1,0 +1,289 @@
+/* ---------------------------------------------------------------------------
+   Fonts
+   Files live in /public/fonts and are served from the site root.
+--------------------------------------------------------------------------- */
+
+/* Hanken Grotesk — variable weight axis (100–900) */
+@font-face {
+	font-family: "Hanken Grotesk";
+	src: url("/fonts/Hanken_Grotesk/HankenGrotesk-VariableFont_wght.ttf")
+		format("truetype-variations");
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Hanken Grotesk";
+	src: url("/fonts/Hanken_Grotesk/HankenGrotesk-Italic-VariableFont_wght.ttf")
+		format("truetype-variations");
+	font-weight: 100 900;
+	font-style: italic;
+	font-display: swap;
+}
+
+/* Ivy Presto Display — static weights */
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-Thin.otf")
+		format("opentype");
+	font-weight: 100;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-ThinItalic.otf")
+		format("opentype");
+	font-weight: 100;
+	font-style: italic;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-Light.otf")
+		format("opentype");
+	font-weight: 300;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-LightItalic.otf")
+		format("opentype");
+	font-weight: 300;
+	font-style: italic;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-Regular.otf")
+		format("opentype");
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-RegularItalic.otf")
+		format("opentype");
+	font-weight: 400;
+	font-style: italic;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-SemiBold.otf")
+		format("opentype");
+	font-weight: 600;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-SemiBoldItalic.otf")
+		format("opentype");
+	font-weight: 600;
+	font-style: italic;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-Bold.otf")
+		format("opentype");
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Ivy Presto Display";
+	src: url("/fonts/Ivy%20Presto%20Display/IvyPrestoDisplay-BoldItalic.otf")
+		format("opentype");
+	font-weight: 700;
+	font-style: italic;
+	font-display: swap;
+}
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+html, body{
+	overflow-x: hidden;
+}
+:root {
+	--max-width-page: 1310px;
+
+	--color-black: rgba(14, 14, 14, 1);
+	--color-offwhite: rgba(249, 247, 242, 1);
+	--color-gray: rgba(109, 109, 109, 1);
+	--color-dark-gray: rgba(61, 61, 49, 1);
+
+	--font-sans: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", Roboto,
+		sans-serif;
+	--font-serif: "Ivy Presto Display", Georgia, "Times New Roman", serif;
+
+	--font-size-body: clamp(0.8438rem, 0.5rem + 1.27vw, 1.125rem); /* 15px → 18px */
+	--font-size-h1: clamp(2.5rem, 1.25rem + 6.25vw, 6.575rem); /* 40px → 110px */
+	--font-size-h2: clamp(2.125rem, 1.07rem + 5.27vw, 5.8125rem); /* 34px → 93px */
+	--font-size-h4: clamp(1.5rem, 1.21rem + 1.43vw, 2.5rem); /* 24px → 40px */
+	--font-size-h5: clamp(1.375rem, 1.14rem + 1.16vw, 2.0875rem); /* 22px → 35px */
+	--font-size-h6: clamp(0.55rem, 0.73rem + 0.09vw, 0.8125rem); /* 12px → 13px */
+
+	--padding-sides: 30px;
+}
+
+body {
+	font-family: var(--font-sans);
+	font-weight: 300;
+}
+
+p {
+	font-size: var(--font-size-body);
+}
+
+strong{
+	font-weight: 400;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	margin: 0;
+}
+
+h1 {
+	font-size: var(--font-size-h1);
+	font-family: var(--font-serif);
+	font-weight: 200;
+}
+
+h2 {
+	font-size: var(--font-size-h2);
+	font-family: var(--font-serif);
+	font-weight: 200;
+}
+
+h4 {
+	font-size: var(--font-size-h4);
+	font-family: var(--font-serif);
+	font-weight: 200;
+}
+
+h5 {
+	font-size: var(--font-size-h5);
+	font-family: var(--font-serif);
+	font-weight: 200;
+}
+
+h6 {
+	font-size: var(--font-size-h6);
+	font-weight: 500;
+	text-transform: uppercase;
+}
+.small-title{
+	font-weight: 500;
+	font-size: clamp(0.9375rem, 0.88rem + 0.27vw, 1.125rem);
+}
+.h6-letter-spacing{
+	letter-spacing: 0.2em;
+}
+.btn-primary{
+	color:inherit;
+	border-bottom:1px solid var(--color-black);
+	width:fit-content;
+	text-decoration:none;
+	padding: 0 0.2em;
+	text-transform:uppercase;
+	font-weight:300;
+}
+.btn-secondary{
+	color:inherit;
+	border:1px solid var(--color-black);
+	width:fit-content;
+	text-decoration:none;
+	padding: 0.5em 3em;
+	text-transform:uppercase;
+	font-weight:300;
+	letter-spacing: 0.1em;;
+}
+.bg-black .btn-secondary, .bg-gray .btn-secondary, .bg-dark-gray .btn-secondary{
+	border:1px solid white;
+}
+.bg-black .btn-primary, .bg-gray .btn-primary, .bg-dark-gray .btn-primary{
+	border-bottom:1px solid white;
+}
+
+.bg-black {
+	background-color: var(--color-black);
+	color: var(--color-offwhite);
+}
+
+.bg-gray {
+	background-color: var(--color-gray);
+	color: var(--color-offwhite);
+}
+.bg-dark-gray {
+	background-color: var(--color-dark-gray);
+	color: var(--color-offwhite);
+}
+.center-content{
+	text-align:center;
+	display:flex;
+	flex-direction:column;
+	margin:0 auto;
+	align-items:center;
+}
+
+.limit{
+	padding:6em var(--padding-sides);
+	max-width: var(--max-width-page);
+	margin: 0 auto;
+	width:100%;
+}
+
+section.full-height {
+	min-height: max(700px, calc(100vh - var(--header-total-height)));
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.row {
+	flex-direction: row;
+	display: flex;
+}
+
+.col {
+	flex-direction: column;
+	display: flex;
+}
+
+/* Shared hero pattern: a heading + subtext stretched apart inside a
+   full-height section, with the heading's letters split and revealed one
+   by one (see src/scripts/hero-letter-reveal.ts). Used by /services and
+   /inquire so far. */
+.hero-reveal-wrapper {
+	align-self: stretch;
+	justify-content: space-between;
+}
+
+.hero-reveal-wrapper h1 {
+	perspective: 800px;
+}
+
+.hero-reveal-word {
+	display: inline-block;
+	/* Letters are grandchildren of the perspective-holding h1 (h1 > word >
+	   letter), not direct children — without preserve-3d here, the word
+	   wrapper flattens each letter's rotateY into 2D before it reaches the
+	   h1's perspective context, so the tilt renders but looks flat. */
+	transform-style: preserve-3d;
+}
+
+.hero-reveal-letter {
+	display: inline-block;
+	backface-visibility: hidden;
+}

@@ -1,0 +1,30 @@
+<div class="experiences-text">
+	<h5 id="experiences-text-content">
+		( 150+ Projects developed · 7 Years of experience · 13+ Countries · 19+
+		Features & Recognitions )
+	</h5>
+</div>
+
+<script>
+	async function applyAchievementsText() {
+		const el = document.getElementById("experiences-text-content");
+		if (!el) return;
+		try {
+			const res = await fetch("/api/site-settings");
+			if (!res.ok) return;
+			const { home } = await res.json();
+			if (home?.achievementsText) el.textContent = home.achievementsText;
+		} catch {
+			// keep the default text on any error
+		}
+	}
+
+	document.addEventListener("astro:page-load", applyAchievementsText);
+</script>
+<style>
+	.experiences-text {
+		margin: 0 auto !important;
+		text-align: center;
+		padding-top: 3rem;
+	}
+</style>

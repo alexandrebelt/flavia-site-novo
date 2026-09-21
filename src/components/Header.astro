@@ -1,0 +1,344 @@
+---
+const { pathname } = Astro.url;
+
+const links = [
+	{ href: "/", label: "Home" },
+	{ href: "/services", label: "Services" },
+	{ href: "/about", label: "About" },
+	{ href: "/portfolio", label: "Portfolio" },
+	{ href: "/inquire", label: "Inquire" },
+];
+
+const isContact = pathname === "/inquire" || pathname.startsWith("/inquire/");
+
+const isActive = (href: string) =>
+	href === "/" ? pathname === "/" : pathname.startsWith(href);
+---
+
+<header class="site-header" data-contact={String(isContact)}>
+	<div class="banner">
+		<span class="banner-dot" aria-hidden="true"></span>
+		<p id="banner-text">Currently accepting new projects for 2026</p>
+	</div>
+
+	<nav>
+		<div class="nav-buttons">
+
+			<button
+				class="btn-menu"
+				type="button"
+				aria-label="Toggle menu"
+				aria-expanded="false"
+			>
+				<span class="btn-menu-wrap">
+					<span class="btn-menu-bar"></span>
+					<span class="btn-menu-bar"></span>
+					<span class="btn-menu-bar"></span>
+				</span>
+			</button>
+		</div>
+
+		<div class="side-menu">
+			<div class="menu-content">
+				{
+					links.map((link) => (
+						<a
+							href={link.href}
+							data-path={link.href}
+							class:list={["link-wrap", { active: isActive(link.href) }]}
+						>
+							<h4 class="link-menu">{link.label}</h4>
+						</a>
+					))
+				}
+			</div>
+		</div>
+	</nav>
+</header>
+
+<script>
+	function syncActiveLink() {
+		const path = window.location.pathname;
+		document
+			.querySelectorAll<HTMLAnchorElement>(".menu-content .link-wrap")
+			.forEach((link) => {
+				const href = link.dataset.path ?? "/";
+				const active = href === "/" ? path === "/" : path.startsWith(href);
+				link.classList.toggle("active", active);
+			});
+	}
+
+	function bindHeader() {
+		const btn = document.querySelector<HTMLButtonElement>(".btn-menu");
+		const menu = document.querySelector<HTMLElement>(".menu-content");
+		if (!btn || !menu || btn.dataset.ready) return;
+		btn.dataset.ready = "1";
+
+		const setOpen = (open: boolean) => {
+			menu.classList.toggle("active-menu", open);
+			btn.classList.toggle("active-btn", open);
+			btn.setAttribute("aria-expanded", String(open));
+			document.body.classList.toggle("menu-open", open);
+		};
+
+		// Wave on hover — always plays a full cycle, even if the mouse
+		// leaves mid-animation.
+		const bars = btn.querySelectorAll(".btn-menu-bar");
+		const lastBar = bars[bars.length - 1];
+		btn.addEventListener("mouseenter", () => {
+			if (btn.classList.contains("wave") || btn.classList.contains("active-btn"))
+				return;
+			btn.classList.add("wave");
+		});
+		lastBar?.addEventListener("animationend", () => btn.classList.remove("wave"));
+
+		btn.addEventListener("click", () =>
+			setOpen(!menu.classList.contains("active-menu")),
+		);
+		menu.querySelectorAll("a").forEach((a) =>
+			a.addEventListener("click", () => setOpen(false)),
+		);
+		document.addEventListener("keydown", (e) => {
+			if (e.key === "Escape") setOpen(false);
+		});
+		document.addEventListener("astro:before-swap", () => setOpen(false));
+	}
+
+	async function applyBannerText() {
+		const el = document.getElementById("banner-text");
+		if (!el) return;
+		try {
+			const res = await fetch("/api/site-settings");
+			if (!res.ok) return;
+			const { bannerText } = await res.json();
+			if (bannerText) el.textContent = bannerText;
+		} catch {
+			// keep the bundled default text on any error
+		}
+	}
+
+	document.addEventListener("astro:page-load", () => {
+		bindHeader();
+		syncActiveLink();
+		applyBannerText();
+	});
+</script>
+
+<style>
+	.site-header {
+		--header-transition: 0.6s cubic-bezier(0.76, 0, 0.24, 1);
+	}
+
+	/* Top banner strip */
+	.banner {
+		position: fixed;
+		inset: 0 0 auto 0;
+		z-index: 1005;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 10px;
+		height: 20px;
+		background: var(--color-black);
+		color: var(--color-offwhite);
+	}
+
+	.banner-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: #fff;
+		flex-shrink: 0;
+		animation: banner-dot-pulse 2s ease-in-out infinite;
+	}
+
+	@keyframes banner-dot-pulse {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.15;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.banner-dot {
+			animation: none;
+		}
+	}
+
+	.banner p {
+		margin: 0;
+		font-size: 11px;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+
+	/* Fixed top row: brand + hamburger */
+	nav{
+		width: 100%;
+	}
+	.nav-buttons {
+		position: fixed;
+		z-index: 1010;
+		display: flex;
+		right: 0;
+		top: 2em;
+		align-items: center;
+		justify-content: space-between;
+		max-width: 1260px;
+		padding: 0 30px;
+		mix-blend-mode: difference;
+	}
+
+	.brand {
+		font-family: var(--font-serif);
+		font-size: 18px;
+		color: var(--color-offwhite);
+		text-decoration: none;
+		transition: var(--header-transition);
+	}
+
+	.brand:hover {
+		font-style: italic;
+	}
+
+	.btn-menu {
+		display: flex;
+		align-items: center;
+		padding: 0;
+		border: 0;
+		background: none;
+		cursor: pointer;
+		aspect-ratio: 1;
+		transition: var(--header-transition);
+	}
+	
+	.btn-menu-wrap {
+		flex-direction: column;
+		display: flex;
+		gap: 4px;
+		transition: .3s;
+	}
+
+	.btn-menu-bar {
+		display: block;
+		width: 20px;
+		height:2px;
+		background-color: var(--color-offwhite);
+		transition: background-color var(--header-transition);
+	}
+
+	.btn-menu.wave .btn-menu-bar {
+		animation: btn-wave 0.4s ease-in-out;
+	}
+
+	.btn-menu.wave .btn-menu-bar:nth-child(1) {
+		animation-delay: 0s;
+	}
+
+	.btn-menu.wave .btn-menu-bar:nth-child(2) {
+		animation-delay: 0.07s;
+	}
+
+	.btn-menu.wave .btn-menu-bar:nth-child(3) {
+		animation-delay: 0.14s;
+	}
+	.btn-menu.active-btn .btn-menu-bar{
+		animation: unset;
+		height: 1px;
+	}
+
+	@keyframes btn-wave {
+		0%,
+		100% {
+			transform: translateX(0);
+		}
+		50% {
+			transform: translateX(-5px);
+		}
+	}
+
+	.btn-menu.active-btn {
+		mix-blend-mode: normal;
+	}
+
+	.btn-menu.active-btn .btn-menu-bar {
+		background-color: var(--color-gray);
+	}
+	.btn-menu.active-btn .btn-menu-wrap {
+		gap:0px;
+	}
+
+	/* Fullscreen overlay menu */
+	.side-menu {
+		position: relative;
+		z-index: 1000;
+	}
+
+	.menu-content {
+		position: fixed;
+		inset: 0;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		opacity: 0;
+		background-color: var(--color-offwhite);
+		transform: translateX(-150vw);
+		transition: var(--header-transition);
+	}
+
+	.menu-content.active-menu {
+		opacity: 1;
+		transform: translateX(0);
+	}
+
+	.link-wrap {
+		text-decoration: none;
+		color: var(--color-black);
+		transition: var(--header-transition);
+	}
+
+	.link-menu {
+		line-height: 1.5em;
+		font-size: 62px;
+	}
+
+	.link-wrap:hover .link-menu,
+	.link-wrap.active .link-menu {
+		font-style: italic;
+	}
+
+	/* Contact / Inquire page: drop blend mode, use dark tones */
+	.site-header[data-contact="true"] .nav-buttons {
+		mix-blend-mode: unset;
+	}
+
+	.site-header[data-contact="true"] .brand,
+	.site-header[data-contact="true"] .btn-menu-bar {
+		color: var(--color-dark-gray);
+		background-color: var(--color-dark-gray);
+	}
+
+	.site-header[data-contact="true"] .brand {
+		background-color: transparent;
+	}
+
+	:global(body.menu-open) {
+		overflow: hidden;
+	}
+
+	@media (max-width: 800px) {
+		.nav-buttons {
+			top: 30px;
+		}
+
+		.link-menu {
+			font-size: 40px;
+		}
+	}
+</style>

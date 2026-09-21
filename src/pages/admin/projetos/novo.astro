@@ -1,0 +1,10 @@
+---
+export const prerender = false;
+
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import ProjectForm from "../../../components/admin/ProjectForm.astro";
+---
+
+<AdminLayout title="Novo projeto">
+	<ProjectForm mode="create" />
+</AdminLayout>

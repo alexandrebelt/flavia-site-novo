@@ -1,0 +1,639 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+import Page from "../components/Page.astro";
+
+const scopeOptions = [
+	{ label: "Brand Strategy" },
+	{ label: "Brand Identity" },
+	{
+		label: "Social Media Kit",
+		children: [
+			"Digital",
+			"Print & Stationery",
+			"Packaging",
+			"Motion",
+			"Illustration",
+		],
+	},
+];
+---
+
+<Layout title="Flávia — Inquire">
+	<section class="full-height inquire-hero-section bg-black">
+		<div
+			class="inquire-hero-wrapper hero-reveal-wrapper limit center-content"
+		>
+			<h1>Start a project</h1>
+			<h6>
+				Have a new brand in the works, or feel like your current
+				identity no longer reflects where your business is going? Tell
+				me a little about your project below. I’d love to learn more
+				about what you’re building and see how I can help.
+			</h6>
+		</div>
+	</section>
+	<section class="inquire-section-2">
+		<div class="inquire-section-2-wrapper limit">
+			<form class="inquire-form" id="inquiry-form">
+				<div class="inquire-form-col">
+					<div class="field">
+						<input
+							type="text"
+							id="full-name"
+							name="fullName"
+							placeholder="Full Name"
+							aria-label="Full Name"
+							required
+						/>
+					</div>
+
+					<div class="field">
+						<input
+							type="text"
+							id="location"
+							name="location"
+							placeholder="Location"
+							aria-label="Location"
+						/>
+					</div>
+
+					<div class="field">
+						<input
+							type="text"
+							id="country"
+							name="country"
+							placeholder="Country"
+							aria-label="Country"
+						/>
+					</div>
+
+					<div class="field">
+						<input
+							type="email"
+							id="email"
+							name="email"
+							placeholder="Email Address"
+							aria-label="Email Address"
+							required
+						/>
+					</div>
+
+					<div class="field">
+						<input
+							type="tel"
+							id="phone"
+							name="phone"
+							placeholder="Contact Phone"
+							aria-label="Contact Phone"
+						/>
+					</div>
+
+					<div class="field">
+						<input
+							type="text"
+							id="website"
+							name="website"
+							placeholder="Website"
+							aria-label="Website"
+						/>
+					</div>
+
+					<div class="field">
+						<input
+							type="text"
+							id="instagram"
+							name="instagram"
+							placeholder="Instagram"
+							aria-label="Instagram"
+						/>
+					</div>
+
+					<div class="field">
+						<input
+							type="text"
+							id="found-studio"
+							name="foundStudio"
+							placeholder="How did you find the studio?"
+							aria-label="How did you find the studio?"
+						/>
+					</div>
+
+					<div class="field">
+						<select
+							id="proposal-method"
+							name="proposalMethod"
+							aria-label="How would you prefer to receive the proposal?"
+						>
+							<option value="" selected disabled
+								>How would you prefer to receive the proposal?</option
+							>
+							<option value="email">Email</option>
+							<option value="whatsapp">Whatsapp</option>
+						</select>
+					</div>
+
+					<fieldset class="field scope-field">
+						<legend>Scope (select all that apply)</legend>
+						<div class="scope-options">
+							{
+								scopeOptions.map((option) => (
+									<div class="scope-item">
+										<label class="scope-option">
+											<input
+												type="checkbox"
+												name="scope"
+												value={option.label}
+												class:list={[
+													"scope-parent-input",
+													{
+														"has-children":
+															option.children,
+													},
+												]}
+											/>
+											<span class="scope-dot" />
+											{option.label}
+										</label>
+										{option.children && (
+											<div class="scope-suboptions">
+												<div class="scope-suboptions-inner">
+													{option.children.map(
+														(child) => (
+															<label class="scope-option scope-option--sub">
+																<input
+																	type="checkbox"
+																	name="scope"
+																	value={
+																		child
+																	}
+																/>
+																<span class="scope-dot scope-dot--sub" />
+																{child}
+															</label>
+														),
+													)}
+												</div>
+											</div>
+										)}
+									</div>
+								))
+							}
+						</div>
+					</fieldset>
+				</div>
+
+				<div class="inquire-form-col">
+					<div class="field">
+						<input
+							type="text"
+							id="business"
+							name="business"
+							placeholder="Business"
+							aria-label="Business"
+						/>
+					</div>
+
+					<div class="field">
+						<input
+							type="text"
+							id="brand-name"
+							name="brandName"
+							placeholder="Brand Name"
+							aria-label="Brand Name"
+						/>
+					</div>
+
+					<div class="field">
+						<textarea
+							id="business-description"
+							name="businessDescription"
+							rows="3"
+							placeholder="What does your business do?"
+							aria-label="What does your business do?"></textarea>
+					</div>
+
+					<div class="field">
+						<select
+							id="project-type"
+							name="projectType"
+							aria-label="Project Type"
+						>
+							<option value="" selected disabled
+								>Project Type</option
+							>
+							<option value="new-brand">New brand</option>
+							<option value="redesign">Redesign</option>
+						</select>
+					</div>
+
+					<div class="field">
+						<select
+							id="launch-timing"
+							name="launchTiming"
+							aria-label="When would you like to launch?"
+						>
+							<option value="" selected disabled
+								>When would you like to launch?</option
+							>
+							<option value="asap">As soon as possible</option>
+							<option value="45-days">Within 45 days</option>
+							<option value="60-days">Within 60 days</option>
+							<option value="90-days">Within 90 days</option>
+							<option value="flexible">I’m flexible</option>
+						</select>
+					</div>
+
+					<div class="field">
+						<input
+							type="text"
+							id="investment-range"
+							name="investmentRange"
+							placeholder="Investment range"
+							aria-label="Investment range"
+						/>
+					</div>
+
+					<div class="field">
+						<textarea
+							id="project-details"
+							name="projectDetails"
+							rows="3"
+							placeholder="Tell me about your project"
+							aria-label="Tell me about your project"></textarea>
+					</div>
+
+					<div class="inquire-submit-row">
+						<button type="submit" class="btn-secondary" id="inquiry-submit-btn"
+							>Send Inquiry</button
+						>
+						<p id="inquiry-status" class="inquire-status" role="status"></p>
+					</div>
+
+					<div class="inquire-contact-info">
+						<h5>
+							Brazil · UTC−3 · <span id="brazil-clock">--:--</span
+							>
+						</h5>
+						<p>
+							<a href="tel:+5541988531707">+55 41 98853-1707</a>
+						</p>
+						<p>
+							<a href="mailto:studio@flaviajackeline.com"
+								>studio@flaviajackeline.com</a
+							>
+						</p>
+					</div>
+				</div>
+			</form>
+		</div>
+	</section>
+</Layout>
+
+<script>
+	import { playHeroLetterReveal } from "../scripts/hero-letter-reveal";
+
+	document.addEventListener("astro:page-load", playHeroLetterReveal);
+
+	function bindScopeToggles() {
+		document
+			.querySelectorAll<HTMLInputElement>(
+				".scope-parent-input.has-children",
+			)
+			.forEach((input) => {
+				const item = input.closest(".scope-item");
+				if (!item) return;
+				item.classList.toggle("expanded", input.checked);
+				input.addEventListener("change", () => {
+					item.classList.toggle("expanded", input.checked);
+				});
+			});
+	}
+
+	document.addEventListener("astro:page-load", bindScopeToggles);
+
+	let clockInterval: ReturnType<typeof setInterval> | null = null;
+
+	function startBrazilClock() {
+		if (clockInterval) clearInterval(clockInterval);
+		const el = document.getElementById("brazil-clock");
+		if (!el) return;
+
+		const formatter = new Intl.DateTimeFormat("en-GB", {
+			timeZone: "America/Sao_Paulo",
+			hour: "2-digit",
+			minute: "2-digit",
+			hour12: false,
+		});
+		const update = () => {
+			el.textContent = formatter.format(new Date());
+		};
+		update();
+		clockInterval = setInterval(update, 1000);
+	}
+
+	document.addEventListener("astro:page-load", startBrazilClock);
+	document.addEventListener("astro:before-swap", () => {
+		if (clockInterval) clearInterval(clockInterval);
+		clockInterval = null;
+	});
+
+	function bindInquiryForm() {
+		const form = document.getElementById("inquiry-form") as HTMLFormElement | null;
+		const submitBtn = document.getElementById("inquiry-submit-btn") as HTMLButtonElement | null;
+		const status = document.getElementById("inquiry-status");
+		if (!form || !submitBtn || !status || form.dataset.bound) return;
+		form.dataset.bound = "true";
+
+		form.addEventListener("submit", async (e) => {
+			e.preventDefault();
+			submitBtn.disabled = true;
+			status.textContent = "Sending…";
+			status.classList.remove("error");
+
+			const formData = new FormData(form);
+			const scope = formData.getAll("scope");
+			const payload: Record<string, unknown> = Object.fromEntries(
+				[...formData.entries()].filter(([key]) => key !== "scope"),
+			);
+			payload.scope = scope;
+
+			try {
+				const res = await fetch("/api/inquiry", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload),
+				});
+				const data = await res.json().catch(() => ({}));
+
+				if (!res.ok) throw new Error(data.error || "Something went wrong.");
+
+				status.textContent = "Thanks — I’ll be in touch soon.";
+				form.reset();
+			} catch (err) {
+				status.classList.add("error");
+				status.textContent =
+					err instanceof Error ? err.message : "Something went wrong. Please try again.";
+			} finally {
+				submitBtn.disabled = false;
+			}
+		});
+	}
+
+	document.addEventListener("astro:page-load", bindInquiryForm);
+</script>
+
+<style>
+	.inquire-hero-wrapper {
+		container-type: inline-size;
+	}
+
+	.inquire-hero-wrapper h1 {
+		align-self: stretch;
+		width: 100%;
+		font-size: clamp(2.5rem, 12cqw, 9rem);
+	}
+
+	.inquire-hero-wrapper h6 {
+		max-width: 480px;
+	}
+
+	.inquire-section-2-wrapper {
+		padding-top: 4em;
+		padding-bottom: 4em;
+	}
+
+	.inquire-form {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 2rem 4rem;
+		align-items: start;
+		max-width: 1100px;
+	}
+
+	.inquire-form-col {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+	}
+
+	.field {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+	}
+
+	.scope-field legend {
+		font-size: var(--font-size-h6);
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.02em;
+	}
+
+	.field input,
+	.field select,
+	.field textarea {
+		font-family: var(--font-sans);
+		font-size: var(--font-size-body);
+		font-weight: 300;
+		color: var(--color-black);
+		background: transparent;
+		border: none;
+		border-bottom: 1px solid var(--color-dark-gray);
+		padding: 0.5em 0;
+		border-radius: 0;
+		width: 100%;
+		transition: border-color 0.15s ease;
+	}
+
+	/* The label doubles as the placeholder, so it has to read like real
+	   text — full opacity/full color, not the browser's dimmed default. */
+	.field input::placeholder,
+	.field textarea::placeholder {
+		color: var(--color-black);
+		opacity: 1;
+	}
+
+	.field textarea {
+		resize: vertical;
+	}
+
+	.field input:focus,
+	.field select:focus,
+	.field textarea:focus {
+		outline: none;
+		border-color: var(--color-black);
+	}
+
+	.field select {
+		cursor: pointer;
+	}
+
+	.scope-field {
+		border: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.scope-field legend {
+		padding: 0;
+	}
+
+	.scope-options {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem 1.75rem;
+		flex-direction: column;
+		padding-top: 1rem;
+	}
+
+	.scope-option {
+		display: flex;
+		align-items: center;
+		gap: 0.6em;
+		font-size: var(--font-size-body);
+		font-weight: 300;
+		cursor: pointer;
+	}
+
+	.scope-option input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.scope-dot {
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		border: 1px solid var(--color-black);
+		flex-shrink: 0;
+		position: relative;
+	}
+
+	.scope-option input:checked + .scope-dot::after {
+		content: "";
+		position: absolute;
+		inset: 3px;
+		border-radius: 50%;
+		background: var(--color-black);
+	}
+
+	.scope-option input:focus-visible + .scope-dot {
+		outline: 2px solid var(--color-black);
+		outline-offset: 2px;
+	}
+
+	.scope-item {
+		display: flex;
+		flex-direction: column;
+	}
+
+	/* Height-animating a "0 to auto" reveal needs the grid-rows trick: the
+	   track goes from 0fr to 1fr (transitionable, unlike height:auto), and
+	   the inner wrapper clips content while the track is still growing. */
+	.scope-suboptions {
+		display: grid;
+		grid-template-rows: 0fr;
+		transition: grid-template-rows 0.3s ease;
+	}
+
+	.scope-item.expanded .scope-suboptions {
+		grid-template-rows: 1fr;
+	}
+
+	.scope-suboptions-inner {
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding-left: 1.6em;
+	}
+
+	.scope-item.expanded .scope-suboptions-inner {
+		padding-top: 0.6rem;
+	}
+
+	.scope-option--sub {
+		font-size: 0.8em;
+		gap: 0.5em;
+	}
+
+	.scope-dot--sub {
+		width: 11px;
+		height: 11px;
+	}
+
+	.scope-option--sub input:checked + .scope-dot--sub::after {
+		inset: 2px;
+	}
+
+	.inquire-form button[type="submit"] {
+		align-self: flex-start;
+		background: transparent;
+		font-family: var(--font-sans);
+		cursor: pointer;
+	}
+
+	.inquire-form button[type="submit"]:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.inquire-submit-row {
+		display: flex;
+		align-items: center;
+		gap: 1.25rem;
+		flex-wrap: wrap;
+	}
+
+	.inquire-status {
+		font-size: var(--font-size-h6);
+		color: var(--color-gray);
+		margin: 0;
+	}
+
+	.inquire-status.error {
+		color: #b3261e;
+	}
+
+	.inquire-contact-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		margin-top: 1rem;
+		padding-top: 2rem;
+		border-top: 1px solid rgba(14, 14, 14, 0.1);
+	}
+
+	.inquire-contact-info h5 {
+		font-size: var(--font-size-h5);
+		letter-spacing: 0.02em;
+	}
+
+	.inquire-contact-info p {
+		font-size: var(--font-size-body);
+		margin: 0;
+	}
+
+	.inquire-contact-info a {
+		color: inherit;
+		text-decoration: none;
+	}
+
+	.inquire-contact-info a:hover {
+		text-decoration: underline;
+	}
+
+	@media (max-width: 900px) {
+		.inquire-form {
+			grid-template-columns: 1fr;
+			gap: 2rem;
+		}
+	}
+</style>

@@ -1,0 +1,513 @@
+---
+export const prerender = true;
+import { Image } from "astro:assets";
+import Layout from "../layouts/Layout.astro";
+import FotoFlavia from "../assets/flavia-jackeline.webp";
+import CtaInquire from "../components/CtaInquire.astro";
+import ExperiencesText from "../components/ExperiencesText.astro";
+import ProjectsGrid from "../components/ProjectsGrid.astro";
+import videoHome from "../assets/video-home.mp4";
+import videoHomePoster from "../assets/video-home-poster.jpg";
+
+const letterModules = import.meta.glob<{ default: ImageMetadata }>(
+	"../assets/hero-letters/*.{png,jpg,jpeg,webp,svg,avif}",
+	{ eager: true },
+);
+
+const letters = Object.entries(letterModules)
+	.sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+	.map(([path, mod]) => ({
+		src: mod.default,
+		alt:
+			path
+				.split("/")
+				.pop()
+				?.replace(/\.[^.]+$/, "") ?? "",
+	}));
+---
+
+<Layout
+	title="Flávia — Home"
+	description="Flávia Jackeline is an independent Brazilian brand studio creating refined, distinctive identities for founders and businesses worldwide."
+>
+	<section class="full-height hero-section">
+		<div class="hero-section-wrapper limit">
+			<div class="hero-main-logo">
+				{
+					letters.map((letter) => (
+						<Image
+							src={letter.src}
+							alt={letter.alt}
+							class="hero-letter"
+						/>
+					))
+				}
+			</div>
+			<h6>
+				creating refined identities for thoughtful brands. minimal,
+				strategic, and quietly distinctive. <br />based in brazil,
+				working worldwide
+			</h6>
+		</div>
+	</section>
+
+	<section class="full-height index-section-2 bg-gray">
+		<div class="index-section-2-wrapper">
+			<video
+				id="home-video"
+				class="home-video"
+				src={videoHome}
+				poster={videoHomePoster.src}
+				autoplay
+				muted
+				loop
+				playsinline
+				preload="auto"
+				aria-hidden="true"></video>
+		</div>
+	</section>
+
+	<section class="full-height index-section-3 bg-black">
+		<div class="index-section-3-wrapper limit">
+			<div class="index-section-3-row row">
+				<div class="index-section-3-col">
+					<p>
+						FLÁVIA JACKELINE is an <strong
+							>independent Brazilian brand
+						</strong>
+						studio working with founders and businesses around the world.
+					</p>
+					<p>
+						The studio specializes in brand identity and art
+						direction, shaping each project through thoughtful
+						creative direction and a clear strategic foundation.
+					</p>
+					<p>
+						Every identity is designed to hold its own: distinctive,
+						considered and made to last beyond a single trend cycle.
+					</p>
+				</div>
+			</div>
+			<div class="index-section-3-row row">
+				<div class="index-section-3-col">
+					<div class="small-title">01 Brand Identity</div>
+					<p>
+						The core of every project. Logo systems, typography,
+						color, symbols and a distinct visual language built
+						around the brand.
+					</p>
+				</div>
+				<div class="index-section-3-col">
+					<div class="small-title">02 Brand Direction</div>
+					<p>
+						The thinking that gives the identity focus. Positioning,
+						personality and creative direction aligned before the
+						visual system takes shape.
+					</p>
+				</div>
+				<div class="index-section-3-col">
+					<div class="small-title">03 Brand Applications</div>
+					<p>
+						The identity extended across the touchpoints that
+						matter, from print and packaging to digital presence.
+					</p>
+				</div>
+			</div>
+		</div>
+	</section>
+	<section class="full-height index-section-4">
+		<div class="index-section-4-wrapper limit">
+			<div class="index-section-4-row row">
+				<div class="index-section-4-col">
+					<h5>
+						A collection of identities built for founders who treat
+						branding as an investment.
+					</h5>
+				</div>
+				<div class="index-section-4-col">
+					<p>
+						Each project is shaped into a distinct visual world,
+						designed to feel considered, ownable and built to last.
+					</p>
+				</div>
+			</div>
+			<div class="index-section-4-row index-section-4-projects">
+				<ProjectsGrid limit={3} />
+			</div>
+		</div>
+	</section>
+	<section class="full-height index-section-5 bg-black">
+		<div class="index-section-5-wrapper limit">
+			<div class="index-section-5-row row">
+				<div class="index-section-5-col col">
+					<div class="about-flavia-img-wrapper">
+						<img
+							id="about-flavia-img"
+							src={FotoFlavia.src}
+							alt="Flávia Jackeline"
+						/>
+					</div>
+				</div>
+				<div class="index-section-5-col col">
+					<p>
+						With a background in fashion and graphic design,
+						Brazilian designer Flávia Jackeline brings a trained eye
+						for composition, materiality and detail to every
+						identity the studio creates.
+					</p>
+					<p>
+						Her approach combines visual sensitivity with thoughtful
+						direction, creating brand identities that feel
+						distinctive, cohesive and true to the businesses behind
+						them.
+					</p>
+					<a href="/about" class="btn-primary"> ABOUT FLÁVIA </a>
+				</div>
+			</div>
+			<div class="index-section-5-row row center-content">
+				<ExperiencesText />
+			</div>
+		</div>
+	</section>
+	<section class="index-section-6">
+		<div class="index-section-6-wrapper limit center-content">
+			<div class="index-section-6-row row">
+				<div class="index-section-6-col col">
+					<h5>
+						“She understood the brand before we had fully
+						articulated it ourselves. What came back felt
+						inevitable, like it had always existed.”
+					</h5>
+					<h6 class="h6-letter-spacing">
+						FOUNDER, LINEN HANDMADE STUDIO
+					</h6>
+				</div>
+			</div>
+		</div>
+	</section>
+	<CtaInquire />
+</Layout>
+
+<script>
+	import gsap from "gsap";
+	import { MathUtils } from "three";
+
+	// Experimental: subtle 3D perspective tilt of the hero title, following
+	// the mouse across the whole viewport. Self-contained — safe to remove
+	// this whole block (and the "hero tilt cleanup" listener below) to revert.
+	let tiltCleanup: (() => void) | null = null;
+
+	function initHeroTilt() {
+		tiltCleanup?.();
+		tiltCleanup = null;
+
+		const target = document.querySelector<HTMLElement>(".hero-main-logo");
+		if (!target) return;
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+			return;
+
+		const maxTilt = -10; // degrees — kept subtle on purpose
+		const ease = 0.05; // lerp factor per frame, for smooth follow
+		let targetRotX = 0;
+		let targetRotY = 0;
+		let currentRotX = 0;
+		let currentRotY = 0;
+		let rafId = 0;
+
+		function handleMouseMove(e: MouseEvent) {
+			const rect = target!.getBoundingClientRect();
+			const percentX = (e.clientX - rect.left) / rect.width;
+			const percentY = (e.clientY - rect.top) / rect.height;
+			// mouse bottom-right -> tilt so that corner appears to lift toward the viewer
+			targetRotX = (percentY - 0.5) * 2 * maxTilt;
+			targetRotY = -(percentX - 0.5) * 2 * maxTilt;
+		}
+
+		function handleMouseLeave() {
+			targetRotX = 0;
+			targetRotY = 0;
+		}
+
+		function tick() {
+			currentRotX = MathUtils.lerp(currentRotX, targetRotX, ease);
+			currentRotY = MathUtils.lerp(currentRotY, targetRotY, ease);
+			target!.style.transform = `perspective(1200px) rotateX(${currentRotX.toFixed(2)}deg) rotateY(${currentRotY.toFixed(2)}deg)`;
+			rafId = requestAnimationFrame(tick);
+		}
+
+		target.addEventListener("mousemove", handleMouseMove);
+		target.addEventListener("mouseleave", handleMouseLeave);
+		tick();
+
+		tiltCleanup = () => {
+			cancelAnimationFrame(rafId);
+			target!.removeEventListener("mousemove", handleMouseMove);
+			target!.removeEventListener("mouseleave", handleMouseLeave);
+			target!.style.transform = "";
+		};
+	}
+
+	document.addEventListener("astro:page-load", initHeroTilt);
+	document.addEventListener("astro:before-swap", () => tiltCleanup?.());
+
+	function playHeroReveal() {
+		const letters = document.querySelectorAll<HTMLElement>(".hero-letter");
+		if (!letters.length) return;
+		function enableHoverTilt() {
+			letters.forEach((letter) => {
+				letter.addEventListener("mouseenter", () => {
+					gsap.killTweensOf(letter);
+					gsap.timeline()
+						.to(letter, {
+							rotateY: -14,
+							duration: 0.18,
+							ease: "power2.out",
+						})
+						.to(letter, {
+							rotateY: 0,
+							duration: 0.4,
+							ease: "back.out(2.5)",
+						});
+				});
+			});
+		}
+
+		gsap.fromTo(
+			letters,
+			{ rotateY: -90, opacity: 0 },
+			{
+				rotateY: 0,
+				opacity: 1,
+				duration: 0.9,
+				ease: "power3.out",
+				stagger: 0.12,
+				onComplete: enableHoverTilt,
+			},
+		);
+	}
+
+	document.addEventListener("astro:page-load", playHeroReveal);
+
+	async function applyHomeSettings() {
+		const video = document.getElementById(
+			"home-video",
+		) as HTMLVideoElement | null;
+		const aboutImg = document.getElementById(
+			"about-flavia-img",
+		) as HTMLImageElement | null;
+		if (!video && !aboutImg) return;
+		try {
+			const res = await fetch("/api/site-settings");
+			if (!res.ok) return;
+			const { home } = await res.json();
+
+			if (video) {
+				if (home?.sectionVideoPosterUrl)
+					video.poster = home.sectionVideoPosterUrl;
+				if (
+					home?.sectionVideoUrl &&
+					video.currentSrc !== home.sectionVideoUrl
+				) {
+					video.src = home.sectionVideoUrl;
+					video.load();
+				}
+			}
+
+			if (aboutImg && home?.aboutImageUrl) {
+				aboutImg.src = home.aboutImageUrl;
+			}
+		} catch {
+			// keep the bundled defaults on any error
+		}
+	}
+
+	document.addEventListener("astro:page-load", applyHomeSettings);
+</script>
+
+<style>
+	.hero-section-wrapper {
+		--hero-caption-reserve: clamp(4.5rem, 3.5rem + 3vw, 7rem);
+		--hero-logo-max-height: calc(
+			100vh - var(--header-total-height) - var(--hero-caption-reserve)
+		);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		gap: 1rem;
+	}
+	.hero-section h6 {
+		max-width: 390px;
+	}
+
+	.hero-main-logo {
+		--hero-letter-aspect-sum: 2.4755;
+		--hero-fourth-scale: 1.24;
+		--hero-letter-h: max(
+			40px,
+			min(
+				calc(65vw / var(--hero-letter-aspect-sum)),
+				calc(var(--hero-logo-max-height) / var(--hero-fourth-scale))
+			)
+		);
+
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		gap: clamp(0.25rem, 1vw, 0.5rem);
+		perspective: 1200px;
+	}
+
+	.hero-letter {
+		height: auto;
+		width: auto;
+		max-height: var(--hero-letter-h);
+		opacity: 0;
+		backface-visibility: hidden;
+	}
+	.hero-letter:nth-of-type(3) {
+		margin-left: -6%;
+		margin-right: -0.5%;
+	}
+	.hero-letter:nth-of-type(4) {
+		max-height: calc(var(--hero-letter-h) * var(--hero-fourth-scale));
+	}
+
+	.index-section-2-wrapper {
+		align-self: stretch;
+		width: 100%;
+	}
+
+	.home-video {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.index-section-3-wrapper {
+		display: flex;
+		flex-direction: column;
+		font-size: 13px;
+		align-self: stretch;
+		justify-content: space-between;
+	}
+	.index-section-3-row {
+		flex-direction: row;
+		display: flex;
+		justify-content: space-between;
+		align-items: top;
+	}
+	.index-section-3-row:nth-of-type(1) {
+		justify-content: flex-end;
+	}
+	.index-section-3-col {
+		flex-direction: column;
+		display: flex;
+		max-width: 340px;
+	}
+	.index-section-4-row {
+		align-items: center;
+		justify-content: space-between;
+	}
+	.index-section-4-projects {
+		width: 100%;
+	}
+	.index-section-4-col {
+		max-width: 600px;
+	}
+	.index-section-4-col p {
+		max-width: 400px;
+	}
+
+	.index-section-5-wrapper {
+		align-self: stretch;
+		justify-content: space-between;
+		display: flex;
+		flex-direction: column;
+	}
+	.index-section-5-row {
+		justify-content: space-between;
+	}
+	.index-section-5-col {
+		max-width: 287px;
+	}
+	.index-section-5-col img {
+		max-width: 400px;
+	}
+	.index-section-6 h5 {
+		max-width: 1000px;
+		padding-bottom: 1em;
+	}
+
+	@media (max-width: 1110px) {
+		.full-height.index-section-2 {
+			min-height: auto !important;
+		}
+		.index-section-2-wrapper video {
+			width: 100%;
+			height: auto !important;
+			aspect-ratio: 4.5/3;
+		}
+
+		.index-section-3-col {
+			max-width: 250px;
+		}
+		.index-section-3-row.row {
+			/*justify-content: flex-start !important;
+			flex-direction: column;
+			gap: 2rem;*/
+		}
+		.index-section-3-wrapper.limit {
+			gap: 3rem;
+		}
+	}
+	@media (max-width: 800px) {
+		.index-section-3-row.row {
+			justify-content: flex-start !important;
+			flex-direction: column;
+			gap: 2rem;
+		}
+		.index-section-3-col {
+			max-width: 500px;
+		}
+		.index-section-4-row.row h5 {
+			max-width: 450px;
+		}
+		.index-section-4-row.row {
+			flex-direction: column;
+			justify-content: flex-start;
+			align-items: baseline;
+		}
+
+		.index-section-5-row.row {
+			justify-content: flex-start;
+			flex-direction: column;
+		}
+		.index-section-5-col.col {
+			width: 100% !important;
+			max-width: 100%;
+		}
+		.about-flavia-img-wrapper {
+			display: flex;
+			justify-content: center;
+			
+		}
+		.about-flavia-img-wrapper img{
+			padding-left: calc(var(--padding-sides) + 0.6rem);
+			padding-right: calc(var(--padding-sides) + 0.6rem);
+		}
+		.index-section-5-row.row.center-content {
+			padding-top: 3rem;
+			max-width: 500px;
+		}
+	}
+	@media (max-width: 695px) {
+		.hero-section h6 {
+			max-width: 320px;
+		}
+		.index-section-3-col p {
+			font-size: var(--font-size-body);
+		}
+	}
+</style>

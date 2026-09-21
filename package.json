@@ -1,0 +1,31 @@
+{
+  "name": "flavia-site-novo",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev --host",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.5",
+    "astro": "^7.3.2",
+    "gsap": "^3.15.0",
+    "locomotive-scroll": "^5.0.1",
+    "quill": "^2.0.3",
+    "resend": "^6.28.1",
+    "sanitize-html": "^2.17.7",
+    "three": "^0.186.0"
+  },
+  "allowScripts": {
+    "esbuild": true
+  },
+  "devDependencies": {
+    "@types/sanitize-html": "^2.16.1",
+    "@types/three": "^0.186.0"
+  }
+}

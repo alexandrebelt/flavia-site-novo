@@ -1,0 +1,105 @@
+---
+export const prerender = false;
+
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import { listProjects } from "../../lib/server/projects-store.js";
+import { getSettings } from "../../lib/server/settings-store.js";
+import { readdir } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+const projects = await listProjects();
+const settings = await getSettings();
+
+const DEFAULT_ACHIEVEMENTS_TEXT =
+	"( 150+ Projects developed · 7 Years of experience · 13+ Countries · 19+ Features & Recognitions )";
+const achievementsText = settings.home?.achievementsText || DEFAULT_ACHIEVEMENTS_TEXT;
+
+const DEFAULT_BANNER_TEXT = "Currently accepting new projects for 2026";
+const bannerText = settings.bannerText || DEFAULT_BANNER_TEXT;
+
+let mediaCount = 0;
+try {
+	const uploadsDir = fileURLToPath(new URL("../../../public/uploads/", import.meta.url));
+	mediaCount = (await readdir(uploadsDir)).length;
+} catch {
+	mediaCount = 0;
+}
+---
+
+<AdminLayout title="Painel">
+	<div class="admin-dashboard-grid">
+		<div class="admin-card">
+			<div class="admin-stat-value">{projects.length}</div>
+			<div class="admin-stat-label">Projetos no portfólio</div>
+		</div>
+		<div class="admin-card">
+			<div class="admin-stat-value">{mediaCount}</div>
+			<div class="admin-stat-label">Arquivos de mídia</div>
+		</div>
+	</div>
+
+	<div class="admin-card" style="margin-top: 2rem;">
+		<p class="admin-hint" style="margin-bottom: 1.5rem;">
+			Painel em construção — conforme o projeto avança, novas seções e opções
+			vão sendo adicionadas aqui.
+		</p>
+
+		<h2 class="block-title">Banner</h2>
+		<p class="admin-hint" style="margin-bottom: 1rem;">
+			Texto exibido na faixa no topo de todas as páginas do site.
+		</p>
+		<div class="admin-field" style="margin-bottom: 2rem;">
+			<textarea id="banner-text-input" rows="2">{bannerText}</textarea>
+		</div>
+
+		<h2 class="block-title">Achievements</h2>
+		<p class="admin-hint" style="margin-bottom: 1rem;">
+			Texto exibido na home e na página about, logo abaixo da foto da Flávia.
+		</p>
+		<div class="admin-field">
+			<textarea id="achievements-text" rows="2">{achievementsText}</textarea>
+		</div>
+
+		<div class="admin-form-actions">
+			<button type="button" id="save-all" class="admin-btn">Salvar</button>
+		</div>
+	</div>
+</AdminLayout>
+
+<div class="admin-toast" id="toast"></div>
+
+<style>
+	.block-title {
+		font-size: 1.1rem;
+		font-family: var(--font-sans);
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+</style>
+
+<script>
+	function toast(message: string, isError = false) {
+		const el = document.getElementById("toast")!;
+		el.textContent = message;
+		el.classList.toggle("error", isError);
+		el.classList.add("visible");
+		setTimeout(() => el.classList.remove("visible"), 2500);
+	}
+
+	document.getElementById("save-all")!.addEventListener("click", async () => {
+		const bannerText = (
+			document.getElementById("banner-text-input") as HTMLTextAreaElement
+		).value.trim();
+		const achievementsText = (
+			document.getElementById("achievements-text") as HTMLTextAreaElement
+		).value.trim();
+
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ bannerText, home: { achievementsText } }),
+		});
+		if (res.ok) toast("Alterações salvas.");
+		else toast("Erro ao salvar.", true);
+	});
+</script>

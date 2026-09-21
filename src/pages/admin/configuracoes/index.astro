@@ -1,0 +1,308 @@
+---
+export const prerender = false;
+
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { getSettings } from "../../../lib/server/settings-store.js";
+
+const settings = await getSettings();
+---
+
+<AdminLayout title="Configurações">
+	<div class="admin-card" style="max-width: 480px; margin-bottom: 1.5rem;">
+		<h2 class="block-title">Favicon</h2>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			Ícone exibido na aba do navegador. Recomendação: imagem quadrada,
+			PNG ou SVG, pelo menos 64×64px.
+		</p>
+		<div class="favicon-field">
+			<div class="favicon-preview">
+				<img id="favicon-preview" src={settings.siteFaviconUrl || "/favicon.svg"} alt="" />
+			</div>
+			<div style="flex: 1; min-width: 200px;">
+				<div class="upload-row">
+					<span id="favicon-filename" class="admin-hint">
+						{settings.siteFaviconUrl || "Usando o favicon padrão do tema"}
+					</span>
+					<label class="admin-btn secondary" style="cursor: pointer;">
+						Enviar favicon
+						<input type="file" id="favicon-input" accept="image/*" style="display:none;" />
+					</label>
+				</div>
+				<div class="admin-form-actions">
+					<button type="button" id="reset-favicon" class="admin-btn secondary">
+						Restaurar padrão
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="admin-card" style="max-width: 640px; margin-top: 1.5rem;">
+		<h2 class="block-title">SEO</h2>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			Campos usados nas meta tags de todas as páginas (título, descrição,
+			Open Graph, Twitter Card) e na indexação por buscadores. Como essas
+			tags precisam existir no HTML já publicado para os buscadores
+			confiarem nelas, alterações aqui só valem depois de um rebuild do
+			site.
+		</p>
+
+		<div class="admin-field">
+			<label for="f-seo-site-title">Título do site</label>
+			<input id="f-seo-site-title" value={settings.siteTitle || ""} required />
+			<p class="admin-hint">
+				Usado no &lt;title&gt; das páginas, no cabeçalho do admin e na tag
+				og:site_name exibida quando o link é compartilhado.
+			</p>
+		</div>
+
+		<div class="admin-field">
+			<label for="f-seo-site-url">URL do site</label>
+			<input
+				id="f-seo-site-url"
+				value={settings.seo?.siteUrl || ""}
+				placeholder="https://flaviajackeline.com"
+			/>
+			<p class="admin-hint">
+				Usada para montar o link canônico de cada página e as URLs
+				absolutas de Open Graph/Twitter. Sem barra no final.
+			</p>
+		</div>
+
+		<div class="admin-field">
+			<label for="f-seo-description">Descrição padrão (meta description)</label>
+			<textarea id="f-seo-description" rows="3">{settings.seo?.defaultDescription || ""}</textarea>
+			<p class="admin-hint">
+				Usada quando uma página não define a própria descrição. Ideal
+				entre 120 e 160 caracteres.
+			</p>
+		</div>
+
+		<div class="admin-field">
+			<label>Imagem de compartilhamento (Open Graph / Twitter)</label>
+			<div class="favicon-field">
+				<div class="favicon-preview" style="width: 160px; height: 84px; border-radius: 6px;">
+					<img id="og-image-preview" src={settings.seo?.ogImageUrl || "/favicon.svg"} alt="" />
+				</div>
+				<div style="flex: 1; min-width: 200px;">
+					<div class="upload-row">
+						<span id="og-image-filename" class="admin-hint">
+							{settings.seo?.ogImageUrl || "Nenhuma imagem definida"}
+						</span>
+						<label class="admin-btn secondary" style="cursor: pointer;">
+							Enviar imagem
+							<input type="file" id="og-image-input" accept="image/*" style="display:none;" />
+						</label>
+					</div>
+				</div>
+			</div>
+			<p class="admin-hint">
+				Exibida quando o link do site é compartilhado no WhatsApp,
+				Twitter/X, LinkedIn, etc. Recomendação: 1200×630px.
+			</p>
+		</div>
+
+		<div class="admin-field-row">
+			<div class="admin-field">
+				<label for="f-seo-twitter">Usuário do X/Twitter</label>
+				<input id="f-seo-twitter" value={settings.seo?.twitterHandle || ""} placeholder="flaviajackeline" />
+			</div>
+			<div class="admin-field">
+				<label for="f-seo-google-verification">Verificação do Google Search Console</label>
+				<input
+					id="f-seo-google-verification"
+					value={settings.seo?.googleSiteVerification || ""}
+					placeholder="Código do meta tag de verificação"
+				/>
+			</div>
+		</div>
+
+		<label class="seo-checkbox">
+			<input
+				type="checkbox"
+				id="f-seo-allow-indexing"
+				checked={settings.seo?.allowIndexing !== false}
+			/>
+			Permitir que buscadores indexem o site
+		</label>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			Desmarque apenas em ambientes de teste/staging — isso instrui Google
+			e outros buscadores a não listar o site nos resultados de busca.
+		</p>
+
+	</div>
+
+	<div class="admin-form-actions">
+		<button type="button" id="save-all" class="admin-btn">Salvar</button>
+	</div>
+</AdminLayout>
+
+<div class="admin-toast" id="toast"></div>
+
+<script>
+	function toast(message: string, isError = false) {
+		const el = document.getElementById("toast")!;
+		el.textContent = message;
+		el.classList.toggle("error", isError);
+		el.classList.add("visible");
+		setTimeout(() => el.classList.remove("visible"), 2500);
+	}
+
+	// ---- favicon ----
+	const DEFAULT_FAVICON_LABEL = "Usando o favicon padrão do tema";
+	const faviconFilenameEl = document.getElementById("favicon-filename")!;
+	let siteFaviconUrl =
+		faviconFilenameEl.textContent?.trim() === DEFAULT_FAVICON_LABEL
+			? ""
+			: (faviconFilenameEl.textContent?.trim() ?? "");
+
+	const faviconPreview = document.getElementById("favicon-preview") as HTMLImageElement;
+	const faviconInput = document.getElementById("favicon-input") as HTMLInputElement;
+
+	async function uploadFile(file: File): Promise<string> {
+		const body = new FormData();
+		body.append("file", file);
+		const res = await fetch("/api/admin/upload", { method: "POST", body });
+		if (!res.ok) throw new Error("Falha no upload.");
+		const data = await res.json();
+		return data.url;
+	}
+
+	faviconInput.addEventListener("change", async () => {
+		const file = faviconInput.files?.[0];
+		if (!file) return;
+		try {
+			siteFaviconUrl = await uploadFile(file);
+			faviconFilenameEl.textContent = siteFaviconUrl;
+			faviconPreview.src = siteFaviconUrl;
+			toast("Favicon enviado. Clique em Salvar para publicar.");
+		} catch {
+			toast("Erro ao enviar favicon.", true);
+		}
+	});
+
+	document.getElementById("reset-favicon")!.addEventListener("click", async () => {
+		siteFaviconUrl = "";
+		faviconFilenameEl.textContent = DEFAULT_FAVICON_LABEL;
+		faviconPreview.src = "/favicon.svg";
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ siteFaviconUrl: "" }),
+		});
+		if (res.ok) toast("Favicon padrão restaurado.");
+		else toast("Erro ao salvar.", true);
+	});
+
+	// ---- SEO ----
+	const ogImageFilenameEl = document.getElementById("og-image-filename")!;
+	let ogImageUrl =
+		ogImageFilenameEl.textContent?.trim() === "Nenhuma imagem definida"
+			? ""
+			: (ogImageFilenameEl.textContent?.trim() ?? "");
+
+	const ogImagePreview = document.getElementById("og-image-preview") as HTMLImageElement;
+	const ogImageInput = document.getElementById("og-image-input") as HTMLInputElement;
+
+	ogImageInput.addEventListener("change", async () => {
+		const file = ogImageInput.files?.[0];
+		if (!file) return;
+		try {
+			ogImageUrl = await uploadFile(file);
+			ogImageFilenameEl.textContent = ogImageUrl;
+			ogImagePreview.src = ogImageUrl;
+			toast("Imagem enviada. Clique em Salvar para publicar.");
+		} catch {
+			toast("Erro ao enviar imagem.", true);
+		}
+	});
+
+	document.getElementById("save-all")!.addEventListener("click", async () => {
+		const siteTitle = (document.getElementById("f-seo-site-title") as HTMLInputElement).value.trim();
+		const seo = {
+			siteUrl: (document.getElementById("f-seo-site-url") as HTMLInputElement).value.trim(),
+			defaultDescription: (
+				document.getElementById("f-seo-description") as HTMLTextAreaElement
+			).value.trim(),
+			ogImageUrl,
+			twitterHandle: (document.getElementById("f-seo-twitter") as HTMLInputElement).value.trim(),
+			googleSiteVerification: (
+				document.getElementById("f-seo-google-verification") as HTMLInputElement
+			).value.trim(),
+			allowIndexing: (document.getElementById("f-seo-allow-indexing") as HTMLInputElement).checked,
+		};
+
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ siteTitle, siteFaviconUrl, seo }),
+		});
+		if (res.ok) toast("Alterações salvas. Rode um novo build para publicar o SEO.");
+		else toast("Erro ao salvar.", true);
+	});
+</script>
+
+<style is:global>
+	/* Shares the settings page's static markup, but styled globally for
+	   consistency with the rest of the admin's icon/photo tiles. */
+	.block-title {
+		font-size: 1.1rem;
+		font-family: var(--font-sans);
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.favicon-field {
+		display: flex;
+		gap: 1.25rem;
+		flex-wrap: wrap;
+		align-items: flex-start;
+	}
+
+	.favicon-preview {
+		width: 64px;
+		height: 64px;
+		background: var(--color-offwhite);
+		border-radius: 10px;
+		overflow: hidden;
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.favicon-preview img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+	}
+
+	.upload-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		margin-bottom: 1rem;
+	}
+
+	.upload-row span {
+		overflow-wrap: anywhere;
+	}
+
+	.seo-checkbox {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.9rem;
+		color: var(--color-dark-gray);
+		margin-bottom: 0.4rem;
+		cursor: pointer;
+	}
+
+	.seo-checkbox input {
+		width: 16px;
+		height: 16px;
+		accent-color: var(--color-black);
+		cursor: pointer;
+	}
+</style>

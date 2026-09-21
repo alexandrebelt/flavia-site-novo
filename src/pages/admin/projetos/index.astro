@@ -1,0 +1,50 @@
+---
+export const prerender = false;
+
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { listProjects } from "../../../lib/server/projects-store.js";
+
+const projects = await listProjects();
+---
+
+<AdminLayout title="Projetos">
+	<div class="admin-toolbar">
+		<p class="admin-hint">{projects.length} projeto(s)</p>
+		<a href="/admin/projetos/novo" class="admin-btn">+ Novo projeto</a>
+	</div>
+
+	{
+		projects.length === 0 ? (
+			<div class="admin-card admin-empty">Nenhum projeto cadastrado ainda.</div>
+		) : (
+			<div class="admin-card" style="padding: 0;">
+				<table class="admin-table">
+					<thead>
+						<tr>
+							<th>Cliente</th>
+							<th>Categoria</th>
+							<th>Ano</th>
+							<th>Slug</th>
+							<th></th>
+						</tr>
+					</thead>
+					<tbody>
+						{projects.map((project) => (
+							<tr>
+								<td>{project.client}</td>
+								<td>{project.category}</td>
+								<td>{project.year}</td>
+								<td>{project.slug}</td>
+								<td style="text-align: right;">
+									<a href={`/admin/projetos/${project.id}`} class="admin-btn secondary">
+										Editar
+									</a>
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		)
+	}
+</AdminLayout>

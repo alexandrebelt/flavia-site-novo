@@ -1,0 +1,243 @@
+---
+export const prerender = false;
+
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { getSettings } from "../../../lib/server/settings-store.js";
+
+const settings = await getSettings();
+const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
+---
+
+<AdminLayout title="Sobre">
+	<div class="admin-card" style="margin-bottom: 1.5rem;">
+		<h2 class="block-title">Foto — Seção inicial</h2>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			Foto de fundo da primeira seção da página About. Recomendação: paisagem,
+			pelo menos 1600px de largura, JPG ou WEBP.
+		</p>
+		<div class="photo-field">
+			<div class="photo-preview">
+				<img id="photo-preview" src={about.heroImageUrl || "/favicon.svg"} alt="" />
+			</div>
+			<div class="photo-controls">
+				<div class="admin-field">
+					<label>Foto</label>
+					<div class="upload-row">
+						<span id="photo-filename" class="admin-hint">
+							{about.heroImageUrl || "Usando a foto padrão do tema"}
+						</span>
+						<label class="admin-btn secondary" style="cursor: pointer;">
+							Enviar foto
+							<input type="file" id="photo-input" accept="image/*" style="display:none;" />
+						</label>
+					</div>
+				</div>
+				<div class="admin-form-actions">
+					<button type="button" id="reset-photo" class="admin-btn secondary">
+						Restaurar padrão do tema
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="admin-card">
+		<h2 class="block-title">Reconhecimentos</h2>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			Lista exibida na seção "Selected Recognition" da página About.
+		</p>
+		<div id="recognitions-list"></div>
+		<button type="button" class="admin-btn secondary" id="add-recognition" style="width: fit-content;">
+			+ Adicionar conquista
+		</button>
+	</div>
+
+	<div class="admin-form-actions">
+		<button type="button" id="save-all" class="admin-btn">Salvar</button>
+	</div>
+</AdminLayout>
+
+<div class="admin-toast" id="toast"></div>
+
+<style is:global>
+	/* .recognition-row is built at runtime via innerHTML, so it never gets
+	   Astro's scoped-style attribute — this whole block has to be global. */
+	.block-title {
+		font-size: 1.1rem;
+		font-family: var(--font-sans);
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.photo-field {
+		display: flex;
+		gap: 1.5rem;
+		flex-wrap: wrap;
+	}
+
+	.photo-preview {
+		width: 220px;
+		aspect-ratio: 16 / 10;
+		background: var(--color-offwhite);
+		border-radius: 6px;
+		overflow: hidden;
+		flex-shrink: 0;
+	}
+
+	.photo-preview img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.photo-controls {
+		flex: 1;
+		min-width: 240px;
+	}
+
+	.upload-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.upload-row span {
+		overflow-wrap: anywhere;
+	}
+
+	.recognition-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 0.6rem;
+	}
+
+	.recognition-row input {
+		flex: 1;
+		font-family: var(--font-sans);
+		font-size: 0.95rem;
+		padding: 0.65rem 0.8rem;
+		border: 1px solid rgba(14, 14, 14, 0.14);
+		border-radius: 7px;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	}
+
+	.recognition-row input:hover {
+		border-color: rgba(14, 14, 14, 0.24);
+	}
+
+	.recognition-row input:focus {
+		outline: none;
+		border-color: var(--color-black);
+		box-shadow: 0 0 0 3px rgba(14, 14, 14, 0.08);
+	}
+
+	#add-recognition {
+		margin-bottom: 1.5rem;
+	}
+</style>
+
+<script>
+	const DEFAULT_PHOTO_LABEL = "Usando a foto padrão do tema";
+
+	function toast(message: string, isError = false) {
+		const el = document.getElementById("toast")!;
+		el.textContent = message;
+		el.classList.toggle("error", isError);
+		el.classList.add("visible");
+		setTimeout(() => el.classList.remove("visible"), 2500);
+	}
+
+	async function uploadFile(file: File): Promise<string> {
+		const body = new FormData();
+		body.append("file", file);
+		const res = await fetch("/api/admin/upload", { method: "POST", body });
+		if (!res.ok) throw new Error("Falha no upload.");
+		const data = await res.json();
+		return data.url;
+	}
+
+	// ---- hero photo ----
+	const photoFilenameEl = document.getElementById("photo-filename")!;
+	let heroImageUrl =
+		photoFilenameEl.textContent?.trim() === DEFAULT_PHOTO_LABEL
+			? ""
+			: (photoFilenameEl.textContent?.trim() ?? "");
+
+	const photoPreview = document.getElementById("photo-preview") as HTMLImageElement;
+	const photoInput = document.getElementById("photo-input") as HTMLInputElement;
+
+	photoInput.addEventListener("change", async () => {
+		const file = photoInput.files?.[0];
+		if (!file) return;
+		try {
+			heroImageUrl = await uploadFile(file);
+			photoFilenameEl.textContent = heroImageUrl;
+			photoPreview.src = heroImageUrl;
+			toast("Foto enviada. Clique em Salvar para publicar.");
+		} catch {
+			toast("Erro ao enviar foto.", true);
+		}
+	});
+
+	document.getElementById("reset-photo")!.addEventListener("click", async () => {
+		heroImageUrl = "";
+		photoFilenameEl.textContent = DEFAULT_PHOTO_LABEL;
+		photoPreview.src = "/favicon.svg";
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ about: { heroImageUrl: "" } }),
+		});
+		if (res.ok) toast("Foto padrão restaurada.");
+		else toast("Erro ao salvar.", true);
+	});
+
+	// ---- recognitions ----
+	const initialRecognitions = JSON.parse(
+		document.getElementById("initial-recognitions")?.textContent || "[]",
+	);
+	const recognitionsList = document.getElementById("recognitions-list")!;
+
+	function addRecognitionRow(text = "") {
+		const row = document.createElement("div");
+		row.className = "recognition-row";
+		row.innerHTML = `
+			<input type="text" placeholder="Ex.: Behance — Featured Project" />
+			<button type="button" class="icon-btn danger row-remove" title="Remover">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+			</button>
+		`;
+		(row.querySelector("input") as HTMLInputElement).value = text;
+		row.querySelector(".row-remove")!.addEventListener("click", () => row.remove());
+		recognitionsList.appendChild(row);
+	}
+
+	(initialRecognitions as string[]).forEach((text) => addRecognitionRow(text));
+	document.getElementById("add-recognition")!.addEventListener("click", () => {
+		addRecognitionRow();
+		recognitionsList.lastElementChild
+			?.querySelector("input")
+			?.scrollIntoView({ block: "nearest" });
+		(recognitionsList.lastElementChild?.querySelector("input") as HTMLInputElement)?.focus();
+	});
+
+	function readRecognitions() {
+		return Array.from(recognitionsList.querySelectorAll("input"))
+			.map((input) => (input as HTMLInputElement).value.trim())
+			.filter(Boolean);
+	}
+
+	document.getElementById("save-all")!.addEventListener("click", async () => {
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ about: { heroImageUrl, recognitions: readRecognitions() } }),
+		});
+		if (res.ok) toast("Alterações salvas.");
+		else toast("Erro ao salvar.", true);
+	});
+</script>
+
+<script type="application/json" id="initial-recognitions" set:html={JSON.stringify(about.recognitions || [])} />

@@ -1,0 +1,25 @@
+import type { APIRoute } from "astro";
+import { createProject, listProjects } from "../../../lib/server/projects-store.js";
+
+export const prerender = false;
+
+export const GET: APIRoute = async () => {
+	const projects = await listProjects();
+	return Response.json(projects);
+};
+
+export const POST: APIRoute = async ({ request }) => {
+	const project = await request.json();
+
+	if (!project.id || !project.slug || !project.client) {
+		return Response.json({ error: "id, slug e client são obrigatórios." }, { status: 400 });
+	}
+
+	try {
+		const created = await createProject(project);
+		return Response.json(created, { status: 201 });
+	} catch (err) {
+		const message = err instanceof Error ? err.message : "Erro ao criar projeto.";
+		return Response.json({ error: message }, { status: 409 });
+	}
+};

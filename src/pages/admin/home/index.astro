@@ -1,0 +1,306 @@
+---
+export const prerender = false;
+
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { getSettings } from "../../../lib/server/settings-store.js";
+
+const settings = await getSettings();
+const home = settings.home ?? {};
+---
+
+<AdminLayout title="Home">
+	<div class="admin-card" style="margin-bottom: 1.5rem;">
+		<h2 class="block-title">Foto — Sobre Flávia</h2>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			Foto exibida ao lado do texto "Sobre Flávia", na home. Recomendação:
+			retrato (proporção vertical), pelo menos 800px de largura, JPG ou WEBP.
+		</p>
+		<div class="video-field">
+			<div class="photo-preview">
+				<img id="photo-preview" src={home.aboutImageUrl || "/favicon.svg"} alt="" />
+			</div>
+			<div class="video-controls">
+				<div class="admin-field">
+					<label>Foto</label>
+					<div class="upload-row">
+						<span id="photo-filename" class="admin-hint">
+							{home.aboutImageUrl || "Usando a foto padrão do tema"}
+						</span>
+						<label class="admin-btn secondary" style="cursor: pointer;">
+							Enviar foto
+							<input type="file" id="photo-input" accept="image/*" style="display:none;" />
+						</label>
+					</div>
+				</div>
+				<div class="admin-form-actions">
+					<button type="button" id="reset-photo" class="admin-btn secondary">
+						Restaurar padrão do tema
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="admin-card" style="margin-bottom: 1.5rem;">
+		<h2 class="block-title">Bloco 2 — Vídeo de fundo</h2>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			Vídeo em loop, mudo e sem controles, usado como fundo da segunda seção
+			da home. Recomendação (mesmo padrão do vídeo atual do tema):
+		</p>
+		<ul class="spec-list">
+			<li><strong>Resolução mínima:</strong> 1920×1080 (Full HD), formato paisagem</li>
+			<li><strong>Formato:</strong> MP4 (H.264)</li>
+			<li><strong>Duração:</strong> 3 a 8 segundos, feito para repetir em loop sem corte perceptível</li>
+			<li><strong>Áudio:</strong> nenhum (o vídeo toca mudo)</li>
+			<li><strong>Peso do arquivo:</strong> até ~5MB, para carregar rápido</li>
+		</ul>
+
+		<div class="video-field">
+			<div class="video-preview">
+				<video id="video-preview" muted loop playsinline autoplay></video>
+			</div>
+			<div class="video-controls">
+				<div class="admin-field">
+					<label>Vídeo</label>
+					<div class="upload-row">
+						<span id="video-filename" class="admin-hint">
+							{home.sectionVideoUrl || "Usando o vídeo padrão do tema"}
+						</span>
+						<label class="admin-btn secondary" style="cursor: pointer;">
+							Enviar vídeo
+							<input type="file" id="video-input" accept="video/mp4,video/webm,video/quicktime" style="display:none;" />
+						</label>
+					</div>
+				</div>
+				<div class="admin-field">
+					<label>Poster (imagem exibida antes do vídeo carregar)</label>
+					<div class="upload-row">
+						<span id="poster-filename" class="admin-hint">
+							{home.sectionVideoPosterUrl || "Usando o poster padrão do tema"}
+						</span>
+						<label class="admin-btn secondary" style="cursor: pointer;">
+							Enviar poster
+							<input type="file" id="poster-input" accept="image/*" style="display:none;" />
+						</label>
+					</div>
+				</div>
+				<div class="admin-form-actions">
+					<button type="button" id="reset-video" class="admin-btn secondary">
+						Restaurar padrão do tema
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="admin-card admin-empty">
+		Mais blocos da Home (hero, textos, depoimento, etc.) vão sendo adicionados
+		aqui conforme o projeto avança.
+	</div>
+
+	<div class="admin-form-actions">
+		<button type="button" id="save-all" class="admin-btn">Salvar</button>
+	</div>
+</AdminLayout>
+
+<div class="admin-toast" id="toast"></div>
+
+<style>
+	.block-title {
+		font-size: 1.1rem;
+		font-family: var(--font-sans);
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.spec-list {
+		margin: 0 0 1.5rem;
+		padding-left: 1.25rem;
+		font-size: 0.85rem;
+		color: var(--color-dark-gray);
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.video-field {
+		display: flex;
+		gap: 1.5rem;
+		flex-wrap: wrap;
+	}
+
+	.video-preview {
+		width: 280px;
+		aspect-ratio: 16 / 9;
+		background: var(--color-black);
+		border-radius: 6px;
+		overflow: hidden;
+		flex-shrink: 0;
+	}
+
+	.video-preview video {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.photo-preview {
+		width: 160px;
+		aspect-ratio: 3 / 4;
+		background: var(--color-offwhite);
+		border-radius: 6px;
+		overflow: hidden;
+		flex-shrink: 0;
+	}
+
+	.photo-preview img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.video-controls {
+		flex: 1;
+		min-width: 240px;
+	}
+
+	.upload-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.upload-row span {
+		overflow-wrap: anywhere;
+	}
+</style>
+
+<script>
+	const DEFAULT_VIDEO_LABEL = "Usando o vídeo padrão do tema";
+	const DEFAULT_POSTER_LABEL = "Usando o poster padrão do tema";
+	const DEFAULT_PHOTO_LABEL = "Usando a foto padrão do tema";
+
+	function readUrlFromLabel(elId: string, defaultLabel: string) {
+		const text = document.getElementById(elId)?.textContent?.trim() ?? "";
+		return text === defaultLabel ? "" : text;
+	}
+
+	let sectionVideoUrl = readUrlFromLabel("video-filename", DEFAULT_VIDEO_LABEL);
+	let sectionVideoPosterUrl = readUrlFromLabel("poster-filename", DEFAULT_POSTER_LABEL);
+	let aboutImageUrl = readUrlFromLabel("photo-filename", DEFAULT_PHOTO_LABEL);
+
+	const preview = document.getElementById("video-preview") as HTMLVideoElement;
+	const videoInput = document.getElementById("video-input") as HTMLInputElement;
+	const posterInput = document.getElementById("poster-input") as HTMLInputElement;
+	const videoFilename = document.getElementById("video-filename")!;
+	const posterFilename = document.getElementById("poster-filename")!;
+
+	function updatePreview() {
+		if (sectionVideoUrl) preview.src = sectionVideoUrl;
+		if (sectionVideoPosterUrl) preview.poster = sectionVideoPosterUrl;
+	}
+	updatePreview();
+
+	function toast(message: string, isError = false) {
+		const el = document.getElementById("toast")!;
+		el.textContent = message;
+		el.classList.toggle("error", isError);
+		el.classList.add("visible");
+		setTimeout(() => el.classList.remove("visible"), 2500);
+	}
+
+	async function uploadFile(file: File): Promise<string> {
+		const body = new FormData();
+		body.append("file", file);
+		const res = await fetch("/api/admin/upload", { method: "POST", body });
+		if (!res.ok) throw new Error("Falha no upload.");
+		const data = await res.json();
+		return data.url;
+	}
+
+	videoInput.addEventListener("change", async () => {
+		const file = videoInput.files?.[0];
+		if (!file) return;
+		try {
+			sectionVideoUrl = await uploadFile(file);
+			videoFilename.textContent = sectionVideoUrl;
+			updatePreview();
+			toast("Vídeo enviado. Clique em Salvar para publicar.");
+		} catch {
+			toast("Erro ao enviar vídeo.", true);
+		}
+	});
+
+	posterInput.addEventListener("change", async () => {
+		const file = posterInput.files?.[0];
+		if (!file) return;
+		try {
+			sectionVideoPosterUrl = await uploadFile(file);
+			posterFilename.textContent = sectionVideoPosterUrl;
+			updatePreview();
+			toast("Poster enviado. Clique em Salvar para publicar.");
+		} catch {
+			toast("Erro ao enviar poster.", true);
+		}
+	});
+
+	document.getElementById("reset-video")!.addEventListener("click", async () => {
+		sectionVideoUrl = "";
+		sectionVideoPosterUrl = "";
+		videoFilename.textContent = DEFAULT_VIDEO_LABEL;
+		posterFilename.textContent = DEFAULT_POSTER_LABEL;
+		preview.removeAttribute("src");
+		preview.removeAttribute("poster");
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ home: { sectionVideoUrl: "", sectionVideoPosterUrl: "" } }),
+		});
+		if (res.ok) toast("Vídeo padrão restaurado.");
+		else toast("Erro ao salvar.", true);
+	});
+
+	// ---- about photo ----
+	const photoPreview = document.getElementById("photo-preview") as HTMLImageElement;
+	const photoInput = document.getElementById("photo-input") as HTMLInputElement;
+	const photoFilename = document.getElementById("photo-filename")!;
+
+	photoInput.addEventListener("change", async () => {
+		const file = photoInput.files?.[0];
+		if (!file) return;
+		try {
+			aboutImageUrl = await uploadFile(file);
+			photoFilename.textContent = aboutImageUrl;
+			photoPreview.src = aboutImageUrl;
+			toast("Foto enviada. Clique em Salvar para publicar.");
+		} catch {
+			toast("Erro ao enviar foto.", true);
+		}
+	});
+
+	document.getElementById("reset-photo")!.addEventListener("click", async () => {
+		aboutImageUrl = "";
+		photoFilename.textContent = DEFAULT_PHOTO_LABEL;
+		photoPreview.src = "/favicon.svg";
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ home: { aboutImageUrl: "" } }),
+		});
+		if (res.ok) toast("Foto padrão restaurada.");
+		else toast("Erro ao salvar.", true);
+	});
+
+	document.getElementById("save-all")!.addEventListener("click", async () => {
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				home: { aboutImageUrl, sectionVideoUrl, sectionVideoPosterUrl },
+			}),
+		});
+		if (res.ok) toast("Alterações salvas.");
+		else toast("Erro ao salvar.", true);
+	});
+</script>

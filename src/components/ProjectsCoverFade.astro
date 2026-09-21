@@ -1,0 +1,106 @@
+---
+import { Image } from "astro:assets";
+import { projects } from "../data/projects.js";
+import leonBergara from "../assets/1-leonbergara-world-brand-design 1.png";
+
+interface Props {
+	/** Seconds each cover stays visible before crossfading to the next. */
+	interval?: number;
+}
+
+const { interval = 3.5 } = Astro.props;
+---
+
+<div class="cover-fade" data-interval={interval * 1000}>
+	{
+		projects.length === 0 ? (
+			<Image
+				src={leonBergara}
+				alt=""
+				class="cover-fade-img is-active"
+			/>
+		) : (
+			projects.map((project, i) => (
+				<Image
+					src={leonBergara}
+					alt={project.client}
+					class:list={["cover-fade-img", { "is-active": i === 0 }]}
+				/>
+			))
+		)
+	}
+</div>
+
+<script>
+	// Autoplaying fade carousel. Handles any number of `.cover-fade`
+	// instances on the page, and re-initializes on every view-transition
+	// navigation (clearing old intervals first so they don't pile up or
+	// keep ticking after their markup is gone).
+	function startCoverFade(root: HTMLElement) {
+		const images = Array.from(
+			root.querySelectorAll<HTMLElement>(".cover-fade-img"),
+		);
+		if (images.length < 2) return;
+
+		const delay = Number(root.dataset.interval) || 3500;
+		let index = Math.max(
+			0,
+			images.findIndex((img) => img.classList.contains("is-active")),
+		);
+
+		const timerId = window.setInterval(() => {
+			images[index].classList.remove("is-active");
+			index = (index + 1) % images.length;
+			images[index].classList.add("is-active");
+		}, delay);
+
+		root.dataset.timerId = String(timerId);
+	}
+
+	function startAllCoverFades() {
+		document
+			.querySelectorAll<HTMLElement>(".cover-fade")
+			.forEach((root) => startCoverFade(root));
+	}
+
+	function stopAllCoverFades() {
+		document.querySelectorAll<HTMLElement>(".cover-fade").forEach((root) => {
+			if (!root.dataset.timerId) return;
+			window.clearInterval(Number(root.dataset.timerId));
+			delete root.dataset.timerId;
+		});
+	}
+
+	document.addEventListener("astro:page-load", startAllCoverFades);
+	document.addEventListener("astro:before-swap", stopAllCoverFades);
+</script>
+
+<style>
+	.cover-fade {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		aspect-ratio: 1;
+		overflow: hidden;
+	}
+
+	.cover-fade-img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0;
+		transition: opacity 1.2s ease;
+	}
+
+	.cover-fade-img.is-active {
+		opacity: 1;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.cover-fade-img {
+			transition: none;
+		}
+	}
+</style>

@@ -1,0 +1,281 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+import Page from "../components/Page.astro";
+import CtaInquire from "../components/CtaInquire.astro";
+import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
+---
+
+<Layout
+	title="Flávia — Services"
+	description="Brand strategy, visual identity and brand applications — a considered process from discovery to delivery for founders ready to invest in their brand."
+>
+	<section class="full-height hero-services-section">
+		<div class="hero-services-wrapper hero-reveal-wrapper limit center-content">
+			<h1>
+				Every project is shaped around what the brand actually needs.
+			</h1>
+			<h6>
+				Each project begins by understanding the brand, its context and
+				where it needs to go. From there, the studio develops a visual
+				direction and identity shaped around what feels relevant,
+				distinctive and true to the business.
+			</h6>
+		</div>
+	</section>
+
+	<section class="services-section-1">
+		<div class="services-section-1-row row limit">
+			<div class="services-section-1-col col">
+				<h3>01 Brand Strategy</h3>
+				<p>
+					The foundation behind the identity. Positioning, brand
+					personality, tone of voice and creative direction are
+					defined to bring clarity and intention to the visual work
+					that follows.
+				</p>
+			</div>
+			<div class="services-section-1-col col">
+				<h3>02 Visual Identity</h3>
+				<p>
+					The core of the studio’s work. Logo systems, typography,
+					color, symbols and graphic elements come together to create
+					a distinctive and cohesive visual language.
+				</p>
+			</div>
+			<div class="services-section-1-col col">
+				<h3>03 Brand Applications</h3>
+				<p>
+					The identity extended across the touchpoints where the brand
+					needs to live, from packaging and print to presentations,
+					social media and digital presence.
+				</p>
+			</div>
+		</div>
+	</section>
+
+	<section class="services-section-2 bg-black">
+		<div class="services-section-2-wrapper limit center-content">
+			<div class="services-section-2-col col">
+				<h2><i>The</i> Ritual</h2>
+				<h6>
+					Discovery, direction, identity development, presentation,
+					refinement and delivery. A considered process designed to
+					give each project clarity, consistency and room to evolve.
+				</h6>
+			</div>
+		</div>
+	</section>
+	<section class="full-height services-section-3">
+		<div class="services-section-3-wrapper row">
+			<div class="services-section-3-main-col col limit">
+				<div class="services-section-3-row">
+					<h6>Brand Identity</h6>
+					<p>
+						A complete identity for brands ready to launch, evolve
+						or step into their next chapter. Through thoughtful
+						direction and considered design, the studio creates a
+						cohesive visual system built to feel distinctive,
+						relevant and unmistakably its own.
+					</p>
+				</div>
+				<div class="services-section-3-deliverables">
+					<h6>DELIVERABLES</h6>
+					<div class="services-section-3-row row">
+						<ul>
+							<li>Brand Discovery</li>
+							<li>Brand Strategy</li>
+							<li>Creative Direction / Moodboard</li>
+							<li>Logo and Variations</li>
+							<li>Color System</li>
+							<li>Typography System</li>
+							<li>Graphic Elements / Textures</li>
+							<li>Brand Applications</li>
+							<li>Presentation PDF</li>
+							<li>
+								File Formats: AI, PDF, EPS, JPG, SVG, and PNG
+							</li>
+							<li>Social Media Profile Avatar</li>
+							<li>Brand Book</li>
+							<li>Prior Art Register</li>
+						</ul>
+					</div>
+				</div>
+				<a class="btn-primary">start a project</a>
+			</div>
+			<div class="services-section-3-main-col col">
+				<ProjectsCoverFade />
+			</div>
+		</div>
+	</section>
+	<section class="full-height services-section-4 bg-black">
+		<div class="services-section-4-wrapper limit">
+			<div class="services-section-4-rows col">
+				<div class="services-section-4-row row">
+					<div class="services-section-4-col col">
+						<h6>ADDITIONAL BRAND APPLICATIONS</h6>
+						<p>
+							Every brand has different needs. Beyond the core
+							identity, additional applications can be developed
+							across the touchpoints that matter most, creating a
+							cohesive and consistent brand experience.
+						</p>
+					</div>
+				</div>
+				<div class="services-section-4-row row">
+					<div class="services-section-4-col col">
+						<h6>PRINT & STATIONERY</h6>
+						<ul>
+							<li>Business Cards</li>
+							<li>Thank You Cards</li>
+							<li>Notecards</li>
+							<li>Letterheads</li>
+							<li>Folders & Presentation Materials</li>
+							<li>Menus & Printed Collateral</li>
+						</ul>
+					</div>
+					<div class="services-section-4-col col">
+						<h6>DIGITAL</h6>
+						<ul>
+							<li>Social Media Templates</li>
+							<li>Presentation Templates</li>
+							<li>Media Kits</li>
+							<li>Digital Guides & Workbooks</li>
+							<li>Email Signatures</li>
+							<li>Digital Campaign Assets</li>
+						</ul>
+					</div>
+					<div class="services-section-4-col col">
+						<h6>PACKAGING</h6>
+						<ul>
+							<li>Packaging Design</li>
+							<li>Labels</li>
+							<li>Tags & Stickers</li>
+							<li>Boxes & Sleeves</li>
+							<li>Tissue Paper & Wrapping</li>
+							<li>Product Cards & Inserts</li>
+						</ul>
+						<p>& MORE.</p>
+					</div>
+				</div>
+			</div>
+			<div class="services-section-2-col col">
+				<img />
+				<!--Mostra a capa dos projetos mudando -->
+			</div>
+		</div>
+	</section>
+	<CtaInquire />
+</Layout>
+
+<script>
+	import { playHeroLetterReveal } from "../scripts/hero-letter-reveal";
+
+	document.addEventListener("astro:page-load", playHeroLetterReveal);
+</script>
+
+<style>
+	.full-height.services-section-3 {
+		min-height: 100%;
+	}
+
+	.hero-services-wrapper h6 {
+		max-width: 480px;
+	}
+	.services-section-1-row {
+		justify-content: space-between;
+	}
+	.services-section-1-col {
+		max-width: 370px;
+	}
+	.services-section-2-col h6 {
+		max-width: 430px;
+		padding-top: 1rem;
+	}
+	.services-section-3-wrapper.row {
+		width: 100%;
+	}
+	.services-section-3-row ul {
+		column-count: 2;
+	}
+	.services-section-3-main-col {
+		width: 50%;
+		align-self: stretch;
+		justify-content: space-between;
+	}
+	.services-section-3-row p {
+		max-width: 460px;
+	}
+
+	.services-section-4-wrapper {
+		display: flex;
+		align-self: stretch;
+	}
+	.services-section-4-rows {
+		align-self: stretch;
+		justify-content: space-between;
+		width: 100%;
+	}
+	.services-section-4-row.row {
+		justify-content: space-between;
+	}
+	.services-section-4-col.col {
+		max-width: 440px;
+	}
+	.services-section-4-col.col ul {
+		padding-left: 0 !important;
+		list-style: none;
+	}
+	.services-section-4-col.col h6 {
+		/*font-size: var(--font-size-body);*/
+	}
+
+	@media (max-width: 990px) {
+		.services-section-3-wrapper {
+			flex-direction: column-reverse;
+		}
+		.services-section-3-main-col.col {
+			width: 100%;
+			aspect-ratio: 4/3;
+			justify-content: unset;
+			gap: 3rem;
+			padding-top: 3rem;
+		}
+		.services-section-3-main-col.col:nth-of-type(2) {
+			padding-top: 0;
+		}
+		.services-section-3-row p {
+			max-width: 100%;
+		}
+	}
+	@media (max-width: 690px) {
+		.hero-services-wrapper h6 {
+			max-width: 400px;
+		}
+		.services-section-1-row.row.limit {
+			justify-content: flex-start;
+			flex-direction: column;
+			gap: 1rem;
+			padding-top: 0;
+		}
+		.services-section-1-col.col {
+			max-width: 100%;
+		}
+		.services-section-3-row ul {
+			column-count: 1;
+		}
+		.services-section-3-main-col .btn-primary {
+			margin: 0 auto;
+		}
+		.services-section-4-col.col {
+			max-width: 100% !important;
+		}
+		.services-section-4-rows.col {
+			gap: 3rem;
+		}
+		.services-section-4-row.row {
+			flex-direction: column;
+			gap: 1rem;
+		}
+	}
+</style>

@@ -1,0 +1,95 @@
+---
+export const prerender = false;
+
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+---
+
+<AdminLayout title="Mídia">
+	<div class="admin-dropzone" id="dropzone">
+		<p>Arraste imagens aqui ou clique para enviar</p>
+		<p class="admin-hint">PNG, JPG, WEBP, GIF, SVG</p>
+		<input type="file" id="file-input" accept="image/*" multiple style="display:none;" />
+	</div>
+
+	<div id="media-grid" class="admin-media-grid"></div>
+	<p id="empty-state" class="admin-empty" hidden>Nenhuma mídia enviada ainda.</p>
+</AdminLayout>
+
+<div class="admin-toast" id="toast"></div>
+
+<script>
+	const dropzone = document.getElementById("dropzone")!;
+	const fileInput = document.getElementById("file-input") as HTMLInputElement;
+	const grid = document.getElementById("media-grid")!;
+	const emptyState = document.getElementById("empty-state")!;
+
+	function toast(message: string, isError = false) {
+		const el = document.getElementById("toast")!;
+		el.textContent = message;
+		el.classList.toggle("error", isError);
+		el.classList.add("visible");
+		setTimeout(() => el.classList.remove("visible"), 2500);
+	}
+
+	async function loadMedia() {
+		const res = await fetch("/api/admin/media");
+		const files = await res.json();
+		grid.innerHTML = "";
+		emptyState.hidden = files.length > 0;
+		for (const file of files) {
+			const item = document.createElement("div");
+			item.className = "admin-media-item";
+			item.innerHTML = `
+				<img src="${file.url}" alt="${file.filename}" loading="lazy" />
+				<div class="admin-media-item-info">
+					<span title="${file.filename}">${file.filename}</span>
+					<button type="button" class="icon-btn danger" title="Excluir">
+						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+					</button>
+				</div>
+			`;
+			item.querySelector("img")!.addEventListener("click", () => {
+				navigator.clipboard.writeText(file.url);
+				toast("URL copiada.");
+			});
+			item.querySelector("button")!.addEventListener("click", async () => {
+				if (!confirm("Excluir este arquivo?")) return;
+				const res = await fetch("/api/admin/media", {
+					method: "DELETE",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ url: file.url }),
+				});
+				if (res.ok) loadMedia();
+				else toast("Erro ao excluir.", true);
+			});
+			grid.appendChild(item);
+		}
+	}
+
+	async function uploadFiles(files: FileList) {
+		for (const file of Array.from(files)) {
+			const body = new FormData();
+			body.append("file", file);
+			const res = await fetch("/api/admin/upload", { method: "POST", body });
+			if (!res.ok) toast(`Erro ao enviar ${file.name}.`, true);
+		}
+		loadMedia();
+	}
+
+	dropzone.addEventListener("click", () => fileInput.click());
+	fileInput.addEventListener("change", () => {
+		if (fileInput.files?.length) uploadFiles(fileInput.files);
+	});
+	dropzone.addEventListener("dragover", (e) => {
+		e.preventDefault();
+		dropzone.classList.add("dragover");
+	});
+	dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+	dropzone.addEventListener("drop", (e) => {
+		e.preventDefault();
+		dropzone.classList.remove("dragover");
+		if (e.dataTransfer?.files?.length) uploadFiles(e.dataTransfer.files);
+	});
+
+	loadMedia();
+</script>

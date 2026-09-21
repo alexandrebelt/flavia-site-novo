@@ -1,0 +1,146 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import settingsData from '../data/settings.json';
+import '../styles/main.css';
+import 'locomotive-scroll/dist/locomotive-scroll.css';
+
+interface Props {
+	title?: string;
+	description?: string;
+	ogImage?: string;
+	noindex?: boolean;
+}
+
+const { title = settingsData.siteTitle || 'Flávia', description, ogImage, noindex } = Astro.props;
+
+// Pages using this layout are prerendered (static), so SEO settings are read
+// from the build-time snapshot of settings.json — a static import (resolved
+// by Vite) rather than the runtime fs-based getSettings(), which doesn't
+// resolve correctly during Astro's prerender build step. Admin changes here
+// need a rebuild to take effect, same as the meta tags they control.
+const seo = settingsData.seo ?? {};
+
+const metaDescription = description || seo.defaultDescription || '';
+const rawMetaImage = ogImage || seo.ogImageUrl || '';
+const siteUrl = (seo.siteUrl || '').replace(/\/$/, '');
+const canonicalUrl = siteUrl ? new URL(Astro.url.pathname, siteUrl).toString() : undefined;
+// Social platforms need an absolute image URL; resolve a relative one
+// (e.g. an admin-uploaded "/uploads/x.jpg") against the configured site URL.
+const metaImage = rawMetaImage && siteUrl && rawMetaImage.startsWith('/')
+	? new URL(rawMetaImage, siteUrl).toString()
+	: rawMetaImage;
+const shouldIndex = seo.allowIndexing !== false && !noindex;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width" />
+		<link rel="icon" id="site-favicon-svg" type="image/svg+xml" href="/favicon.svg" />
+		<link rel="icon" id="site-favicon-ico" href="/favicon.ico" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+
+		{metaDescription && <meta name="description" content={metaDescription} />}
+		<meta name="robots" content={shouldIndex ? 'index, follow' : 'noindex, nofollow'} />
+		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+		{seo.googleSiteVerification && (
+			<meta name="google-site-verification" content={seo.googleSiteVerification} />
+		)}
+
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content={settingsData.siteTitle || 'Flávia'} />
+		<meta property="og:title" content={title} />
+		{metaDescription && <meta property="og:description" content={metaDescription} />}
+		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+		{metaImage && <meta property="og:image" content={metaImage} />}
+
+		<meta name="twitter:card" content={metaImage ? 'summary_large_image' : 'summary'} />
+		<meta name="twitter:title" content={title} />
+		{metaDescription && <meta name="twitter:description" content={metaDescription} />}
+		{metaImage && <meta name="twitter:image" content={metaImage} />}
+		{seo.twitterHandle && (
+			<meta name="twitter:site" content={`@${seo.twitterHandle.replace(/^@/, '')}`} />
+		)}
+
+		<ClientRouter />
+	</head>
+	<body>
+		<Header transition:persist />
+		<main transition:animate="fade">
+			<slot />
+		</main>
+		<Footer transition:persist />
+	</body>
+</html>
+
+<script>
+	import LocomotiveScroll from "locomotive-scroll";
+
+	// One instance for the whole session, not one per page. Locomotive's
+	// default wrapper/content are window/document.documentElement, both of
+	// which survive Astro's view transitions, so re-creating it on every
+	// navigation would just reset the smoothing state and jump the scroll
+	// position — calling .resize() after the new page's content is in the
+	// DOM is enough to pick up the new scrollable height.
+	let locomotiveScroll: LocomotiveScroll | null = null;
+
+	function initSmoothScroll() {
+		if (locomotiveScroll) {
+			locomotiveScroll.resize();
+			return;
+		}
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+		locomotiveScroll = new LocomotiveScroll();
+	}
+
+	document.addEventListener("astro:page-load", initSmoothScroll);
+
+	async function applyCustomFavicon() {
+		try {
+			const res = await fetch("/api/site-settings");
+			if (!res.ok) return;
+			const { siteFaviconUrl } = await res.json();
+			if (!siteFaviconUrl) return;
+			document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]').forEach((link) => {
+				link.removeAttribute("type");
+				link.href = siteFaviconUrl;
+			});
+		} catch {
+			// keep the bundled default favicon on any error
+		}
+	}
+
+	document.addEventListener("astro:page-load", applyCustomFavicon);
+</script>
+
+<style>
+	:root {
+		/* fixed top banner strip; the hamburger + menu float above content */
+		--header-total-height: 20px;
+	}
+
+	html,
+	body {
+		margin: 0;
+		width: 100%;
+		min-height: 100%;
+	}
+
+	body {
+		display: flex;
+		flex-direction: column;
+		min-height: 100vh;
+		font-family: var(--font-sans);
+		color: var(--color-black);
+		background: var(--color-offwhite);
+	}
+
+	main {
+		flex: 1;
+		padding-top: var(--header-total-height);
+	}
+</style>

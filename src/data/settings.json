@@ -1,0 +1,32 @@
+{
+	"siteTitle": "Flávia J",
+	"siteFaviconUrl": "",
+	"bannerText": "Currently accepting new projects for 2026",
+	"home": {
+		"sectionVideoUrl": "",
+		"sectionVideoPosterUrl": "",
+		"aboutImageUrl": "",
+		"achievementsText": "( 150+ Projects developed · 7 Years of experience · 13+ Countries · 19+ Features & Recognitions )"
+	},
+	"about": {
+		"heroImageUrl": "",
+		"recognitions": [
+			"Behance — 12 Featured Projects ↑",
+			"World Brand Design Society — Cedar Coast ↑",
+			"Kittl — Women in Graphic Design ↑",
+			"Behance — Best of 2024 ↑",
+			"Brands On Cue — Featured Designer ↑",
+			"Brands On Cue — Vol. 1, Featured in Book ↑",
+			"Design do Brasil — Selected Designer ↑",
+			"Abduzeedo — Bruno X ↑"
+		]
+	},
+	"seo": {
+		"siteUrl": "",
+		"defaultDescription": "",
+		"ogImageUrl": "",
+		"twitterHandle": "",
+		"googleSiteVerification": "",
+		"allowIndexing": true
+	}
+}

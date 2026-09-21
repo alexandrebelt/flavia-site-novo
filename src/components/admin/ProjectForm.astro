@@ -1,0 +1,588 @@
+---
+interface Props {
+	project?: Record<string, unknown>;
+	mode: "create" | "edit";
+}
+
+const { project, mode } = Astro.props;
+
+const initial = {
+	id: project?.id ?? "",
+	slug: project?.slug ?? "",
+	client: project?.client ?? "",
+	country: project?.country ?? "",
+	segment: project?.segment ?? "",
+	year: project?.year ?? new Date().getFullYear(),
+	category: project?.category ?? "",
+	tags: project?.tags ?? [],
+	shortDescription: project?.shortDescription ?? "",
+	description: project?.description ?? [],
+	images: project?.images ?? [],
+	thumbnail: project?.thumbnail ?? "",
+};
+---
+
+<form id="project-form" data-mode={mode}>
+	<script type="application/json" id="initial-project-data" set:html={JSON.stringify(initial)} />
+
+	<div class="admin-card" style="margin-bottom: 1.5rem;">
+		<div class="admin-field-row">
+			<div class="admin-field">
+				<label for="f-id">ID</label>
+				<input id="f-id" name="id" required disabled={mode === "edit"} placeholder="0004-nome-projeto" />
+			</div>
+			<div class="admin-field">
+				<label for="f-slug">Slug</label>
+				<input id="f-slug" name="slug" required placeholder="nome-projeto" />
+			</div>
+			<div class="admin-field">
+				<label for="f-client">Cliente</label>
+				<input id="f-client" name="client" required />
+			</div>
+			<div class="admin-field">
+				<label for="f-year">Ano</label>
+				<input id="f-year" name="year" type="number" required />
+			</div>
+		</div>
+		<div class="admin-field-row">
+			<div class="admin-field">
+				<label for="f-country">País</label>
+				<input id="f-country" name="country" required />
+			</div>
+			<div class="admin-field">
+				<label for="f-segment">Segmento</label>
+				<input id="f-segment" name="segment" required />
+			</div>
+			<div class="admin-field">
+				<label for="f-category">Categoria</label>
+				<input id="f-category" name="category" required />
+			</div>
+		</div>
+		<div class="admin-field">
+			<label for="f-tags">Tags (separadas por vírgula)</label>
+			<input id="f-tags" name="tags" placeholder="logo system, typography, packaging" />
+		</div>
+	</div>
+
+	<div class="admin-card" style="margin-bottom: 1.5rem;">
+		<div class="admin-field">
+			<label for="f-short-description">Short description (headline)</label>
+			<textarea id="f-short-description" name="shortDescription" rows="2"></textarea>
+		</div>
+
+		<div class="admin-field">
+			<label>Descrição</label>
+			<div id="description-editor"></div>
+			<p class="admin-hint">
+				Enter cria um novo parágrafo automaticamente. Selecione um trecho e use a
+				barra de formatação para negrito, itálico, sublinhado, links e títulos.
+			</p>
+		</div>
+	</div>
+
+	<div class="admin-card" style="margin-bottom: 1.5rem;">
+		<div class="admin-field">
+			<label>Thumbnail</label>
+			<div id="thumbnail-row"></div>
+		</div>
+
+		<div class="admin-field">
+			<label>Galeria de imagens</label>
+			<div id="images-list"></div>
+			<button type="button" class="admin-btn secondary" id="add-image" style="width: fit-content;">
+				+ Adicionar imagem
+			</button>
+		</div>
+	</div>
+
+	<div class="admin-form-actions">
+		<button type="submit" class="admin-btn" id="submit-btn">
+			{mode === "create" ? "Criar projeto" : "Salvar alterações"}
+		</button>
+		<a href="/admin/projetos" class="admin-btn secondary">Cancelar</a>
+		{mode === "edit" && (
+			<button type="button" class="admin-btn danger" id="delete-btn" style="margin-left: auto;">
+				Excluir projeto
+			</button>
+		)}
+	</div>
+</form>
+
+<div class="admin-toast" id="toast"></div>
+
+<style is:global>
+	/* This form builds most of its markup (blocks, image rows, the thumbnail
+	   tile) at runtime via innerHTML, so Astro's scoped-style attribute never
+	   lands on those elements — everything here has to be global, with class
+	   names specific enough (admin-*, thumb-tile, gallery-row) not to collide
+	   outside this page. */
+	#description-editor .ql-toolbar.ql-snow {
+		border-color: rgba(14, 14, 14, 0.14);
+		border-radius: 8px 8px 0 0;
+		font-family: var(--font-sans);
+	}
+
+	#description-editor .ql-container.ql-snow {
+		border-color: rgba(14, 14, 14, 0.14);
+		border-radius: 0 0 8px 8px;
+		font-family: var(--font-sans);
+		font-size: 0.95rem;
+	}
+
+	/* Quill's default theme leans on hard-edged buttons and a blue accent;
+	   restyle hover/active states to match the panel's black/gray palette
+	   and rounded, quiet icon buttons used everywhere else. */
+	#description-editor .ql-toolbar.ql-snow button,
+	#description-editor .ql-toolbar.ql-snow .ql-picker-label {
+		border-radius: 6px;
+		transition: background-color 0.15s ease;
+	}
+
+	#description-editor .ql-toolbar.ql-snow button:hover,
+	#description-editor .ql-toolbar.ql-snow button.ql-active,
+	#description-editor .ql-toolbar.ql-snow .ql-picker-label:hover,
+	#description-editor .ql-toolbar.ql-snow .ql-picker-label.ql-active {
+		background: rgba(14, 14, 14, 0.06);
+	}
+
+	#description-editor .ql-toolbar.ql-snow button:hover .ql-stroke,
+	#description-editor .ql-toolbar.ql-snow button.ql-active .ql-stroke,
+	#description-editor .ql-toolbar.ql-snow .ql-picker-label:hover .ql-stroke,
+	#description-editor .ql-toolbar.ql-snow .ql-picker-label.ql-active .ql-stroke {
+		stroke: var(--color-black);
+	}
+
+	#description-editor .ql-toolbar.ql-snow .ql-picker-label:hover,
+	#description-editor .ql-toolbar.ql-snow .ql-picker-label.ql-active,
+	#description-editor .ql-toolbar.ql-snow .ql-picker-item:hover {
+		color: var(--color-black);
+	}
+
+	#description-editor .ql-toolbar.ql-snow .ql-picker-options {
+		border-radius: 6px;
+		border-color: rgba(14, 14, 14, 0.14);
+		box-shadow: 0 4px 16px rgba(14, 14, 14, 0.08);
+	}
+
+	#description-editor .ql-editor {
+		min-height: 16rem;
+	}
+
+	#description-editor .ql-editor h1,
+	#description-editor .ql-editor h2,
+	#description-editor .ql-editor h3,
+	#description-editor .ql-editor h4,
+	#description-editor .ql-editor h5,
+	#description-editor .ql-editor h6 {
+		font-family: var(--font-serif);
+		margin: 0 0 0.5rem;
+	}
+
+	#description-editor .ql-editor p {
+		margin: 0 0 1rem;
+		line-height: 1.7;
+	}
+
+	.thumb-tile {
+		width: 110px;
+		height: 110px;
+		border-radius: 8px;
+		border: 1.5px dashed rgba(14, 14, 14, 0.25);
+		background-color: var(--color-offwhite);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		cursor: pointer;
+		position: relative;
+		overflow: hidden;
+		transition: border-color 0.15s;
+	}
+
+	.thumb-tile:hover {
+		border-color: var(--color-black);
+	}
+
+	.thumb-tile-img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.thumb-tile.has-image {
+		border-style: solid;
+		border-color: rgba(14, 14, 14, 0.12);
+	}
+
+	.thumb-tile-empty-label {
+		font-size: 0.75rem;
+		color: var(--color-gray);
+		text-align: center;
+		line-height: 1.4;
+		pointer-events: none;
+	}
+
+	.thumb-tile.has-image .thumb-tile-empty-label {
+		display: none;
+	}
+
+	.thumb-tile-remove {
+		position: absolute;
+		top: 4px;
+		right: 4px;
+		width: 22px;
+		height: 22px;
+		border-radius: 50%;
+		border: none;
+		background: rgba(14, 14, 14, 0.75);
+		color: #fff;
+		font-size: 0.9rem;
+		line-height: 1;
+		cursor: pointer;
+		display: none;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.thumb-tile.has-image:hover .thumb-tile-remove {
+		display: flex;
+	}
+
+	.gallery-row {
+		display: flex;
+		gap: 0.75rem;
+		align-items: center;
+		margin-bottom: 0.6rem;
+		padding: 0.4rem;
+		border-radius: 8px;
+		background: #fff;
+	}
+
+	.gallery-row.dragging {
+		opacity: 0.4;
+	}
+
+	.gallery-thumb {
+		width: 64px;
+		height: 64px;
+		flex-shrink: 0;
+	}
+
+	.gallery-thumb .thumb-tile-empty-label {
+		font-size: 0.65rem;
+	}
+
+	.gallery-alt-input {
+		flex: 1;
+	}
+
+</style>
+
+<script>
+	import Quill from "quill";
+	import "quill/dist/quill.snow.css";
+
+	const form = document.getElementById("project-form") as HTMLFormElement;
+	const mode = form.dataset.mode as "create" | "edit";
+	const initial = JSON.parse(
+		document.getElementById("initial-project-data")!.textContent || "{}",
+	);
+
+	const $ = <T extends Element>(sel: string) => document.querySelector(sel) as T;
+
+	(form.querySelector("#f-id") as HTMLInputElement).value = initial.id;
+	(form.querySelector("#f-slug") as HTMLInputElement).value = initial.slug;
+	(form.querySelector("#f-client") as HTMLInputElement).value = initial.client;
+	(form.querySelector("#f-year") as HTMLInputElement).value = initial.year;
+	(form.querySelector("#f-country") as HTMLInputElement).value = initial.country;
+	(form.querySelector("#f-segment") as HTMLInputElement).value = initial.segment;
+	(form.querySelector("#f-category") as HTMLInputElement).value = initial.category;
+	(form.querySelector("#f-tags") as HTMLInputElement).value = (initial.tags || []).join(", ");
+	(form.querySelector("#f-short-description") as HTMLTextAreaElement).value =
+		initial.shortDescription || "";
+
+	function toast(message: string, isError = false) {
+		const el = $("#toast");
+		el.textContent = message;
+		el.classList.toggle("error", isError);
+		el.classList.add("visible");
+		setTimeout(() => el.classList.remove("visible"), 2500);
+	}
+
+	async function uploadFile(file: File): Promise<string> {
+		const body = new FormData();
+		body.append("file", file);
+		const res = await fetch("/api/admin/upload", { method: "POST", body });
+		if (!res.ok) throw new Error("Falha no upload.");
+		const data = await res.json();
+		return data.url;
+	}
+
+	// A file just written to /public/uploads can 404 once in dev (the Vite
+	// dev server briefly lags behind the filesystem) — retry the same URL
+	// once after a short delay instead of leaving the preview blank.
+	function setImageWithRetry(img: HTMLImageElement, url: string) {
+		img.onerror = () => {
+			img.onerror = null;
+			setTimeout(() => {
+				img.src = url;
+			}, 400);
+		};
+		img.src = url;
+	}
+
+	// ---- description: Quill rich-text editor, one block per top-level element ----
+	const validBlockTags = ["h1", "h2", "h3", "h4", "h5", "h6", "p"];
+
+	const quill = new Quill("#description-editor", {
+		theme: "snow",
+		modules: {
+			toolbar: [[{ header: [1, 2, 3, 4, 5, 6, false] }], ["bold", "italic", "underline", "link"], ["clean"]],
+		},
+	});
+
+	quill.clipboard.dangerouslyPasteHTML(
+		(initial.description || [])
+			.map((b: { type: string; text: string }) => `<${b.type}>${b.text}</${b.type}>`)
+			.join(""),
+	);
+
+	function readBlocks() {
+		const blocks: Array<{ type: string; text: string }> = [];
+		quill.root.childNodes.forEach((node) => {
+			if (node.nodeType === Node.ELEMENT_NODE) {
+				const el = node as HTMLElement;
+				const tag = validBlockTags.includes(el.tagName.toLowerCase())
+					? el.tagName.toLowerCase()
+					: "p";
+				if (!el.textContent?.trim()) return;
+				blocks.push({ type: tag, text: el.innerHTML.trim() });
+			} else if (node.nodeType === Node.TEXT_NODE && node.textContent?.trim()) {
+				blocks.push({ type: "p", text: node.textContent.trim() });
+			}
+		});
+		return blocks;
+	}
+
+	// ---- images ----
+	const imagesList = $("#images-list");
+
+	// The upload endpoint names files "<timestamp>-<random>-<original-name>";
+	// strip that prefix and prettify what's left into a usable alt/title.
+	function deriveAltFromUrl(url: string): string {
+		const filename = decodeURIComponent(url.split("/").pop() || "");
+		const withoutExt = filename.replace(/\.[a-z0-9]+$/i, "");
+		const withoutUploadPrefix = withoutExt.replace(/^\d+-[a-z0-9]+-/i, "");
+		const words = withoutUploadPrefix.replace(/[-_]+/g, " ").trim();
+		return words.replace(/\b\w/g, (c) => c.toUpperCase());
+	}
+
+	function addImageRow(image: { url: string; alt: string } = { url: "", alt: "" }) {
+		const row = document.createElement("div");
+		row.className = "gallery-row";
+		row.dataset.url = image.url;
+		row.innerHTML = `
+			<div class="thumb-tile gallery-thumb" title="Clique para escolher uma imagem">
+				<img class="thumb-tile-img" alt="" hidden />
+				<span class="thumb-tile-empty-label">+<br />Adicionar</span>
+				<input type="file" accept="image/*" hidden />
+			</div>
+			<input type="text" class="gallery-alt-input" placeholder="Texto alternativo (alt)" />
+			<button type="button" class="icon-btn drag-handle" title="Arraste para reordenar">
+				<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+			</button>
+			<button type="button" class="icon-btn danger row-remove" title="Remover da galeria (não apaga o arquivo da mídia)">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+			</button>
+		`;
+		const tile = row.querySelector(".gallery-thumb") as HTMLDivElement;
+		const img = row.querySelector(".thumb-tile-img") as HTMLImageElement;
+		const fileInput = row.querySelector('input[type="file"]') as HTMLInputElement;
+		const altInput = row.querySelector(".gallery-alt-input") as HTMLInputElement;
+		const dragHandle = row.querySelector(".drag-handle") as HTMLButtonElement;
+
+		function renderTile() {
+			const url = row.dataset.url || "";
+			tile.classList.toggle("has-image", Boolean(url));
+			img.hidden = !url;
+			if (url) setImageWithRetry(img, url);
+			else img.removeAttribute("src");
+		}
+
+		altInput.value = image.alt || "";
+		renderTile();
+
+		tile.addEventListener("click", () => fileInput.click());
+		fileInput.addEventListener("change", async () => {
+			const file = fileInput.files?.[0];
+			if (!file) return;
+			try {
+				const url = await uploadFile(file);
+				row.dataset.url = url;
+				renderTile();
+				if (!altInput.value.trim()) altInput.value = deriveAltFromUrl(url);
+			} catch {
+				toast("Erro ao enviar imagem.", true);
+			}
+		});
+
+		row.querySelector(".row-remove")!.addEventListener("click", () => row.remove());
+
+		// Drag-to-reorder: only the handle starts a drag, not the whole row.
+		dragHandle.addEventListener("mousedown", () => {
+			row.draggable = true;
+		});
+		row.addEventListener("dragend", () => {
+			row.draggable = false;
+			row.classList.remove("dragging");
+		});
+		row.addEventListener("dragstart", (e) => {
+			e.dataTransfer?.setData("text/plain", "");
+			row.classList.add("dragging");
+		});
+
+		imagesList.appendChild(row);
+	}
+
+	function getDragAfterRow(container: Element, y: number) {
+		const rows = [...container.querySelectorAll<HTMLElement>(".gallery-row:not(.dragging)")];
+		return rows.reduce(
+			(closest, child) => {
+				const box = child.getBoundingClientRect();
+				const offset = y - box.top - box.height / 2;
+				if (offset < 0 && offset > closest.offset) return { offset, element: child };
+				return closest;
+			},
+			{ offset: Number.NEGATIVE_INFINITY, element: null as HTMLElement | null },
+		).element;
+	}
+
+	imagesList.addEventListener("dragover", (e) => {
+		const dragging = imagesList.querySelector(".dragging");
+		if (!dragging) return;
+		e.preventDefault();
+		const afterRow = getDragAfterRow(imagesList, e.clientY);
+		if (afterRow == null) imagesList.appendChild(dragging);
+		else imagesList.insertBefore(dragging, afterRow);
+	});
+
+	(initial.images || []).forEach((image: string | { url: string; alt: string }) =>
+		addImageRow(typeof image === "string" ? { url: image, alt: "" } : image),
+	);
+	$("#add-image").addEventListener("click", () => addImageRow());
+
+	function readImages() {
+		return Array.from(imagesList.querySelectorAll<HTMLElement>(".gallery-row"))
+			.map((row) => {
+				const url = row.dataset.url || "";
+				const altInput = row.querySelector(".gallery-alt-input") as HTMLInputElement;
+				const alt = altInput.value.trim() || deriveAltFromUrl(url);
+				return { url, alt };
+			})
+			.filter((image) => image.url);
+	}
+
+	// ---- thumbnail ----
+	const thumbRow = $("#thumbnail-row");
+	thumbRow.innerHTML = `
+		<div class="thumb-tile" id="thumb-tile" title="Clique para escolher uma imagem">
+			<img class="thumb-tile-img" alt="" hidden />
+			<span class="thumb-tile-empty-label">+<br />Adicionar</span>
+			<button type="button" class="thumb-tile-remove" title="Remover">×</button>
+			<input type="file" accept="image/*" hidden />
+		</div>
+	`;
+	let thumbnailUrl = initial.thumbnail || "";
+	const thumbTile = thumbRow.querySelector("#thumb-tile") as HTMLDivElement;
+	const thumbImg = thumbRow.querySelector(".thumb-tile-img") as HTMLImageElement;
+	const thumbFileInput = thumbRow.querySelector('input[type="file"]') as HTMLInputElement;
+	const thumbRemoveBtn = thumbRow.querySelector(".thumb-tile-remove") as HTMLButtonElement;
+
+	function renderThumb() {
+		thumbTile.classList.toggle("has-image", Boolean(thumbnailUrl));
+		thumbImg.hidden = !thumbnailUrl;
+		if (thumbnailUrl) setImageWithRetry(thumbImg, thumbnailUrl);
+		else thumbImg.removeAttribute("src");
+	}
+	renderThumb();
+
+	thumbTile.addEventListener("click", (e) => {
+		if (e.target === thumbRemoveBtn) return;
+		thumbFileInput.click();
+	});
+	thumbFileInput.addEventListener("change", async () => {
+		const file = thumbFileInput.files?.[0];
+		if (!file) return;
+		try {
+			thumbnailUrl = await uploadFile(file);
+			renderThumb();
+		} catch {
+			toast("Erro ao enviar thumbnail.", true);
+		}
+	});
+	thumbRemoveBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		thumbnailUrl = "";
+		renderThumb();
+	});
+
+	// ---- submit ----
+	form.addEventListener("submit", async (e) => {
+		e.preventDefault();
+		const submitBtn = $("#submit-btn") as HTMLButtonElement;
+		submitBtn.disabled = true;
+
+		const payload = {
+			id: (form.querySelector("#f-id") as HTMLInputElement).value.trim(),
+			slug: (form.querySelector("#f-slug") as HTMLInputElement).value.trim(),
+			client: (form.querySelector("#f-client") as HTMLInputElement).value.trim(),
+			year: Number((form.querySelector("#f-year") as HTMLInputElement).value),
+			country: (form.querySelector("#f-country") as HTMLInputElement).value.trim(),
+			segment: (form.querySelector("#f-segment") as HTMLInputElement).value.trim(),
+			category: (form.querySelector("#f-category") as HTMLInputElement).value.trim(),
+			tags: (form.querySelector("#f-tags") as HTMLInputElement).value
+				.split(",")
+				.map((t) => t.trim())
+				.filter(Boolean),
+			shortDescription: (form.querySelector("#f-short-description") as HTMLTextAreaElement).value,
+			description: readBlocks(),
+			images: readImages(),
+			thumbnail: thumbnailUrl,
+		};
+
+		try {
+			const res = await fetch(
+				mode === "create" ? "/api/admin/projects" : `/api/admin/projects/${initial.id}`,
+				{
+					method: mode === "create" ? "POST" : "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload),
+				},
+			);
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({}));
+				throw new Error(err.error || "Erro ao salvar.");
+			}
+			toast("Projeto salvo com sucesso.");
+			setTimeout(() => {
+				window.location.href = "/admin/projetos";
+			}, 600);
+		} catch (err) {
+			toast(err instanceof Error ? err.message : "Erro ao salvar.", true);
+			submitBtn.disabled = false;
+		}
+	});
+
+	// ---- delete ----
+	const deleteBtn = document.getElementById("delete-btn");
+	deleteBtn?.addEventListener("click", async () => {
+		if (!confirm("Excluir este projeto permanentemente?")) return;
+		const res = await fetch(`/api/admin/projects/${initial.id}`, { method: "DELETE" });
+		if (res.ok) {
+			window.location.href = "/admin/projetos";
+		} else {
+			toast("Erro ao excluir.", true);
+		}
+	});
+</script>

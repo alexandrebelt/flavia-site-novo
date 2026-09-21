@@ -1,0 +1,178 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import Page from "../../components/Page.astro";
+import { projects } from "../../data/projects.js";
+
+export function getStaticPaths() {
+	return projects.map((project) => ({
+		params: { slug: project.slug },
+		props: { project },
+	}));
+}
+
+const { project } = Astro.props;
+---
+
+<Layout
+	title={`Flávia — ${project.client}`}
+	description={project.shortDescription}
+	ogImage={project.thumbnail}
+>
+	<section class="single-project">
+		<div class="single-project-wrapper limit">
+			<a href="/portfolio" class="back">&larr; Back to portfolio</a>
+			<div class="project-text-content">
+				<dl class="facts">
+					<div>
+						<dd class="project-client-category">
+							<span>{project.category}</span>
+						</dd>
+						<dd class="project-client-name">{project.client}</dd>
+						<dd>{project.country}</dd>
+						<dd>{project.segment}</dd>
+						<dd>{project.year}</dd>
+					</div>
+					<!-- 	{
+						project.tags?.length > 0 && (
+						<div>
+							<dd>{project.tags.join(", ")}</dd>
+							</div>
+							)
+							}-->
+				</dl>
+
+				<div class="project-text-content-col">
+					<dd class="project-client-title">{project.client}</dd>
+					{
+						project.shortDescription && (
+							<h4 class="short-description">
+								{project.shortDescription}
+							</h4>
+						)
+					}
+					{
+						project.description?.length > 0 && (
+							<div class="description">
+								{project.description.map(
+									(block: { type: string; text: string }) => {
+										const Tag = block.type;
+										return <Tag set:html={block.text} />;
+									},
+								)}
+							</div>
+						)
+					}
+				</div>
+			</div>
+			<div class="gallery">
+				{
+					project.images?.map((image: { url: string; alt: string }) => (
+						<img src={image.url} alt={image.alt} loading="lazy" />
+					))
+				}
+			</div>
+		</div>
+	</section>
+</Layout>
+
+<style>
+	.back {
+		display: inline-block;
+		margin-bottom: 1.5rem;
+		font-size: 0.9rem;
+		color: #555;
+		text-decoration: none;
+	}
+
+	.back:hover {
+		color: #1a1a1a;
+	}
+
+	.facts {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+		gap: 1rem 2rem;
+		margin: 0 0 2.5rem;
+		text-transform: uppercase;
+	}
+	.project-text-content dd {
+		margin: 0;
+	}
+
+	.project-text-content-col {
+		max-width: 90ch;
+		margin: 0 0 2.5rem;
+	}
+	.project-client-title {
+		text-transform: uppercase !important;
+	}
+	.short-description {
+		padding-bottom: 4rem;
+		padding-top: 1.5rem;
+	}
+
+	.description :global(p) {
+		margin: 0 0 1rem;
+		line-height: 1.7;
+	}
+
+	.gallery {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.gallery img {
+		width: 100%;
+		border-radius: 4px;
+		object-fit: contain;
+		height: auto;
+	}
+
+	.content {
+		margin-top: 2rem;
+		max-width: 70ch;
+		line-height: 1.7;
+		color: #333;
+	}
+	.project-text-content {
+		display: flex;
+		flex-direction: row;
+		gap: 2rem;
+		justify-content: space-between;
+	}
+	.project-client-category {
+		width: fit-content;
+		padding-bottom: 3em;
+	}
+	.project-client-category span {
+		border-bottom: 1px solid var(--color-dark-gray);
+	}
+
+	@media (max-width: 656px) {
+		.project-text-content {
+			flex-direction: column !important;
+		}
+		.project-text-content .facts {
+			margin: 0;
+		}
+		.project-client-category {
+			padding-bottom: 2em !important;
+		}
+		.facts,
+		.project-client-title {
+			font-size: 11px;
+		}
+		.project-text-content .project-client-name {
+			display: none !important;
+		}
+		.short-description {
+			padding-top: 0.5em;
+			padding-bottom: 1.5em;
+		}
+		.single-project-wrapper.limit {
+			padding-bottom: 0;
+		}
+	}
+</style>

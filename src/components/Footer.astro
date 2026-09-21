@@ -1,0 +1,204 @@
+---
+import FooterLogo from "../assets/footer-logo.png";
+const year = new Date().getFullYear();
+
+const navLinks = [
+	{ href: "/services", label: "Services" },
+	{ href: "/about", label: "About" },
+	{ href: "/portfolio", label: "Portfolio" },
+	{ href: "/inquire", label: "Inquire" },
+];
+
+const connectLinks = [
+	{ href: "https://instagram.com/", label: "Instagram" },
+	{ href: "https://behance.net/", label: "Behance" },
+	{ href: "https://linkedin.com/", label: "LinkedIn" },
+	{ href: "https://pinterest.com/", label: "Pinterest" },
+	{ href: "https://x.com/", label: "X" },
+];
+
+const email = "hello@flaviajackeline.com";
+---
+
+<footer class="site-footer">
+	<div class="footer-inner">
+		<div class="footer-cols">
+			<div class="footer-col">
+				<a href="/" class="brand"
+					><img src={FooterLogo.src} alt="Flávia Jackeline" /></a
+				>
+				<p>
+					Creating refined identities for thoughtful brands. Minimal,
+					strategic, and quietly distinctive. Based in Brazil, working
+					worldwide.
+				</p>
+			</div>
+
+			<div class="footer-col">
+				<h3>Studio</h3>
+				<ul>
+					{
+						navLinks.map((link) => (
+							<li>
+								<a href={link.href}>{link.label}</a>
+							</li>
+						))
+					}
+				</ul>
+			</div>
+
+			<div class="footer-col">
+				<h3>Connect</h3>
+				<ul>
+					{
+						connectLinks.map((link) => (
+							<li>
+								<a
+									href={link.href}
+									target="_blank"
+									rel="noopener noreferrer"
+								>
+									{link.label}
+								</a>
+							</li>
+						))
+					}
+				</ul>
+			</div>
+
+			<div class="footer-col">
+				<h3>Email</h3>
+				<a href={`mailto:${email}`}>{email}</a>
+			</div>
+		</div>
+
+		<hr />
+
+		<div class="footer-bottom">
+			<p>&copy; {year} Flávia Jackeline. All rights reserved.</p>
+			<p>Brand identity for thoughtful brands worldwide.</p>
+		</div>
+	</div>
+</footer>
+
+<style>
+	.site-footer {
+		background: var(--color-offwhite);
+		color: var(--color-black);
+	}
+
+	.footer-inner {
+		max-width: var(--max-width-page);
+		margin: 0 auto;
+		padding: 3rem clamp(1rem, 4vw, 3rem);
+	}
+
+	.footer-cols {
+		display: flex;
+		flex-direction: row;
+		gap: 11rem;
+	}
+
+	.footer-col {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		flex: 1 1 180px;
+		max-width: fit-content;
+	}
+	.footer-col:nth-of-type(1) {
+		margin-right: auto;
+	}
+
+	.footer-col p {
+		margin: 0;
+		max-width: 34ch;
+		font-size: 0.9rem;
+		line-height: 1.6;
+	}
+
+	.brand {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: #fff;
+		text-decoration: none;
+	}
+	.brand img {
+		max-width: 250px;
+	}
+
+	.footer-col h3 {
+		margin: 0;
+		font-size: 0.75rem;
+		font-weight: 600;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--color-black);
+	}
+
+	.footer-col ul {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.footer-col a {
+		font-size: 0.9rem;
+		color: var(--color-black);
+		text-decoration: none;
+	}
+
+	.footer-col a:hover {
+		color: var(--color-black);
+	}
+
+	hr {
+		border: 0;
+		border-top: 1px solid var(--color-black);
+		margin: 2.5rem 0 1.5rem;
+	}
+
+	.footer-bottom {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.footer-bottom p {
+		margin: 0;
+		font-size: 0.8rem;
+		color: var(--color-black);
+	}
+	@media (max-width: 1150px) {
+		.footer-cols {
+			gap: clamp(20px, 8vw, 11rem) !important;
+		}
+	}
+	@media (max-width: 767px) {
+		.footer-cols {
+			flex-direction: column;
+			text-align: center;
+			gap: 3rem;
+		}
+		.footer-col {
+			justify-content: center;
+			margin: 0 auto;
+			flex: auto !important;
+		}
+		.footer-bottom {
+			align-items: center !important;
+		}
+	}
+	@media (max-width: 640px) {
+		.footer-bottom {
+			flex-direction: column;
+			align-items: flex-start;
+		}
+	}
+</style>
