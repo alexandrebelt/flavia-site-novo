@@ -353,6 +353,10 @@ const letters = Object.entries(letterModules)
 					pin: true,
 					pinSpacing: true,
 					scrub: true,
+					// Softens the moment the pin engages — without it, a fast
+					// scroll can make the section visibly "snap" into place a
+					// frame late instead of catching it right as it arrives.
+					anticipatePin: 1,
 				},
 			},
 		);

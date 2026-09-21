@@ -79,6 +79,10 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 
 <script>
 	import LocomotiveScroll from "locomotive-scroll";
+	import gsap from "gsap";
+	import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+	gsap.registerPlugin(ScrollTrigger);
 
 	// One instance for the whole session, not one per page. Locomotive's
 	// default wrapper/content are window/document.documentElement, both of
@@ -91,10 +95,19 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 	function initSmoothScroll() {
 		if (locomotiveScroll) {
 			locomotiveScroll.resize();
+			ScrollTrigger.refresh();
 			return;
 		}
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		locomotiveScroll = new LocomotiveScroll();
+
+		// Without this, ScrollTrigger recalculates pin/scrub state on its own
+		// ticker, one step out of phase with wherever Lenis has actually
+		// smoothed the scroll to on a given frame — that mismatch is what
+		// reads as an abrupt "snap" right as a pin engages. Driving
+		// ScrollTrigger's updates directly off Lenis's own scroll event
+		// keeps them in lockstep.
+		locomotiveScroll.lenisInstance?.on("scroll", ScrollTrigger.update);
 	}
 
 	document.addEventListener("astro:page-load", initSmoothScroll);
