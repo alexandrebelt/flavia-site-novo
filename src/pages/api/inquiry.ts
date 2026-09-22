@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { env } from "cloudflare:workers";
 import { Resend } from "resend";
 
 export const prerender = false;
@@ -18,7 +19,7 @@ function row(label: string, value: string): string {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-	const apiKey = import.meta.env.RESEND_API_KEY;
+	const apiKey = env.RESEND_API_KEY;
 	if (!apiKey) {
 		return Response.json(
 			{ error: "O envio de inquiries ainda não foi configurado (falta RESEND_API_KEY)." },
@@ -43,25 +44,22 @@ export const POST: APIRoute = async ({ request }) => {
 	const field = (key: string) => String(data[key] ?? "").trim();
 
 	const resend = new Resend(apiKey);
-	const fromAddress = import.meta.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-	const toAddress = import.meta.env.INQUIRY_TO_EMAIL || "studio@flaviajackeline.com";
+	const fromAddress = env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+	const toAddress = env.INQUIRY_TO_EMAIL || "studio@flaviajackeline.com";
 
 	const html = `
 		<div style="font-family: sans-serif; font-size: 14px; color: #0e0e0e;">
 			<h2 style="font-weight: 500;">New project inquiry</h2>
 			<table cellpadding="0" cellspacing="0" style="border-collapse: collapse;">
 				${row("Full Name", fullName)}
-				${row("Location", field("location"))}
-				${row("Country", field("country"))}
+				${row("Location | Country", field("location"))}
 				${row("Email", email)}
 				${row("Phone", field("phone"))}
-				${row("Website", field("website"))}
-				${row("Instagram", field("instagram"))}
+				${row("Website | Instagram", field("website"))}
 				${row("Found studio via", field("foundStudio"))}
 				${row("Preferred proposal method", field("proposalMethod"))}
 				${row("Scope", scope.join(", "))}
-				${row("Business", field("business"))}
-				${row("Brand Name", field("brandName"))}
+				${row("Business | Brand Name", field("business"))}
 				${row("What the business does", field("businessDescription"))}
 				${row("Project Type", field("projectType"))}
 				${row("Launch timing", field("launchTiming"))}

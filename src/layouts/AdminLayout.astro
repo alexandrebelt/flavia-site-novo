@@ -1,6 +1,7 @@
 ---
 import "../styles/main.css";
 import "../styles/admin.css";
+import { env } from "cloudflare:workers";
 import { getSettings } from "../lib/server/settings-store.js";
 
 interface Props {
@@ -8,7 +9,7 @@ interface Props {
 }
 
 const { title } = Astro.props;
-const settings = await getSettings();
+const settings = await getSettings(env.DB);
 
 const navItems = [
 	{ href: "/admin", label: "Painel" },

@@ -1,10 +1,11 @@
 import type { APIRoute } from "astro";
+import { env } from "cloudflare:workers";
 import { createProject, listProjects } from "../../../lib/server/projects-store.js";
 
 export const prerender = false;
 
 export const GET: APIRoute = async () => {
-	const projects = await listProjects();
+	const projects = await listProjects(env.DB);
 	return Response.json(projects);
 };
 
@@ -16,7 +17,7 @@ export const POST: APIRoute = async ({ request }) => {
 	}
 
 	try {
-		const created = await createProject(project);
+		const created = await createProject(env.DB, project);
 		return Response.json(created, { status: 201 });
 	} catch (err) {
 		const message = err instanceof Error ? err.message : "Erro ao criar projeto.";

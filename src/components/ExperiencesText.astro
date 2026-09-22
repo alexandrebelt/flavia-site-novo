@@ -11,11 +11,18 @@
 		if (!el) return;
 		try {
 			const res = await fetch("/api/site-settings");
-			if (!res.ok) return;
-			const { home } = await res.json();
-			if (home?.achievementsText) el.textContent = home.achievementsText;
+			if (res.ok) {
+				const { home } = await res.json();
+				if (home?.achievementsText) el.textContent = home.achievementsText;
+			}
 		} catch {
 			// keep the default text on any error
+		} finally {
+			// Signals that the final text is in place — index.astro's section 5
+			// reveal waits for this before splitting it into letters, since
+			// splitting first and then overwriting textContent here would wipe
+			// out the letter spans.
+			document.dispatchEvent(new CustomEvent("experiences-text-ready"));
 		}
 	}
 

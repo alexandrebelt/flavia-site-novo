@@ -184,3 +184,115 @@ const showViewAll = typeof limit === "number";
 		}
 	}
 </style>
+
+<script>
+	import gsap from "gsap";
+	import { ScrollTrigger } from "gsap/ScrollTrigger";
+	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
+	import { whenPageSettled } from "../scripts/scroll-timing";
+
+	gsap.registerPlugin(ScrollTrigger);
+
+	let triggers: ScrollTrigger[] = [];
+
+	interface PreparedItem {
+		item: HTMLElement;
+		row: HTMLElement;
+		number: HTMLElement;
+		letters: HTMLElement[];
+		meta: HTMLElement;
+	}
+
+	function initProjectGridReveal() {
+		cleanupProjectGridReveal();
+
+		const items = document.querySelectorAll<HTMLElement>(".project-list .project-item");
+		const prepared: PreparedItem[] = [];
+
+		items.forEach((item) => {
+			const row = item.querySelector<HTMLElement>(".project-row");
+			const number = item.querySelector<HTMLElement>(".project-number");
+			const title = item.querySelector<HTMLElement>(".project-col--index h4");
+			const meta = item.querySelector<HTMLElement>(".project-col--meta");
+			if (!row || !number || !title || !meta) return;
+
+			// Hidden immediately (not deferred below) so nothing flashes
+			// fully visible while waiting for the page to settle.
+			gsap.set(row, { opacity: 0 });
+			gsap.set(number, { opacity: 0 });
+			gsap.set(meta, { opacity: 0 });
+			const letters = splitIntoLetterSpans(title);
+			gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+
+			prepared.push({ item, row, number, letters, meta });
+		});
+
+		// This script can run before the homepage's own pinned section
+		// (index.astro's section 3, which reserves extra scroll space via a
+		// ScrollTrigger pin spacer) has been created, or before the hero
+		// video/images finish loading and settle the layout below them.
+		// Reading "top X%" positions before that bakes in the wrong
+		// position — and ScrollTrigger.refresh() afterwards does not
+		// correct it — so trigger creation waits until the page has
+		// actually settled.
+		whenPageSettled(() => createTriggers(prepared));
+	}
+
+	function createTriggers(prepared: PreparedItem[]) {
+		prepared.forEach(({ item, row, number, letters, meta }) => {
+			// The item fades in in lockstep with scroll position as it enters
+			// the viewport.
+			const settle = gsap.fromTo(
+				row,
+				{ opacity: 0 },
+				{
+					opacity: 1,
+					ease: "none",
+					scrollTrigger: {
+						trigger: item,
+						start: "top 95%",
+						end: "bottom bottom",
+						scrub: true,
+					},
+				},
+			);
+			if (settle.scrollTrigger) triggers.push(settle.scrollTrigger);
+
+			// Once settled, the number/title/meta reveal in sequence — this
+			// part plays on its own timeline (not scrubbed) so the letters
+			// actually have time to visibly spin in, triggered late enough
+			// (deep into the viewport) that it still has room to play before
+			// the item scrolls past.
+			const detail = gsap.timeline({
+				scrollTrigger: {
+					trigger: item,
+					start: "top 85%",
+					toggleActions: "play none none reverse",
+				},
+			});
+			detail
+				.to(number, { opacity: 1, duration: 0.4, ease: "power2.out" })
+				.to(
+					letters,
+					{
+						rotateY: 0,
+						opacity: 1,
+						duration: 0.5,
+						ease: "power3.out",
+						stagger: { amount: 0.3 },
+					},
+					"-=0.1",
+				)
+				.to(meta, { opacity: 1, duration: 0.5, ease: "power2.out" }, "-=0.1");
+			if (detail.scrollTrigger) triggers.push(detail.scrollTrigger);
+		});
+	}
+
+	function cleanupProjectGridReveal() {
+		triggers.forEach((trigger) => trigger.kill());
+		triggers = [];
+	}
+
+	document.addEventListener("astro:page-load", initProjectGridReveal);
+	document.addEventListener("astro:before-swap", cleanupProjectGridReveal);
+</script>

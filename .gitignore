@@ -3,6 +3,11 @@ dist/
 
 # generated types
 .astro/
+worker-configuration.d.ts
+
+# wrangler local state (local D1/R2 emulation, dev secrets)
+.wrangler/
+.dev.vars
 
 # dependencies
 node_modules/

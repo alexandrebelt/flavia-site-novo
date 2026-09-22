@@ -169,9 +169,168 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 </Layout>
 
 <script>
-	import { playHeroLetterReveal } from "../scripts/hero-letter-reveal";
+	import gsap from "gsap";
+	import { ScrollTrigger } from "gsap/ScrollTrigger";
+	import { playHeroLetterReveal, splitPreservingMarkup } from "../scripts/hero-letter-reveal";
+	import { whenPageSettled } from "../scripts/scroll-timing";
+
+	gsap.registerPlugin(ScrollTrigger);
 
 	document.addEventListener("astro:page-load", playHeroLetterReveal);
+
+	let section1Trigger: ScrollTrigger | null = null;
+
+	function initServicesSection1Reveal() {
+		section1Trigger?.kill();
+		section1Trigger = null;
+
+		const cols = document.querySelectorAll<HTMLElement>(".services-section-1-col");
+		if (!cols.length) return;
+
+		gsap.set(cols, { opacity: 0 });
+
+		whenPageSettled(() => {
+			const timeline = gsap.timeline({
+				scrollTrigger: {
+					trigger: ".services-section-1",
+					start: "top 80%",
+					toggleActions: "play none none reverse",
+				},
+			});
+			timeline.to(cols, {
+				opacity: 1,
+				duration: 0.6,
+				ease: "power2.out",
+				stagger: { amount: 0.5 },
+			});
+			section1Trigger = timeline.scrollTrigger ?? null;
+		});
+	}
+
+	document.addEventListener("astro:page-load", initServicesSection1Reveal);
+
+	let section2Trigger: ScrollTrigger | null = null;
+
+	function initServicesSection2Reveal() {
+		section2Trigger?.kill();
+		section2Trigger = null;
+
+		const heading = document.querySelector<HTMLElement>(".services-section-2-col h2");
+		const subtext = document.querySelector<HTMLElement>(".services-section-2-col h6");
+		if (!heading || !subtext) return;
+
+		const letters = splitPreservingMarkup(heading);
+		gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+		gsap.set(subtext, { opacity: 0 });
+
+		whenPageSettled(() => {
+			const timeline = gsap.timeline({
+				scrollTrigger: {
+					trigger: ".services-section-2",
+					start: "top 80%",
+					toggleActions: "play none none reverse",
+				},
+			});
+			timeline
+				.to(letters, {
+					rotateY: 0,
+					opacity: 1,
+					duration: 0.6,
+					ease: "power3.out",
+					stagger: { amount: 0.4 },
+				})
+				.to(subtext, { opacity: 1, duration: 0.6, ease: "power2.out" }, ">");
+			section2Trigger = timeline.scrollTrigger ?? null;
+		});
+	}
+
+	document.addEventListener("astro:page-load", initServicesSection2Reveal);
+
+	let section3Triggers: ScrollTrigger[] = [];
+
+	function initServicesSection3Reveal() {
+		section3Triggers.forEach((t) => t.kill());
+		section3Triggers = [];
+
+		// Three items — the "Brand Identity" row, the deliverables block
+		// (as one unit, not its nested row separately), and the link — each
+		// fading in on its own as it individually enters the viewport,
+		// rather than all together off a single shared trigger.
+		const items = [
+			document.querySelector<HTMLElement>(
+				".services-section-3-main-col > .services-section-3-row",
+			),
+			document.querySelector<HTMLElement>(".services-section-3-deliverables"),
+			document.querySelector<HTMLElement>(".services-section-3-wrapper a"),
+		].filter((el): el is HTMLElement => !!el);
+		if (!items.length) return;
+
+		gsap.set(items, { opacity: 0 });
+
+		whenPageSettled(() => {
+			items.forEach((el) => {
+				const tween = gsap.to(el, {
+					opacity: 1,
+					duration: 0.6,
+					ease: "power2.out",
+					scrollTrigger: {
+						trigger: el,
+						start: "top 85%",
+						toggleActions: "play none none reverse",
+					},
+				});
+				if (tween.scrollTrigger) section3Triggers.push(tween.scrollTrigger);
+			});
+		});
+	}
+
+	document.addEventListener("astro:page-load", initServicesSection3Reveal);
+
+	let section4Trigger: ScrollTrigger | null = null;
+
+	function initServicesSection4Reveal() {
+		section4Trigger?.kill();
+		section4Trigger = null;
+
+		const cols = document.querySelectorAll<HTMLElement>(".services-section-4-col");
+		if (!cols.length) return;
+
+		// Pinned, like the homepage's section 3/5 — created immediately
+		// (not deferred through whenPageSettled) so its scroll space is
+		// reserved before the user can start scrolling, instead of being
+		// inserted underneath them mid-scroll.
+		const tween = gsap.fromTo(
+			cols,
+			{ opacity: 0 },
+			{
+				opacity: 1,
+				stagger: 1,
+				scrollTrigger: {
+					trigger: ".full-height.services-section-4",
+					start: "top top",
+					end: "+=1500",
+					pin: true,
+					pinSpacing: true,
+					scrub: true,
+					anticipatePin: 1,
+				},
+			},
+		);
+		section4Trigger = tween.scrollTrigger ?? null;
+	}
+
+	document.addEventListener("astro:page-load", initServicesSection4Reveal);
+
+	document.addEventListener("astro:before-swap", () => {
+		section1Trigger?.kill();
+		section1Trigger = null;
+		section2Trigger?.kill();
+		section2Trigger = null;
+		section3Triggers.forEach((t) => t.kill());
+		section3Triggers = [];
+		section4Trigger?.kill();
+		section4Trigger = null;
+	});
 </script>
 
 <style>

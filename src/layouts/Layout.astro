@@ -84,6 +84,13 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 
 	gsap.registerPlugin(ScrollTrigger);
 
+	// Stop the browser from restoring the previous scroll position on
+	// refresh/back-forward — every load/navigation should start at the top,
+	// which the explicit scrollTo calls below enforce.
+	if ("scrollRestoration" in history) {
+		history.scrollRestoration = "manual";
+	}
+
 	// One instance for the whole session, not one per page. Locomotive's
 	// default wrapper/content are window/document.documentElement, both of
 	// which survive Astro's view transitions, so re-creating it on every
@@ -93,8 +100,14 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 	let locomotiveScroll: LocomotiveScroll | null = null;
 
 	function initSmoothScroll() {
+		// Reset native scroll first so Locomotive/Lenis (created or resized
+		// right after) picks up from the top rather than wherever the
+		// previous page happened to leave off.
+		window.scrollTo(0, 0);
+
 		if (locomotiveScroll) {
 			locomotiveScroll.resize();
+			locomotiveScroll.scrollTo(0, { immediate: true });
 			ScrollTrigger.refresh();
 			return;
 		}
@@ -109,6 +122,15 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 		// keeps them in lockstep.
 		locomotiveScroll.lenisInstance?.on("scroll", ScrollTrigger.update);
 	}
+
+	// Per-page scripts create their ScrollTriggers as soon as the DOM is
+	// ready, which can be before async media (hero video, images) finishes
+	// loading and settling layout below it. That leaves trigger start/end
+	// pixel positions stale — a trigger further down the page fires at the
+	// wrong scroll offset, or never during a normal scroll. Refreshing once
+	// everything (including the video) has actually loaded recalculates
+	// every trigger against the final layout.
+	window.addEventListener("load", () => ScrollTrigger.refresh());
 
 	document.addEventListener("astro:page-load", initSmoothScroll);
 

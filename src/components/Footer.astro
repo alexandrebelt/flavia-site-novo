@@ -202,3 +202,51 @@ const email = "hello@flaviajackeline.com";
 		}
 	}
 </style>
+
+<script>
+	import gsap from "gsap";
+	import { ScrollTrigger } from "gsap/ScrollTrigger";
+	import { whenPageSettled } from "../scripts/scroll-timing";
+
+	gsap.registerPlugin(ScrollTrigger);
+
+	// The footer has transition:persist in Layout.astro — it's the same DOM
+	// node across every SPA navigation, never remounted — so this only ever
+	// needs to run once. Layout's own ScrollTrigger.refresh() (called on
+	// every astro:page-load) keeps this trigger's position correct as page
+	// content above the footer changes.
+	function initFooterReveal() {
+		const items = document.querySelectorAll<HTMLElement>(".footer-col > *");
+		const hr = document.querySelector<HTMLElement>(".site-footer hr");
+		const bottom = document.querySelector<HTMLElement>(".footer-bottom");
+		if (!items.length || !hr || !bottom) return;
+
+		gsap.set(items, { opacity: 0 });
+		gsap.set(hr, { width: "0%" });
+		gsap.set(bottom, { opacity: 0 });
+
+		whenPageSettled(() => {
+			const timeline = gsap.timeline({
+				scrollTrigger: {
+					trigger: ".site-footer",
+					start: "top 85%",
+					toggleActions: "play none none reverse",
+				},
+			});
+			timeline
+				.to(items, {
+					opacity: 1,
+					duration: 0.5,
+					ease: "power2.out",
+					// A fixed total spread, not a fixed per-item delay — so it
+					// stays snappy (and reverses quickly) regardless of how
+					// many links end up in the columns.
+					stagger: { amount: 0.5 },
+				})
+				.to(hr, { width: "100%", duration: 0.6, ease: "power2.out" }, ">")
+				.to(bottom, { opacity: 1, duration: 0.5, ease: "power2.out" }, ">");
+		});
+	}
+
+	document.addEventListener("astro:page-load", initFooterReveal, { once: true });
+</script>

@@ -192,6 +192,8 @@ const letters = Object.entries(letterModules)
 	import gsap from "gsap";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { MathUtils } from "three";
+	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
+	import { whenPageSettled } from "../scripts/scroll-timing";
 
 	gsap.registerPlugin(ScrollTrigger);
 
@@ -335,10 +337,19 @@ const letters = Object.entries(letterModules)
 
 	function initSection3Reveal() {
 		section3Trigger?.kill();
+		section3Trigger = null;
 
 		const cols = document.querySelectorAll<HTMLElement>(".index-section-3-col");
 		if (!cols.length) return;
 
+		// Pinned sections reserve their extra scroll distance (pinSpacing) the
+		// moment their trigger is created. Deferring that, unlike the other
+		// (non-pinned) reveals on this page, would leave the document short
+		// for a beat after load — if the user starts scrolling in that
+		// window, the space then gets inserted underneath them mid-scroll,
+		// which is what was breaking/jumping. Its "+=1500" end is a relative
+		// offset, not a percentage of the viewport, so it doesn't need the
+		// settled-layout wait the others do — this one creates immediately.
 		const tween = gsap.fromTo(
 			cols,
 			{ opacity: 0 },
@@ -347,8 +358,8 @@ const letters = Object.entries(letterModules)
 				stagger: 1,
 				scrollTrigger: {
 					trigger: ".full-height.index-section-3",
-					start: "top top",
-					end: "+=3000",
+					start: "bottom bottom",
+					end: "+=1500",
 					pin: true,
 					pinSpacing: true,
 					scrub: true,
@@ -365,35 +376,146 @@ const letters = Object.entries(letterModules)
 
 	function initSection4Reveal() {
 		section4Trigger?.kill();
+		section4Trigger = null;
 
 		const cols = document.querySelectorAll<HTMLElement>(".index-section-4-col");
 		if (!cols.length) return;
 
-		const tween = gsap.fromTo(
-			cols,
-			{ opacity: 0 },
-			{
-				opacity: 1,
-				duration: 1,
-				stagger: 0.2,
-				ease: "power2.out",
-				scrollTrigger: {
-					trigger: ".index-section-4-row.row",
-					start: "top 85%",
-					scrub: 1
+		gsap.set(cols, { opacity: 0 });
+
+		whenPageSettled(() => {
+			const tween = gsap.fromTo(
+				cols,
+				{ opacity: 0 },
+				{
+					opacity: 1,
+					duration: 1,
+					stagger: 0.2,
+					ease: "power2.out",
+					scrollTrigger: {
+						trigger: ".index-section-4-row.row",
+						start: "top 85%",
+						scrub: 1
+					},
 				},
-			},
-		);
-		section4Trigger = tween.scrollTrigger ?? null;
+			);
+			section4Trigger = tween.scrollTrigger ?? null;
+		});
 	}
 
 	document.addEventListener("astro:page-load", initSection4Reveal);
+
+	let section5Trigger: ScrollTrigger | null = null;
+
+	// Cols fade in, then (later in the same scrub range) the achievements
+	// line reveals letter by letter — one timeline, one pinned scroll
+	// distance, so the letters are strictly the last thing to appear and
+	// stay tied 1:1 to scroll like the cols, instead of an independently
+	// timed animation.
+	function buildSection5Timeline() {
+		section5Trigger?.kill();
+		section5Trigger = null;
+
+		const cols = document.querySelectorAll<HTMLElement>(".index-section-5-col");
+		if (!cols.length) return;
+
+		gsap.set(cols, { opacity: 0 });
+
+		const experiencesEl = document.getElementById("experiences-text-content");
+		const letters = experiencesEl ? splitIntoLetterSpans(experiencesEl) : [];
+		if (letters.length) {
+			gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+		}
+
+		// Pinned (see the identical note on section 3) — created immediately
+		// so its scroll space is reserved before the user can start
+		// scrolling, instead of getting inserted underneath them later.
+		const timeline = gsap.timeline({
+			scrollTrigger: {
+				trigger: ".full-height.index-section-5",
+				start: "top top",
+				end: "+=1500",
+				pin: true,
+				pinSpacing: true,
+				scrub: true,
+				anticipatePin: 1,
+			},
+		});
+
+		timeline.fromTo(cols, { opacity: 0 }, { opacity: 1, stagger: 1 });
+		if (letters.length) {
+			timeline.to(letters, { rotateY: 0, opacity: 1, stagger: { amount: 0.5 } }, ">");
+		}
+
+		section5Trigger = timeline.scrollTrigger ?? null;
+	}
+
+	function initSection5Reveal() {
+		// Build immediately with whatever text is already in the DOM (the
+		// static default), then rebuild once the achievements text is
+		// finalized (it may be overridden via the admin panel) — splitting
+		// first and letting that fetch overwrite textContent afterwards
+		// would silently drop the letter spans.
+		buildSection5Timeline();
+		document.addEventListener("experiences-text-ready", buildSection5Timeline, {
+			once: true,
+		});
+	}
+
+	document.addEventListener("astro:page-load", initSection5Reveal);
+
+
+	let section6Trigger: ScrollTrigger | null = null;
+
+	function initSection6Reveal() {
+		section6Trigger?.kill();
+		section6Trigger = null;
+
+		const quote = document.querySelector<HTMLElement>(".index-section-6-col h5");
+		const attribution = document.querySelector<HTMLElement>(".index-section-6-col h6");
+		if (!quote || !attribution) return;
+
+		const letters = splitIntoLetterSpans(quote);
+		gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+		gsap.set(attribution, { opacity: 0 });
+
+		whenPageSettled(() => {
+			const timeline = gsap.timeline({
+				scrollTrigger: {
+					trigger: ".index-section-6",
+					start: "top 75%",
+					toggleActions: "play none none reverse",
+				},
+			});
+			timeline
+				.to(letters, {
+					rotateY: 0,
+					opacity: 1,
+					duration: 0.6,
+					ease: "power3.out",
+					// A fixed total spread (not a fixed per-letter delay) so a
+					// long quote like this one doesn't stretch the reveal —
+					// and, just as importantly, doesn't stretch the reverse
+					// when scrolling back up past it — into several seconds.
+					stagger: { amount: 0.5 },
+				})
+				.to(attribution, { opacity: 1, duration: 0.5, ease: "power2.out" }, ">");
+
+			section6Trigger = timeline.scrollTrigger ?? null;
+		});
+	}
+
+	document.addEventListener("astro:page-load", initSection6Reveal);
 
 	document.addEventListener("astro:before-swap", () => {
 		section3Trigger?.kill();
 		section3Trigger = null;
 		section4Trigger?.kill();
 		section4Trigger = null;
+		section5Trigger?.kill();
+		section5Trigger = null;
+		section6Trigger?.kill();
+		section6Trigger = null;
 	});
 </script>
 

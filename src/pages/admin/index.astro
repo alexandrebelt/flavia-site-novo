@@ -1,14 +1,14 @@
 ---
 export const prerender = false;
 
+import { env } from "cloudflare:workers";
 import AdminLayout from "../../layouts/AdminLayout.astro";
 import { listProjects } from "../../lib/server/projects-store.js";
 import { getSettings } from "../../lib/server/settings-store.js";
-import { readdir } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { listMedia } from "../../lib/server/media-storage.js";
 
-const projects = await listProjects();
-const settings = await getSettings();
+const projects = await listProjects(env.DB);
+const settings = await getSettings(env.DB);
 
 const DEFAULT_ACHIEVEMENTS_TEXT =
 	"( 150+ Projects developed · 7 Years of experience · 13+ Countries · 19+ Features & Recognitions )";
@@ -19,8 +19,7 @@ const bannerText = settings.bannerText || DEFAULT_BANNER_TEXT;
 
 let mediaCount = 0;
 try {
-	const uploadsDir = fileURLToPath(new URL("../../../public/uploads/", import.meta.url));
-	mediaCount = (await readdir(uploadsDir)).length;
+	mediaCount = (await listMedia(env.MEDIA)).length;
 } catch {
 	mediaCount = 0;
 }

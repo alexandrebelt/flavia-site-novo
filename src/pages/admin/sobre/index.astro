@@ -1,10 +1,11 @@
 ---
 export const prerender = false;
 
+import { env } from "cloudflare:workers";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import { getSettings } from "../../../lib/server/settings-store.js";
 
-const settings = await getSettings();
+const settings = await getSettings(env.DB);
 const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 ---
 

@@ -1,12 +1,13 @@
 ---
 export const prerender = false;
 
+import { env } from "cloudflare:workers";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import ProjectForm from "../../../components/admin/ProjectForm.astro";
 import { getProjectById } from "../../../lib/server/projects-store.js";
 
 const { id } = Astro.params;
-const project = await getProjectById(id!);
+const project = await getProjectById(env.DB, id!);
 
 if (!project) {
 	return Astro.redirect("/admin/projetos");

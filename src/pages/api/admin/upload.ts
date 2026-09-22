@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { env } from "cloudflare:workers";
 import { saveMedia } from "../../../lib/server/media-storage.js";
 
 export const prerender = false;
@@ -11,6 +12,6 @@ export const POST: APIRoute = async ({ request }) => {
 		return Response.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
 	}
 
-	const result = await saveMedia(file);
+	const result = await saveMedia(env.MEDIA, file);
 	return Response.json(result, { status: 201 });
 };

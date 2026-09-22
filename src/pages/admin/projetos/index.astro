@@ -1,10 +1,11 @@
 ---
 export const prerender = false;
 
+import { env } from "cloudflare:workers";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import { listProjects } from "../../../lib/server/projects-store.js";
 
-const projects = await listProjects();
+const projects = await listProjects(env.DB);
 ---
 
 <AdminLayout title="Projetos">

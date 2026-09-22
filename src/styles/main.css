@@ -274,6 +274,18 @@ section.full-height {
 	perspective: 800px;
 }
 
+/* Any other element split with splitIntoLetterSpans() (see
+   hero-letter-reveal.ts) needs the same perspective context — used by the
+   project grid's per-item title reveal and the homepage's achievements line. */
+.project-col--index h4,
+#experiences-text-content,
+.index-section-6-col h5,
+.services-section-2-col h2,
+.hero-about-section-row span,
+.about-section-2-col h4 {
+	perspective: 800px;
+}
+
 .hero-reveal-word {
 	display: inline-block;
 	/* Letters are grandchildren of the perspective-holding h1 (h1 > word >

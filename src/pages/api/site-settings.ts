@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { env } from "cloudflare:workers";
 import { getSettings } from "../../lib/server/settings-store.js";
 
 export const prerender = false;
@@ -10,7 +11,7 @@ export const prerender = false;
  * public.
  */
 export const GET: APIRoute = async () => {
-	const settings = await getSettings();
+	const settings = await getSettings(env.DB);
 	return Response.json({
 		home: settings.home ?? {},
 		about: settings.about ?? {},

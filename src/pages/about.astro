@@ -117,6 +117,155 @@ import CtaInquire from "../components/CtaInquire.astro";
 </Layout>
 
 <script>
+	import gsap from "gsap";
+	import { ScrollTrigger } from "gsap/ScrollTrigger";
+	import { splitIntoLetterSpans, splitPreservingMarkup } from "../scripts/hero-letter-reveal";
+	import { whenPageSettled } from "../scripts/scroll-timing";
+
+	gsap.registerPlugin(ScrollTrigger);
+
+	function playHeroAboutReveal() {
+		const spans = document.querySelectorAll<HTMLElement>(
+			".hero-about-section-row > span",
+		);
+		if (!spans.length) return;
+
+		// Each span's own letters, split in document order — the timeline
+		// below reveals them span by span (first span's letters spin in,
+		// then the second's, and so on), not all four at once.
+		const spanLetters = Array.from(spans).map((span) => splitPreservingMarkup(span));
+		const allLetters = spanLetters.flat();
+		gsap.set(allLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+
+		const timeline = gsap.timeline();
+		spanLetters.forEach((letters, i) => {
+			timeline.to(
+				letters,
+				{
+					rotateY: 0,
+					opacity: 1,
+					duration: 0.6,
+					ease: "power3.out",
+					stagger: { amount: 0.5 },
+				},
+				i === 0 ? undefined : ">",
+			);
+		});
+	}
+
+	document.addEventListener("astro:page-load", playHeroAboutReveal);
+
+	// Pinned + scrubbed, one continuous sequence: heading letters spin in,
+	// then the social-media list items fade in one by one, then the bio
+	// paragraphs fade in one by one, and finally the achievements line
+	// (shared with the homepage) spins in the same way as the heading.
+	let aboutSection2Trigger: ScrollTrigger | null = null;
+
+	function buildAboutSection2Timeline() {
+		aboutSection2Trigger?.kill();
+		aboutSection2Trigger = null;
+
+		const heading = document.querySelector<HTMLElement>(".about-section-2-col h4");
+		const socialItems = document.querySelectorAll<HTMLElement>(
+			".about-section-social-media-ul li",
+		);
+		const paragraphs = document.querySelectorAll<HTMLElement>(
+			".about-section-2-col-wrapper p",
+		);
+		if (!heading || !socialItems.length || !paragraphs.length) return;
+
+		const headingLetters = splitIntoLetterSpans(heading);
+		gsap.set(headingLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+		gsap.set(socialItems, { opacity: 0 });
+		gsap.set(paragraphs, { opacity: 0 });
+
+		// The achievements text is (re)built once ExperiencesText's own fetch
+		// finalizes its content (see the "experiences-text-ready" listener
+		// below) — splitting it now, before that, is what lets it be part of
+		// this same immediate pin instead of arriving late.
+		const experiencesEl = document.getElementById("experiences-text-content");
+		const experiencesLetters = experiencesEl ? splitIntoLetterSpans(experiencesEl) : [];
+		if (experiencesLetters.length) {
+			gsap.set(experiencesLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+		}
+
+		// Pinned — created immediately (not deferred), so its scroll space is
+		// reserved before the user can start scrolling instead of being
+		// inserted underneath them mid-scroll.
+		const timeline = gsap.timeline({
+			scrollTrigger: {
+				trigger: ".full-height.about-section-2",
+				start: "top top",
+				end: "+=2500",
+				pin: true,
+				pinSpacing: true,
+				scrub: true,
+				anticipatePin: 1,
+			},
+		});
+
+		timeline
+			.to(headingLetters, { rotateY: 0, opacity: 1, stagger: { amount: 0.5 } })
+			.to(socialItems, { opacity: 1, stagger: { amount: 0.3 } }, ">")
+			.to(paragraphs, { opacity: 1, stagger: { amount: 0.4 } }, ">");
+		if (experiencesLetters.length) {
+			timeline.to(
+				experiencesLetters,
+				{ rotateY: 0, opacity: 1, stagger: { amount: 0.5 } },
+				">",
+			);
+		}
+
+		aboutSection2Trigger = timeline.scrollTrigger ?? null;
+	}
+
+	function initAboutSection2Reveal() {
+		buildAboutSection2Timeline();
+		document.addEventListener("experiences-text-ready", buildAboutSection2Timeline, {
+			once: true,
+		});
+	}
+
+	document.addEventListener("astro:page-load", initAboutSection2Reveal);
+
+	let aboutSection3Trigger: ScrollTrigger | null = null;
+
+	function initAboutSection3Reveal() {
+		aboutSection3Trigger?.kill();
+		aboutSection3Trigger = null;
+
+		const cols = document.querySelectorAll<HTMLElement>(".about-section-3-col");
+		if (!cols.length) return;
+
+		gsap.set(cols, { opacity: 0 });
+
+		whenPageSettled(() => {
+			const timeline = gsap.timeline({
+				scrollTrigger: {
+					trigger: ".about-section-3",
+					start: "top 80%",
+					toggleActions: "play none none reverse",
+				},
+			});
+			timeline.to(cols, {
+				opacity: 1,
+				duration: 0.6,
+				ease: "power2.out",
+				stagger: { amount: 0.4 },
+			});
+			aboutSection3Trigger = timeline.scrollTrigger ?? null;
+		});
+	}
+
+	document.addEventListener("astro:page-load", initAboutSection3Reveal);
+
+	document.addEventListener("astro:before-swap", () => {
+		aboutSection2Trigger?.kill();
+		aboutSection2Trigger = null;
+		aboutSection3Trigger?.kill();
+		aboutSection3Trigger = null;
+	});
+
 	async function applyAboutSettings() {
 		const heroImg = document.getElementById(
 			"about-hero-img",

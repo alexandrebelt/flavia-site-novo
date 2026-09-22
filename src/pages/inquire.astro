@@ -53,18 +53,8 @@ const scopeOptions = [
 							type="text"
 							id="location"
 							name="location"
-							placeholder="Location"
-							aria-label="Location"
-						/>
-					</div>
-
-					<div class="field">
-						<input
-							type="text"
-							id="country"
-							name="country"
-							placeholder="Country"
-							aria-label="Country"
+							placeholder="Location | Country"
+							aria-label="Location and Country"
 						/>
 					</div>
 
@@ -94,18 +84,8 @@ const scopeOptions = [
 							type="text"
 							id="website"
 							name="website"
-							placeholder="Website"
-							aria-label="Website"
-						/>
-					</div>
-
-					<div class="field">
-						<input
-							type="text"
-							id="instagram"
-							name="instagram"
-							placeholder="Instagram"
-							aria-label="Instagram"
+							placeholder="Website | Instagram"
+							aria-label="Website and Instagram"
 						/>
 					</div>
 
@@ -189,18 +169,8 @@ const scopeOptions = [
 							type="text"
 							id="business"
 							name="business"
-							placeholder="Business"
-							aria-label="Business"
-						/>
-					</div>
-
-					<div class="field">
-						<input
-							type="text"
-							id="brand-name"
-							name="brandName"
-							placeholder="Brand Name"
-							aria-label="Brand Name"
+							placeholder="Business | Brand Name"
+							aria-label="Business and Brand Name"
 						/>
 					</div>
 
@@ -291,9 +261,49 @@ const scopeOptions = [
 </Layout>
 
 <script>
+	import gsap from "gsap";
+	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { playHeroLetterReveal } from "../scripts/hero-letter-reveal";
+	import { whenPageSettled } from "../scripts/scroll-timing";
+
+	gsap.registerPlugin(ScrollTrigger);
 
 	document.addEventListener("astro:page-load", playHeroLetterReveal);
+
+	let formRevealTrigger: ScrollTrigger | null = null;
+
+	function initInquireFormReveal() {
+		formRevealTrigger?.kill();
+		formRevealTrigger = null;
+
+		const items = document.querySelectorAll<HTMLElement>(".inquire-form-col > *");
+		if (!items.length) return;
+
+		gsap.set(items, { opacity: 0 });
+
+		whenPageSettled(() => {
+			const timeline = gsap.timeline({
+				scrollTrigger: {
+					trigger: ".inquire-form",
+					start: "top 45%",
+					toggleActions: "play none none reverse",
+				},
+			});
+			timeline.to(items, {
+				opacity: 1,
+				duration: 0.5,
+				ease: "power2.out",
+				stagger: { amount: 0.6 },
+			});
+			formRevealTrigger = timeline.scrollTrigger ?? null;
+		});
+	}
+
+	document.addEventListener("astro:page-load", initInquireFormReveal);
+	document.addEventListener("astro:before-swap", () => {
+		formRevealTrigger?.kill();
+		formRevealTrigger = null;
+	});
 
 	function bindScopeToggles() {
 		document
@@ -409,6 +419,7 @@ const scopeOptions = [
 		gap: 2rem 4rem;
 		align-items: start;
 		max-width: 1100px;
+		margin: 0 auto;
 	}
 
 	.inquire-form-col {
@@ -433,6 +444,13 @@ const scopeOptions = [
 	.field input,
 	.field select,
 	.field textarea {
+		/* Resets each browser's own control chrome (Safari's inset shadow
+		   and rounded corners on inputs/textareas, the native select arrow,
+		   system font) so the field looks identical everywhere instead of
+		   just wherever the default happens to already match this design. */
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
 		font-family: var(--font-sans);
 		font-size: var(--font-size-body);
 		font-weight: 300;
@@ -467,6 +485,14 @@ const scopeOptions = [
 
 	.field select {
 		cursor: pointer;
+		/* appearance: none above drops the browser's own arrow (each one
+		   drew it differently) — this SVG chevron replaces it identically
+		   everywhere. */
+		background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%230e0e0e' stroke-width='1.3' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5L6 6.5L11 1.5'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		background-position: right center;
+		background-size: 11px 8px;
+		padding-right: 1.5em;
 	}
 
 	.scope-field {
@@ -500,6 +526,9 @@ const scopeOptions = [
 	}
 
 	.scope-option input {
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		appearance: none;
 		position: absolute;
 		width: 1px;
 		height: 1px;
@@ -553,10 +582,19 @@ const scopeOptions = [
 		flex-direction: column;
 		gap: 0.5rem;
 		padding-left: 1.6em;
+		/* Fades out immediately when collapsing (no delay) so it doesn't
+		   linger visible while the space shrinks back to 0 — but fades in
+		   only after that same delay when expanding, so the space opens up
+		   first and the content settles into it a beat later instead of
+		   popping in all at once. */
+		opacity: 0;
+		transition: opacity 0.25s ease;
 	}
 
 	.scope-item.expanded .scope-suboptions-inner {
 		padding-top: 0.6rem;
+		opacity: 1;
+		transition: opacity 0.25s ease 0.2s;
 	}
 
 	.scope-option--sub {
