@@ -30,7 +30,7 @@ const EDITABLE_KEYS = new Set(["siteTitle", "siteFaviconUrl", "bannerText", "hom
 export const POST: APIRoute = async ({ request }) => {
 	const patch = (await request.json()) as Record<string, unknown>;
 	if (!patch || typeof patch !== "object" || Object.keys(patch).some((key) => !EDITABLE_KEYS.has(key))) {
-		return Response.json({ error: "Configuração inválida." }, { status: 400 });
+		return Response.json({ error: "Invalid settings." }, { status: 400 });
 	}
 	const seo = patch.seo as Record<string, unknown> | undefined;
 	if (seo && "socialLinks" in seo) {
@@ -38,7 +38,7 @@ export const POST: APIRoute = async ({ request }) => {
 	}
 	const projects = patch.projects as Record<string, unknown> | undefined;
 	if (projects && "order" in projects && !isProjectOrder(projects.order)) {
-		return Response.json({ error: "Ordem inválida." }, { status: 400 });
+		return Response.json({ error: "Invalid order." }, { status: 400 });
 	}
 	const settings = await updateSettings(env.DB, patch);
 	return Response.json(settings);

@@ -7,7 +7,7 @@ interface Props {
 }
 
 const { interval = 3.5 } = Astro.props;
-// Every project with a cover image (admin › Projetos), in admin order.
+// Every project with a cover image (admin › Projects), in admin order.
 const covers = (await Astro.locals.projects())
 	.map((project) => ({ src: projectCover(project), alt: project.client }))
 	.filter((cover) => cover.src);

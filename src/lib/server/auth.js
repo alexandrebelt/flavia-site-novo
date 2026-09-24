@@ -67,11 +67,11 @@ export async function verifyAgainstDummy(password) {
 export function validatePasswordStrength(password) {
 	const reasons = [];
 	if (typeof password !== "string" || password.length < 10) {
-		reasons.push("no mínimo 10 caracteres");
+		reasons.push("at least 10 characters");
 	}
-	if (!/[a-z]/.test(password || "")) reasons.push("uma letra minúscula");
-	if (!/[A-Z]/.test(password || "")) reasons.push("uma letra maiúscula");
-	if (!/[0-9]/.test(password || "")) reasons.push("um número");
-	if (!/[^A-Za-z0-9]/.test(password || "")) reasons.push("um caractere especial");
+	if (!/[a-z]/.test(password || "")) reasons.push("a lowercase letter");
+	if (!/[A-Z]/.test(password || "")) reasons.push("an uppercase letter");
+	if (!/[0-9]/.test(password || "")) reasons.push("a number");
+	if (!/[^A-Za-z0-9]/.test(password || "")) reasons.push("a special character");
 	return { valid: reasons.length === 0, reasons };
 }

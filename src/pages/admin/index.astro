@@ -25,27 +25,27 @@ try {
 }
 ---
 
-<AdminLayout title="Painel">
+<AdminLayout title="Dashboard">
 	<div class="admin-dashboard-grid">
 		<div class="admin-card">
 			<div class="admin-stat-value">{projects.length}</div>
-			<div class="admin-stat-label">Projetos no portfólio</div>
+			<div class="admin-stat-label">Projects in the portfolio</div>
 		</div>
 		<div class="admin-card">
 			<div class="admin-stat-value">{mediaCount}</div>
-			<div class="admin-stat-label">Arquivos de mídia</div>
+			<div class="admin-stat-label">Media files</div>
 		</div>
 	</div>
 
 	<div class="admin-card" style="margin-top: 2rem;">
 		<p class="admin-hint" style="margin-bottom: 1.5rem;">
-			Painel em construção — conforme o projeto avança, novas seções e opções
-			vão sendo adicionadas aqui.
+			Work in progress — new sections and options are added here as the
+			project grows.
 		</p>
 
 		<h2 class="block-title">Banner</h2>
 		<p class="admin-hint" style="margin-bottom: 1rem;">
-			Texto exibido na faixa no topo de todas as páginas do site.
+			Text shown in the strip at the top of every page of the site.
 		</p>
 		<div class="admin-field" style="margin-bottom: 2rem;">
 			<textarea id="banner-text-input" rows="2">{bannerText}</textarea>
@@ -53,14 +53,14 @@ try {
 
 		<h2 class="block-title">Achievements</h2>
 		<p class="admin-hint" style="margin-bottom: 1rem;">
-			Texto exibido na home e na página about, logo abaixo da foto da Flávia.
+			Text shown on the home and about pages, just below Flávia's photo.
 		</p>
 		<div class="admin-field">
 			<textarea id="achievements-text" rows="2">{achievementsText}</textarea>
 		</div>
 
 		<div class="admin-form-actions">
-			<button type="button" id="save-all" class="admin-btn">Salvar</button>
+			<button type="button" id="save-all" class="admin-btn">Save</button>
 		</div>
 	</div>
 </AdminLayout>
@@ -98,7 +98,7 @@ try {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ bannerText, home: { achievementsText } }),
 		});
-		if (res.ok) toast("Alterações salvas.");
-		else toast("Erro ao salvar.", true);
+		if (res.ok) toast("Changes saved.");
+		else toast("Couldn't save.", true);
 	});
 </script>

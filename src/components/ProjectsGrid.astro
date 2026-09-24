@@ -15,7 +15,7 @@ interface Props {
 }
 
 const { limit, paginate = false, offset = 0 } = Astro.props;
-// Managed in the admin (Projetos), stored in D1, in the admin's chosen
+// Managed in the admin (Projects), stored in D1, in the admin's chosen
 // order with featured projects first (see orderProjects).
 const projects = await Astro.locals.projects();
 

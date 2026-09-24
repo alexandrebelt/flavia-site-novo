@@ -44,7 +44,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
 	if (!session) {
 		if (isAdminApi) {
-			return finish(Response.json({ error: "Não autenticado." }, { status: 401 }), url);
+			return finish(Response.json({ error: "Not authenticated." }, { status: 401 }), url);
 		}
 		const nextPath = encodeURIComponent(pathname + url.search);
 		return finish(context.redirect(`/admin/login?next=${nextPath}`), url);

@@ -49,23 +49,23 @@ const SIGNATURES = {
 
 /**
  * Checks an upload against ALLOWED_TYPES and its real content. Returns the
- * Content-Type to store it with, or an error message (in Portuguese —
- * shown in the admin).
+ * Content-Type to store it with, or an error message (shown in the
+ * admin).
  */
 export async function checkUpload(file) {
 	const ext = path.extname(file.name || "").toLowerCase();
 	const rule = ALLOWED_TYPES[ext];
 	if (!rule) {
-		return { error: "Tipo de arquivo não permitido. Envie imagens (JPG, PNG, WebP, GIF, AVIF, SVG, ICO) ou vídeos (MP4, WebM, MOV)." };
+		return { error: "File type not allowed. Upload images (JPG, PNG, WebP, GIF, AVIF, SVG, ICO) or videos (MP4, WebM, MOV)." };
 	}
-	if (file.size === 0) return { error: "O arquivo está vazio." };
+	if (file.size === 0) return { error: "The file is empty." };
 	if (file.size > rule.maxBytes) {
-		return { error: `Arquivo grande demais (máximo ${Math.round(rule.maxBytes / MB)} MB para ${ext}).` };
+		return { error: `File too large (max ${Math.round(rule.maxBytes / MB)} MB for ${ext}).` };
 	}
 	const head = new Uint8Array(await file.slice(0, 1024).arrayBuffer());
 	const text = rule.type === "image/svg+xml" ? new TextDecoder().decode(head) : "";
 	if (!SIGNATURES[rule.type]?.(head, text)) {
-		return { error: `O conteúdo do arquivo não é um ${ext} válido.` };
+		return { error: `The file content isn't a valid ${ext}.` };
 	}
 	return { contentType: rule.type };
 }

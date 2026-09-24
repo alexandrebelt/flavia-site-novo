@@ -29,37 +29,37 @@ const initial = {
 		<div class="admin-field-row">
 			<div class="admin-field">
 				<label for="f-id">ID</label>
-				<input id="f-id" name="id" required disabled={mode === "edit"} placeholder="0004-nome-projeto" />
+				<input id="f-id" name="id" required disabled={mode === "edit"} placeholder="0004-project-name" />
 			</div>
 			<div class="admin-field">
 				<label for="f-slug">Slug</label>
-				<input id="f-slug" name="slug" required placeholder="nome-projeto" />
+				<input id="f-slug" name="slug" required placeholder="project-name" />
 			</div>
 			<div class="admin-field">
-				<label for="f-client">Cliente</label>
+				<label for="f-client">Client</label>
 				<input id="f-client" name="client" required />
 			</div>
 			<div class="admin-field">
-				<label for="f-year">Ano</label>
+				<label for="f-year">Year</label>
 				<input id="f-year" name="year" type="number" required />
 			</div>
 		</div>
 		<div class="admin-field-row">
 			<div class="admin-field">
-				<label for="f-country">País</label>
+				<label for="f-country">Country</label>
 				<input id="f-country" name="country" required />
 			</div>
 			<div class="admin-field">
-				<label for="f-segment">Segmento</label>
+				<label for="f-segment">Segment</label>
 				<input id="f-segment" name="segment" required />
 			</div>
 			<div class="admin-field">
-				<label for="f-category">Categoria</label>
+				<label for="f-category">Category</label>
 				<input id="f-category" name="category" required />
 			</div>
 		</div>
 		<div class="admin-field">
-			<label for="f-tags">Tags (separadas por vírgula)</label>
+			<label for="f-tags">Tags (comma-separated)</label>
 			<input id="f-tags" name="tags" placeholder="logo system, typography, packaging" />
 		</div>
 	</div>
@@ -71,11 +71,11 @@ const initial = {
 		</div>
 
 		<div class="admin-field">
-			<label>Descrição</label>
+			<label>Description</label>
 			<div id="description-editor"></div>
 			<p class="admin-hint">
-				Enter cria um novo parágrafo automaticamente. Selecione um trecho e use a
-				barra de formatação para negrito, itálico, sublinhado, links e títulos.
+				Enter starts a new paragraph. Select some text and use the toolbar for
+				bold, italic, underline, links and headings.
 			</p>
 		</div>
 	</div>
@@ -87,22 +87,22 @@ const initial = {
 		</div>
 
 		<div class="admin-field">
-			<label>Galeria de imagens</label>
+			<label>Image gallery</label>
 			<div id="images-list"></div>
 			<button type="button" class="admin-btn secondary" id="add-image" style="width: fit-content;">
-				+ Adicionar imagem
+				+ Add image
 			</button>
 		</div>
 	</div>
 
 	<div class="admin-form-actions">
 		<button type="submit" class="admin-btn" id="submit-btn">
-			{mode === "create" ? "Criar projeto" : "Salvar alterações"}
+			{mode === "create" ? "Create project" : "Save changes"}
 		</button>
-		<a href="/admin/projetos" class="admin-btn secondary">Cancelar</a>
+		<a href="/admin/projects" class="admin-btn secondary">Cancel</a>
 		{mode === "edit" && (
 			<button type="button" class="admin-btn danger" id="delete-btn" style="margin-left: auto;">
-				Excluir projeto
+				Delete project
 			</button>
 		)}
 	</div>
@@ -317,7 +317,7 @@ const initial = {
 		if (!res.ok) {
 			// The server says why (type not allowed, too large...).
 			const err = (await res.json().catch(() => ({}))) as { error?: string };
-			throw new Error(err.error || "Falha no upload.");
+			throw new Error(err.error || "Upload failed.");
 		}
 		const data = (await res.json()) as { url: string };
 		return data.url;
@@ -387,16 +387,16 @@ const initial = {
 		row.className = "gallery-row";
 		row.dataset.url = image.url;
 		row.innerHTML = `
-			<div class="thumb-tile gallery-thumb" title="Clique para escolher uma imagem">
+			<div class="thumb-tile gallery-thumb" title="Click to choose an image">
 				<img class="thumb-tile-img" alt="" hidden />
-				<span class="thumb-tile-empty-label">+<br />Adicionar</span>
+				<span class="thumb-tile-empty-label">+<br />Add</span>
 				<input type="file" accept="image/*" hidden />
 			</div>
-			<input type="text" class="gallery-alt-input" placeholder="Texto alternativo (alt)" />
-			<button type="button" class="icon-btn drag-handle" title="Arraste para reordenar">
+			<input type="text" class="gallery-alt-input" placeholder="Alternative text (alt)" />
+			<button type="button" class="icon-btn drag-handle" title="Drag to reorder">
 				<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
 			</button>
-			<button type="button" class="icon-btn danger row-remove" title="Remover da galeria (não apaga o arquivo da mídia)">
+			<button type="button" class="icon-btn danger row-remove" title="Remove from gallery (doesn't delete the media file)">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
 			</button>
 		`;
@@ -427,7 +427,7 @@ const initial = {
 				renderTile();
 				if (!altInput.value.trim()) altInput.value = deriveAltFromUrl(url);
 			} catch (err) {
-				toast(err instanceof Error ? err.message : "Erro ao enviar imagem.", true);
+				toast(err instanceof Error ? err.message : "Couldn't upload the image.", true);
 			}
 		});
 
@@ -490,10 +490,10 @@ const initial = {
 	// ---- thumbnail ----
 	const thumbRow = $("#thumbnail-row");
 	thumbRow.innerHTML = `
-		<div class="thumb-tile" id="thumb-tile" title="Clique para escolher uma imagem">
+		<div class="thumb-tile" id="thumb-tile" title="Click to choose an image">
 			<img class="thumb-tile-img" alt="" hidden />
-			<span class="thumb-tile-empty-label">+<br />Adicionar</span>
-			<button type="button" class="thumb-tile-remove" title="Remover">×</button>
+			<span class="thumb-tile-empty-label">+<br />Add</span>
+			<button type="button" class="thumb-tile-remove" title="Remove">×</button>
 			<input type="file" accept="image/*" hidden />
 		</div>
 	`;
@@ -522,7 +522,7 @@ const initial = {
 			thumbnailUrl = await uploadFile(file);
 			renderThumb();
 		} catch (err) {
-			toast(err instanceof Error ? err.message : "Erro ao enviar thumbnail.", true);
+			toast(err instanceof Error ? err.message : "Couldn't upload the thumbnail.", true);
 		}
 	});
 	thumbRemoveBtn.addEventListener("click", (e) => {
@@ -566,14 +566,14 @@ const initial = {
 			);
 			if (!res.ok) {
 				const err = (await res.json().catch(() => ({}))) as { error?: string };
-				throw new Error(err.error || "Erro ao salvar.");
+				throw new Error(err.error || "Couldn't save.");
 			}
-			toast("Projeto salvo com sucesso.");
+			toast("Project saved.");
 			setTimeout(() => {
-				window.location.href = "/admin/projetos";
+				window.location.href = "/admin/projects";
 			}, 600);
 		} catch (err) {
-			toast(err instanceof Error ? err.message : "Erro ao salvar.", true);
+			toast(err instanceof Error ? err.message : "Couldn't save.", true);
 			submitBtn.disabled = false;
 		}
 	});
@@ -581,12 +581,12 @@ const initial = {
 	// ---- delete ----
 	const deleteBtn = document.getElementById("delete-btn");
 	deleteBtn?.addEventListener("click", async () => {
-		if (!confirm("Excluir este projeto permanentemente?")) return;
+		if (!confirm("Delete this project permanently?")) return;
 		const res = await fetch(`/api/admin/projects/${initial.id}`, { method: "DELETE" });
 		if (res.ok) {
-			window.location.href = "/admin/projetos";
+			window.location.href = "/admin/projects";
 		} else {
-			toast("Erro ao excluir.", true);
+			toast("Couldn't delete.", true);
 		}
 	});
 </script>

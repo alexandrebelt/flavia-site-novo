@@ -11,10 +11,10 @@ const home = settings.home ?? {};
 
 <AdminLayout title="Home">
 	<div class="admin-card" style="margin-bottom: 1.5rem;">
-		<h2 class="block-title">Foto — Sobre Flávia</h2>
+		<h2 class="block-title">Photo — About Flávia</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
-			Foto exibida ao lado do texto "Sobre Flávia", na home. Recomendação:
-			retrato (proporção vertical), pelo menos 800px de largura, JPG ou WEBP.
+			Photo shown next to the "About Flávia" text on the home page.
+			Recommended: portrait (vertical), at least 800px wide, JPG or WEBP.
 		</p>
 		<div class="video-field">
 			<div class="photo-preview">
@@ -22,20 +22,20 @@ const home = settings.home ?? {};
 			</div>
 			<div class="video-controls">
 				<div class="admin-field">
-					<label>Foto</label>
+					<label>Photo</label>
 					<div class="upload-row">
 						<span id="photo-filename" class="admin-hint">
-							{home.aboutImageUrl || "Usando a foto padrão do tema"}
+							{home.aboutImageUrl || "Using the theme's default photo"}
 						</span>
 						<label class="admin-btn secondary" style="cursor: pointer;">
-							Enviar foto
+							Upload photo
 							<input type="file" id="photo-input" accept="image/*" style="display:none;" />
 						</label>
 					</div>
 				</div>
 				<div class="admin-form-actions">
 					<button type="button" id="reset-photo" class="admin-btn secondary">
-						Restaurar padrão do tema
+						Restore theme default
 					</button>
 				</div>
 			</div>
@@ -43,17 +43,18 @@ const home = settings.home ?? {};
 	</div>
 
 	<div class="admin-card" style="margin-bottom: 1.5rem;">
-		<h2 class="block-title">Bloco 2 — Vídeo de fundo</h2>
+		<h2 class="block-title">Block 2 — Background video</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
-			Vídeo em loop, mudo e sem controles, usado como fundo da segunda seção
-			da home. Recomendação (mesmo padrão do vídeo atual do tema):
+			Looping, muted video with no controls, used as the background of the
+			home page's second section. Recommended (same as the theme's current
+			video):
 		</p>
 		<ul class="spec-list">
-			<li><strong>Resolução mínima:</strong> 1920×1080 (Full HD), formato paisagem</li>
-			<li><strong>Formato:</strong> MP4 (H.264)</li>
-			<li><strong>Duração:</strong> 3 a 8 segundos, feito para repetir em loop sem corte perceptível</li>
-			<li><strong>Áudio:</strong> nenhum (o vídeo toca mudo)</li>
-			<li><strong>Peso do arquivo:</strong> até ~5MB, para carregar rápido</li>
+			<li><strong>Minimum resolution:</strong> 1920×1080 (Full HD), landscape</li>
+			<li><strong>Format:</strong> MP4 (H.264)</li>
+			<li><strong>Length:</strong> 3 to 8 seconds, made to loop without a visible cut</li>
+			<li><strong>Audio:</strong> none (the video plays muted)</li>
+			<li><strong>File size:</strong> up to ~5MB, so it loads fast</li>
 		</ul>
 
 		<div class="video-field">
@@ -62,32 +63,32 @@ const home = settings.home ?? {};
 			</div>
 			<div class="video-controls">
 				<div class="admin-field">
-					<label>Vídeo</label>
+					<label>Video</label>
 					<div class="upload-row">
 						<span id="video-filename" class="admin-hint">
-							{home.sectionVideoUrl || "Usando o vídeo padrão do tema"}
+							{home.sectionVideoUrl || "Using the theme's default video"}
 						</span>
 						<label class="admin-btn secondary" style="cursor: pointer;">
-							Enviar vídeo
+							Upload video
 							<input type="file" id="video-input" accept="video/mp4,video/webm,video/quicktime" style="display:none;" />
 						</label>
 					</div>
 				</div>
 				<div class="admin-field">
-					<label>Poster (imagem exibida antes do vídeo carregar)</label>
+					<label>Poster (image shown before the video loads)</label>
 					<div class="upload-row">
 						<span id="poster-filename" class="admin-hint">
-							{home.sectionVideoPosterUrl || "Usando o poster padrão do tema"}
+							{home.sectionVideoPosterUrl || "Using the theme's default poster"}
 						</span>
 						<label class="admin-btn secondary" style="cursor: pointer;">
-							Enviar poster
+							Upload poster
 							<input type="file" id="poster-input" accept="image/*" style="display:none;" />
 						</label>
 					</div>
 				</div>
 				<div class="admin-form-actions">
 					<button type="button" id="reset-video" class="admin-btn secondary">
-						Restaurar padrão do tema
+						Restore theme default
 					</button>
 				</div>
 			</div>
@@ -95,12 +96,12 @@ const home = settings.home ?? {};
 	</div>
 
 	<div class="admin-card admin-empty">
-		Mais blocos da Home (hero, textos, depoimento, etc.) vão sendo adicionados
-		aqui conforme o projeto avança.
+		More Home blocks (hero, texts, testimonial, etc.) are added here as
+		the project grows.
 	</div>
 
 	<div class="admin-form-actions">
-		<button type="button" id="save-all" class="admin-btn">Salvar</button>
+		<button type="button" id="save-all" class="admin-btn">Save</button>
 	</div>
 </AdminLayout>
 
@@ -178,9 +179,9 @@ const home = settings.home ?? {};
 </style>
 
 <script>
-	const DEFAULT_VIDEO_LABEL = "Usando o vídeo padrão do tema";
-	const DEFAULT_POSTER_LABEL = "Usando o poster padrão do tema";
-	const DEFAULT_PHOTO_LABEL = "Usando a foto padrão do tema";
+	const DEFAULT_VIDEO_LABEL = "Using the theme's default video";
+	const DEFAULT_POSTER_LABEL = "Using the theme's default poster";
+	const DEFAULT_PHOTO_LABEL = "Using the theme's default photo";
 
 	function readUrlFromLabel(elId: string, defaultLabel: string) {
 		const text = document.getElementById(elId)?.textContent?.trim() ?? "";
@@ -218,7 +219,7 @@ const home = settings.home ?? {};
 		if (!res.ok) {
 			// The server says why (type not allowed, too large...).
 			const err = (await res.json().catch(() => ({}))) as { error?: string };
-			throw new Error(err.error || "Falha no upload.");
+			throw new Error(err.error || "Upload failed.");
 		}
 		const data = (await res.json()) as { url: string };
 		return data.url;
@@ -231,9 +232,9 @@ const home = settings.home ?? {};
 			sectionVideoUrl = await uploadFile(file);
 			videoFilename.textContent = sectionVideoUrl;
 			updatePreview();
-			toast("Vídeo enviado. Clique em Salvar para publicar.");
+			toast("Video uploaded. Click Save to publish.");
 		} catch (err) {
-			toast(err instanceof Error ? err.message : "Erro ao enviar vídeo.", true);
+			toast(err instanceof Error ? err.message : "Couldn't upload the video.", true);
 		}
 	});
 
@@ -244,9 +245,9 @@ const home = settings.home ?? {};
 			sectionVideoPosterUrl = await uploadFile(file);
 			posterFilename.textContent = sectionVideoPosterUrl;
 			updatePreview();
-			toast("Poster enviado. Clique em Salvar para publicar.");
+			toast("Poster uploaded. Click Save to publish.");
 		} catch (err) {
-			toast(err instanceof Error ? err.message : "Erro ao enviar poster.", true);
+			toast(err instanceof Error ? err.message : "Couldn't upload the poster.", true);
 		}
 	});
 
@@ -262,8 +263,8 @@ const home = settings.home ?? {};
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ home: { sectionVideoUrl: "", sectionVideoPosterUrl: "" } }),
 		});
-		if (res.ok) toast("Vídeo padrão restaurado.");
-		else toast("Erro ao salvar.", true);
+		if (res.ok) toast("Default video restored.");
+		else toast("Couldn't save.", true);
 	});
 
 	// ---- about photo ----
@@ -278,9 +279,9 @@ const home = settings.home ?? {};
 			aboutImageUrl = await uploadFile(file);
 			photoFilename.textContent = aboutImageUrl;
 			photoPreview.src = aboutImageUrl;
-			toast("Foto enviada. Clique em Salvar para publicar.");
+			toast("Photo uploaded. Click Save to publish.");
 		} catch (err) {
-			toast(err instanceof Error ? err.message : "Erro ao enviar foto.", true);
+			toast(err instanceof Error ? err.message : "Couldn't upload the photo.", true);
 		}
 	});
 
@@ -293,8 +294,8 @@ const home = settings.home ?? {};
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ home: { aboutImageUrl: "" } }),
 		});
-		if (res.ok) toast("Foto padrão restaurada.");
-		else toast("Erro ao salvar.", true);
+		if (res.ok) toast("Default photo restored.");
+		else toast("Couldn't save.", true);
 	});
 
 	document.getElementById("save-all")!.addEventListener("click", async () => {
@@ -305,7 +306,7 @@ const home = settings.home ?? {};
 				home: { aboutImageUrl, sectionVideoUrl, sectionVideoPosterUrl },
 			}),
 		});
-		if (res.ok) toast("Alterações salvas.");
-		else toast("Erro ao salvar.", true);
+		if (res.ok) toast("Changes saved.");
+		else toast("Couldn't save.", true);
 	});
 </script>

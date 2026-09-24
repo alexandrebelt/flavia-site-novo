@@ -18,14 +18,14 @@ export const POST: APIRoute = async ({ request }) => {
 		project.featured === true && (await countFeaturedProjects(env.DB)) < MAX_FEATURED_PROJECTS;
 
 	if (!project.id || !project.slug || !project.client) {
-		return Response.json({ error: "id, slug e client são obrigatórios." }, { status: 400 });
+		return Response.json({ error: "id, slug and client are required." }, { status: 400 });
 	}
 
 	try {
 		const created = await createProject(env.DB, project);
 		return Response.json(created, { status: 201 });
 	} catch (err) {
-		const message = err instanceof Error ? err.message : "Erro ao criar projeto.";
+		const message = err instanceof Error ? err.message : "Couldn't create the project.";
 		return Response.json({ error: message }, { status: 409 });
 	}
 };

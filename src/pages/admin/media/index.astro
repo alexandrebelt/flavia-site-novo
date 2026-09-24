@@ -4,15 +4,15 @@ export const prerender = false;
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 ---
 
-<AdminLayout title="Mídia">
+<AdminLayout title="Media">
 	<div class="admin-dropzone" id="dropzone">
-		<p>Arraste imagens aqui ou clique para enviar</p>
+		<p>Drag images here or click to upload</p>
 		<p class="admin-hint">PNG, JPG, WEBP, GIF, SVG</p>
 		<input type="file" id="file-input" accept="image/*" multiple style="display:none;" />
 	</div>
 
 	<div id="media-grid" class="admin-media-grid"></div>
-	<p id="empty-state" class="admin-empty" hidden>Nenhuma mídia enviada ainda.</p>
+	<p id="empty-state" class="admin-empty" hidden>No media uploaded yet.</p>
 </AdminLayout>
 
 <div class="admin-toast" id="toast"></div>
@@ -43,7 +43,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 				<img src="${file.url}" alt="${file.filename}" loading="lazy" />
 				<div class="admin-media-item-info">
 					<span title="${file.filename}">${file.filename}</span>
-					<button type="button" class="icon-btn danger" title="Excluir">
+					<button type="button" class="icon-btn danger" title="Delete">
 						<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
 					</button>
 				</div>
@@ -53,14 +53,14 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 				toast("URL copiada.");
 			});
 			item.querySelector("button")!.addEventListener("click", async () => {
-				if (!confirm("Excluir este arquivo?")) return;
+				if (!confirm("Delete this file?")) return;
 				const res = await fetch("/api/admin/media", {
 					method: "DELETE",
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({ url: file.url }),
 				});
 				if (res.ok) loadMedia();
-				else toast("Erro ao excluir.", true);
+				else toast("Couldn't delete.", true);
 			});
 			grid.appendChild(item);
 		}
@@ -73,7 +73,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 			const res = await fetch("/api/admin/upload", { method: "POST", body });
 			if (!res.ok) {
 				const err = (await res.json().catch(() => ({}))) as { error?: string };
-				toast(`${file.name}: ${err.error || "erro ao enviar."}`, true);
+				toast(`${file.name}: ${err.error || "upload failed."}`, true);
 			}
 		}
 		loadMedia();

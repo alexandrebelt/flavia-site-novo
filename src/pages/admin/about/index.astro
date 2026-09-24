@@ -9,12 +9,12 @@ const settings = await getSettings(env.DB);
 const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 ---
 
-<AdminLayout title="Sobre">
+<AdminLayout title="About">
 	<div class="admin-card" style="margin-bottom: 1.5rem;">
-		<h2 class="block-title">Foto — Seção inicial</h2>
+		<h2 class="block-title">Photo — Opening section</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
-			Foto de fundo da primeira seção da página About. Recomendação: paisagem,
-			pelo menos 1600px de largura, JPG ou WEBP.
+			Background photo of the About page's first section. Recommended:
+			landscape, at least 1600px wide, JPG or WEBP.
 		</p>
 		<div class="photo-field">
 			<div class="photo-preview">
@@ -22,20 +22,20 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 			</div>
 			<div class="photo-controls">
 				<div class="admin-field">
-					<label>Foto</label>
+					<label>Photo</label>
 					<div class="upload-row">
 						<span id="photo-filename" class="admin-hint">
-							{about.heroImageUrl || "Usando a foto padrão do tema"}
+							{about.heroImageUrl || "Using the theme's default photo"}
 						</span>
 						<label class="admin-btn secondary" style="cursor: pointer;">
-							Enviar foto
+							Upload photo
 							<input type="file" id="photo-input" accept="image/*" style="display:none;" />
 						</label>
 					</div>
 				</div>
 				<div class="admin-form-actions">
 					<button type="button" id="reset-photo" class="admin-btn secondary">
-						Restaurar padrão do tema
+						Restore theme default
 					</button>
 				</div>
 			</div>
@@ -43,18 +43,18 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 	</div>
 
 	<div class="admin-card">
-		<h2 class="block-title">Reconhecimentos</h2>
+		<h2 class="block-title">Recognitions</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
-			Lista exibida na seção "Selected Recognition" da página About.
+			List shown in the About page's "Selected Recognition" section.
 		</p>
 		<div id="recognitions-list"></div>
 		<button type="button" class="admin-btn secondary" id="add-recognition" style="width: fit-content;">
-			+ Adicionar conquista
+			+ Add recognition
 		</button>
 	</div>
 
 	<div class="admin-form-actions">
-		<button type="button" id="save-all" class="admin-btn">Salvar</button>
+		<button type="button" id="save-all" class="admin-btn">Save</button>
 	</div>
 </AdminLayout>
 
@@ -140,7 +140,7 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 </style>
 
 <script>
-	const DEFAULT_PHOTO_LABEL = "Usando a foto padrão do tema";
+	const DEFAULT_PHOTO_LABEL = "Using the theme's default photo";
 
 	function toast(message: string, isError = false) {
 		const el = document.getElementById("toast")!;
@@ -157,7 +157,7 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 		if (!res.ok) {
 			// The server says why (type not allowed, too large...).
 			const err = (await res.json().catch(() => ({}))) as { error?: string };
-			throw new Error(err.error || "Falha no upload.");
+			throw new Error(err.error || "Upload failed.");
 		}
 		const data = (await res.json()) as { url: string };
 		return data.url;
@@ -180,9 +180,9 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 			heroImageUrl = await uploadFile(file);
 			photoFilenameEl.textContent = heroImageUrl;
 			photoPreview.src = heroImageUrl;
-			toast("Foto enviada. Clique em Salvar para publicar.");
+			toast("Photo uploaded. Click Save to publish.");
 		} catch (err) {
-			toast(err instanceof Error ? err.message : "Erro ao enviar foto.", true);
+			toast(err instanceof Error ? err.message : "Couldn't upload the photo.", true);
 		}
 	});
 
@@ -195,8 +195,8 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ about: { heroImageUrl: "" } }),
 		});
-		if (res.ok) toast("Foto padrão restaurada.");
-		else toast("Erro ao salvar.", true);
+		if (res.ok) toast("Default photo restored.");
+		else toast("Couldn't save.", true);
 	});
 
 	// ---- recognitions ----
@@ -209,8 +209,8 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 		const row = document.createElement("div");
 		row.className = "recognition-row";
 		row.innerHTML = `
-			<input type="text" placeholder="Ex.: Behance — Featured Project" />
-			<button type="button" class="icon-btn danger row-remove" title="Remover">
+			<input type="text" placeholder="E.g. Behance — Featured Project" />
+			<button type="button" class="icon-btn danger row-remove" title="Remove">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
 			</button>
 		`;
@@ -240,8 +240,8 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ about: { heroImageUrl, recognitions: readRecognitions() } }),
 		});
-		if (res.ok) toast("Alterações salvas.");
-		else toast("Erro ao salvar.", true);
+		if (res.ok) toast("Changes saved.");
+		else toast("Couldn't save.", true);
 	});
 </script>
 

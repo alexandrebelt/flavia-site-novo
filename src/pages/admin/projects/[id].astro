@@ -10,10 +10,10 @@ const { id } = Astro.params;
 const project = await getProjectById(env.DB, id!);
 
 if (!project) {
-	return Astro.redirect("/admin/projetos");
+	return Astro.redirect("/admin/projects");
 }
 ---
 
-<AdminLayout title={`Editar — ${project.client}`}>
+<AdminLayout title={`Edit — ${project.client}`}>
 	<ProjectForm mode="edit" project={project} />
 </AdminLayout>

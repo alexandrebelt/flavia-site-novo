@@ -17,51 +17,50 @@ const projects = await loadOrderedProjects(env.DB, settings);
 const featuredCount = projects.filter((project) => project.featured).length;
 ---
 
-<AdminLayout title="Projetos">
+<AdminLayout title="Projects">
 	<div class="admin-toolbar">
-		<p class="admin-hint">{projects.length} projeto(s)</p>
-		<a href="/admin/projetos/novo" class="admin-btn">+ Novo projeto</a>
+		<p class="admin-hint">{projects.length} project(s)</p>
+		<a href="/admin/projects/new" class="admin-btn">+ New project</a>
 	</div>
 
 	<div class="admin-card projects-order-card">
-		<h2 class="projects-block-title">Ordem dos projetos</h2>
+		<h2 class="projects-block-title">Project order</h2>
 		<p class="admin-hint">
-			Vale para a página inicial e para o Portfolio. Projetos em destaque
-			vêm sempre primeiro; os demais seguem a ordem escolhida aqui, pelo
-			ano do projeto (no mesmo ano, o cadastrado por último conta como
-			mais novo).
+			Applies to the home page and the Portfolio. Featured projects always
+			come first; the rest follow the order chosen here, by project year
+			(within the same year, the one added last counts as newer).
 		</p>
-		<div class="projects-order-options" role="radiogroup" aria-label="Ordem dos projetos">
+		<div class="projects-order-options" role="radiogroup" aria-label="Project order">
 			<label>
 				<input type="radio" name="project-order" value="newest" checked={order === "newest"} />
-				Mais novos primeiro
+				Newest first
 			</label>
 			<label>
 				<input type="radio" name="project-order" value="oldest" checked={order === "oldest"} />
-				Mais antigos primeiro
+				Oldest first
 			</label>
 		</div>
 		<p class="admin-hint">
-			<strong>Destaque:</strong> marque até {MAX_FEATURED_PROJECTS} projetos na
-			tabela abaixo. Eles aparecem primeiro na página inicial (que mostra
-			3 projetos); se houver menos de {MAX_FEATURED_PROJECTS} marcados, as
-			vagas restantes seguem a ordem acima.
+			<strong>Featured:</strong> tick up to {MAX_FEATURED_PROJECTS} projects in the
+			table below. They come first on the home page (which shows 3
+			projects); with fewer than {MAX_FEATURED_PROJECTS} ticked, the remaining
+			slots follow the order above.
 		</p>
 	</div>
 
 	{
 		projects.length === 0 ? (
-			<div class="admin-card admin-empty">Nenhum projeto cadastrado ainda.</div>
+			<div class="admin-card admin-empty">No projects yet.</div>
 		) : (
 			<div class="admin-card" style="padding: 0;">
 				<table class="admin-table" data-max-featured={MAX_FEATURED_PROJECTS}>
 					<thead>
 						<tr>
 							<th>#</th>
-							<th>Destaque</th>
-							<th>Cliente</th>
-							<th>Categoria</th>
-							<th>Ano</th>
+							<th>Featured</th>
+							<th>Client</th>
+							<th>Category</th>
+							<th>Year</th>
 							<th>Slug</th>
 							<th />
 						</tr>
@@ -69,7 +68,7 @@ const featuredCount = projects.filter((project) => project.featured).length;
 					<tbody>
 						{projects.map((project, i) => (
 							<tr class:list={{ "is-home": i < 3 }}>
-								<td class="projects-position" title={i < 3 ? "Aparece na página inicial" : undefined}>
+								<td class="projects-position" title={i < 3 ? "Shown on the home page" : undefined}>
 									{i + 1}
 								</td>
 								<td>
@@ -79,7 +78,7 @@ const featuredCount = projects.filter((project) => project.featured).length;
 										data-project-id={project.id}
 										checked={!!project.featured}
 										disabled={!project.featured && featuredCount >= MAX_FEATURED_PROJECTS}
-										aria-label={`Destacar ${project.client}`}
+										aria-label={`Feature ${project.client}`}
 									/>
 								</td>
 								<td>{project.client}</td>
@@ -87,8 +86,8 @@ const featuredCount = projects.filter((project) => project.featured).length;
 								<td>{project.year}</td>
 								<td>{project.slug}</td>
 								<td style="text-align: right;">
-									<a href={`/admin/projetos/${project.id}`} class="admin-btn secondary">
-										Editar
+									<a href={`/admin/projects/${project.id}`} class="admin-btn secondary">
+										Edit
 									</a>
 								</td>
 							</tr>
@@ -125,10 +124,10 @@ const featuredCount = projects.filter((project) => project.featured).length;
 				body: JSON.stringify({ projects: { order: radio.value } }),
 			});
 			if (res.ok) {
-				toast("Ordem salva e publicada.");
+				toast("Order saved and published.");
 				reloadSoon();
 			} else {
-				toast("Erro ao salvar a ordem.", true);
+				toast("Couldn't save the order.", true);
 			}
 		}),
 	);
@@ -160,12 +159,12 @@ const featuredCount = projects.filter((project) => project.featured).length;
 			const data = (await res.json().catch(() => ({}))) as { error?: string };
 
 			if (res.ok) {
-				toast(featured ? "Projeto destacado." : "Destaque removido.");
+				toast(featured ? "Project featured." : "No longer featured.");
 				reloadSoon();
 			} else {
 				toggle.checked = !featured;
 				syncFeaturedLimit();
-				toast(data.error || "Erro ao salvar o destaque.", true);
+				toast(data.error || "Couldn't save the featured setting.", true);
 			}
 		}),
 	);

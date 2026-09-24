@@ -9,7 +9,7 @@ export const POST: APIRoute = async ({ request }) => {
 	const file = form.get("file");
 
 	if (!(file instanceof File)) {
-		return Response.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
+		return Response.json({ error: "No file sent." }, { status: 400 });
 	}
 
 	const check = await checkUpload(file);

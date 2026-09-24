@@ -10,7 +10,7 @@ const navLinks = [
 	{ href: "/inquire", label: "Inquire" },
 ];
 
-// Set in the admin (Configurações › SEO); rendered per request.
+// Set in the admin (Settings › SEO); rendered per request.
 const { seo } = await Astro.locals.siteSettings();
 const socialLinks = seo.socialLinks;
 const connectLinks = SOCIAL_NETWORKS.map((network) => ({

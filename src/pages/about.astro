@@ -5,7 +5,7 @@ import ExperiencesText from "../components/ExperiencesText.astro";
 import CtaInquire from "../components/CtaInquire.astro";
 import { resolveSocialUrl } from "../data/social-links";
 
-// Admin overrides (Sobre) — empty fields keep the bundled defaults. The
+// Admin overrides (About) — empty fields keep the bundled defaults. The
 // social links are the same admin-set URLs as the footer's "Connect" ones.
 const { about, seo } = await Astro.locals.siteSettings();
 const socialLinks = seo.socialLinks;

@@ -16,6 +16,15 @@ export default defineConfig({
       assetsInlineLimit: () => false,
     },
   },
+  // The admin's former Portuguese URLs, so old bookmarks keep working.
+  redirects: {
+    '/admin/configuracoes': '/admin/settings',
+    '/admin/projetos': '/admin/projects',
+    '/admin/projetos/novo': '/admin/projects/new',
+    '/admin/projetos/[id]': '/admin/projects/[id]',
+    '/admin/sobre': '/admin/about',
+    '/admin/midia': '/admin/media',
+  },
   // Prefetches every linked page's HTML as soon as the current page has
   // finished loading (not waiting for hover/viewport) — by the time the
   // visitor actually clicks a nav link, its page is already fetched, so the

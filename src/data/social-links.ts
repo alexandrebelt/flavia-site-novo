@@ -1,6 +1,6 @@
 /**
  * Social networks linked from the footer's "Connect" column and the About
- * page's contact row. Their URLs are set in the admin (Configurações › SEO)
+ * page's contact row. Their URLs are set in the admin (Settings › SEO)
  * and stored under settings.seo.socialLinks; any left blank (or invalid)
  * falls back to the network's own homepage.
  */

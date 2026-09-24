@@ -13,7 +13,7 @@ export const GET: APIRoute = async () => {
 export const DELETE: APIRoute = async ({ request }) => {
 	const { url } = (await request.json()) as { url?: unknown };
 	if (typeof url !== "string") {
-		return Response.json({ error: "url é obrigatório." }, { status: 400 });
+		return Response.json({ error: "url is required." }, { status: 400 });
 	}
 	await deleteMedia(env.MEDIA, url);
 	return new Response(null, { status: 204 });

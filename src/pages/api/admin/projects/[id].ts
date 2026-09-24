@@ -12,7 +12,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async ({ params }) => {
 	const project = await getProjectById(env.DB, params.id!);
-	if (!project) return Response.json({ error: "Projeto não encontrado." }, { status: 404 });
+	if (!project) return Response.json({ error: "Project not found." }, { status: 404 });
 	return Response.json(project);
 };
 
@@ -22,18 +22,18 @@ export const PUT: APIRoute = async ({ params, request }) => {
 		patch.featured = patch.featured === true;
 		if (patch.featured && (await countFeaturedProjects(env.DB, params.id)) >= MAX_FEATURED_PROJECTS) {
 			return Response.json(
-				{ error: `Máximo de ${MAX_FEATURED_PROJECTS} projetos em destaque. Desmarque um antes.` },
+				{ error: `At most ${MAX_FEATURED_PROJECTS} featured projects. Untick one first.` },
 				{ status: 409 },
 			);
 		}
 	}
 	const updated = await updateProject(env.DB, params.id!, patch);
-	if (!updated) return Response.json({ error: "Projeto não encontrado." }, { status: 404 });
+	if (!updated) return Response.json({ error: "Project not found." }, { status: 404 });
 	return Response.json(updated);
 };
 
 export const DELETE: APIRoute = async ({ params }) => {
 	const ok = await deleteProject(env.DB, params.id!);
-	if (!ok) return Response.json({ error: "Projeto não encontrado." }, { status: 404 });
+	if (!ok) return Response.json({ error: "Project not found." }, { status: 404 });
 	return new Response(null, { status: 204 });
 };

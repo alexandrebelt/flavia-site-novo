@@ -9,12 +9,12 @@ import { SOCIAL_NETWORKS } from "../../../data/social-links";
 const settings = await getSettings(env.DB);
 ---
 
-<AdminLayout title="Configurações">
+<AdminLayout title="Settings">
 	<div class="admin-card" style="max-width: 480px; margin-bottom: 1.5rem;">
 		<h2 class="block-title">Favicon</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
-			Ícone exibido na aba do navegador. Recomendação: imagem quadrada,
-			PNG ou SVG, pelo menos 64×64px.
+			Icon shown in the browser tab. Recommended: a square image, PNG or
+			SVG, at least 64×64px.
 		</p>
 		<div class="favicon-field">
 			<div class="favicon-preview">
@@ -23,16 +23,16 @@ const settings = await getSettings(env.DB);
 			<div style="flex: 1; min-width: 200px;">
 				<div class="upload-row">
 					<span id="favicon-filename" class="admin-hint">
-						{settings.siteFaviconUrl || "Usando o favicon padrão do tema"}
+						{settings.siteFaviconUrl || "Using the theme's default favicon"}
 					</span>
 					<label class="admin-btn secondary" style="cursor: pointer;">
-						Enviar favicon
+						Upload favicon
 						<input type="file" id="favicon-input" accept="image/*" style="display:none;" />
 					</label>
 				</div>
 				<div class="admin-form-actions">
 					<button type="button" id="reset-favicon" class="admin-btn secondary">
-						Restaurar padrão
+						Restore default
 					</button>
 				</div>
 			</div>
@@ -42,46 +42,45 @@ const settings = await getSettings(env.DB);
 	<div class="admin-card" style="max-width: 640px; margin-top: 1.5rem;">
 		<h2 class="block-title">SEO</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
-			Campos usados nas meta tags de todas as páginas (título, descrição,
-			Open Graph, Twitter Card), no sitemap e na indexação por buscadores.
-			Ao salvar, o site já é publicado com os novos valores — o Google e
-			os previews de link (WhatsApp, LinkedIn) passam a ler na próxima vez
-			que visitarem a página.
+			Used in every page's meta tags (title, description, Open Graph,
+			Twitter Card), in the sitemap and for search engine indexing. Saving
+			publishes the new values right away — Google and link previews
+			(WhatsApp, LinkedIn) pick them up the next time they visit the page.
 		</p>
 
 		<div class="admin-field">
-			<label for="f-seo-site-title">Título do site</label>
+			<label for="f-seo-site-title">Site title</label>
 			<input id="f-seo-site-title" value={settings.siteTitle || ""} required />
 			<p class="admin-hint">
-				Usado no &lt;title&gt; das páginas do site ("Título — About") e na
-				tag og:site_name exibida quando o link é compartilhado.
+				Used in the site's page &lt;title&gt; ("Title — About") and in the
+				og:site_name tag shown when a link is shared.
 			</p>
 		</div>
 
 		<div class="admin-field">
-			<label for="f-seo-site-url">URL do site</label>
+			<label for="f-seo-site-url">Site URL</label>
 			<input
 				id="f-seo-site-url"
 				value={settings.seo?.siteUrl || ""}
 				placeholder="https://flaviajackeline.com"
 			/>
 			<p class="admin-hint">
-				Usada para montar o link canônico de cada página e as URLs
-				absolutas de Open Graph/Twitter. Sem barra no final.
+				Used to build each page's canonical link and the absolute Open
+				Graph/Twitter URLs. No trailing slash.
 			</p>
 		</div>
 
 		<div class="admin-field">
-			<label for="f-seo-description">Descrição padrão (meta description)</label>
+			<label for="f-seo-description">Default description (meta description)</label>
 			<textarea id="f-seo-description" rows="3">{settings.seo?.defaultDescription || ""}</textarea>
 			<p class="admin-hint">
-				Usada quando uma página não define a própria descrição. Ideal
-				entre 120 e 160 caracteres.
+				Used when a page doesn't set its own description. Ideally 120 to
+				160 characters.
 			</p>
 		</div>
 
 		<div class="admin-field">
-			<label>Imagem de compartilhamento (Open Graph / Twitter)</label>
+			<label>Share image (Open Graph / Twitter)</label>
 			<div class="favicon-field">
 				<div class="favicon-preview" style="width: 160px; height: 84px; border-radius: 6px;">
 					<img id="og-image-preview" src={settings.seo?.ogImageUrl || "/favicon.svg"} alt="" />
@@ -89,41 +88,41 @@ const settings = await getSettings(env.DB);
 				<div style="flex: 1; min-width: 200px;">
 					<div class="upload-row">
 						<span id="og-image-filename" class="admin-hint">
-							{settings.seo?.ogImageUrl || "Nenhuma imagem definida"}
+							{settings.seo?.ogImageUrl || "No image set"}
 						</span>
 						<label class="admin-btn secondary" style="cursor: pointer;">
-							Enviar imagem
+							Upload image
 							<input type="file" id="og-image-input" accept="image/*" style="display:none;" />
 						</label>
 					</div>
 				</div>
 			</div>
 			<p class="admin-hint">
-				Exibida quando o link do site é compartilhado no WhatsApp,
-				Twitter/X, LinkedIn, etc. Recomendação: 1200×630px.
+				Shown when the site's link is shared on WhatsApp, Twitter/X,
+				LinkedIn, etc. Recommended: 1200×630px.
 			</p>
 		</div>
 
 		<div class="admin-field-row">
 			<div class="admin-field">
-				<label for="f-seo-twitter">Usuário do X/Twitter</label>
+				<label for="f-seo-twitter">X/Twitter handle</label>
 				<input id="f-seo-twitter" value={settings.seo?.twitterHandle || ""} placeholder="flaviajackeline" />
 			</div>
 			<div class="admin-field">
-				<label for="f-seo-google-verification">Verificação do Google Search Console</label>
+				<label for="f-seo-google-verification">Google Search Console verification</label>
 				<input
 					id="f-seo-google-verification"
 					value={settings.seo?.googleSiteVerification || ""}
-					placeholder="Código do meta tag de verificação"
+					placeholder="Verification meta tag code"
 				/>
 			</div>
 		</div>
 
-		<h3 class="block-subtitle">Redes sociais</h3>
+		<h3 class="block-subtitle">Social media</h3>
 		<p class="admin-hint" style="margin-bottom: 1rem;">
-			Links da coluna "Connect" do rodapé e da lista de contato da página
-			About. Use a URL completa do perfil (https://…), do domínio da
-			própria rede. Campo vazio leva para a página inicial da rede.
+			Links for the footer's "Connect" column and the About page's contact
+			list. Use the full profile URL (https://…) on the network's own
+			domain. An empty field links to the network's homepage.
 		</p>
 		{
 			SOCIAL_NETWORKS.map((network) => (
@@ -135,7 +134,7 @@ const settings = await getSettings(env.DB);
 						data-social-key={network.key}
 						type="url"
 						value={settings.seo?.socialLinks?.[network.key] || ""}
-						placeholder={`${network.defaultUrl}seu-perfil`}
+						placeholder={`${network.defaultUrl}your-profile`}
 					/>
 					<p class="admin-hint social-link-error" hidden></p>
 				</div>
@@ -148,44 +147,44 @@ const settings = await getSettings(env.DB);
 				id="f-seo-allow-indexing"
 				checked={settings.seo?.allowIndexing !== false}
 			/>
-			Permitir que buscadores indexem o site
+			Allow search engines to index the site
 		</label>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
-			Desmarque apenas em ambientes de teste/staging — isso instrui Google
-			e outros buscadores a não listar o site nos resultados de busca.
+			Only uncheck on test/staging environments — it tells Google and
+			other search engines not to list the site in search results.
 		</p>
 
 	</div>
 
 	<div class="admin-form-actions">
-		<button type="button" id="save-all" class="admin-btn">Salvar</button>
+		<button type="button" id="save-all" class="admin-btn">Save</button>
 	</div>
 
 	<div class="admin-card" style="max-width: 480px; margin-top: 1.5rem;">
-		<h2 class="block-title">Segurança</h2>
+		<h2 class="block-title">Security</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
-			Altere a senha de acesso ao painel. A nova senha precisa ter pelo
-			menos 10 caracteres, com letra maiúscula, minúscula, número e
-			caractere especial.
+			Change the admin password. The new password needs at least 10
+			characters, with an uppercase letter, a lowercase letter, a number
+			and a special character.
 		</p>
 
 		<div class="admin-field">
-			<label for="f-current-password">Senha atual</label>
+			<label for="f-current-password">Current password</label>
 			<input id="f-current-password" type="password" autocomplete="current-password" />
 		</div>
 
 		<div class="admin-field">
-			<label for="f-new-password">Nova senha</label>
+			<label for="f-new-password">New password</label>
 			<input id="f-new-password" type="password" autocomplete="new-password" />
 		</div>
 
 		<div class="admin-field">
-			<label for="f-confirm-password">Confirmar nova senha</label>
+			<label for="f-confirm-password">Confirm new password</label>
 			<input id="f-confirm-password" type="password" autocomplete="new-password" />
 		</div>
 
 		<div class="admin-form-actions">
-			<button type="button" id="change-password" class="admin-btn">Alterar senha</button>
+			<button type="button" id="change-password" class="admin-btn">Change password</button>
 		</div>
 	</div>
 </AdminLayout>
@@ -204,7 +203,7 @@ const settings = await getSettings(env.DB);
 	}
 
 	// ---- favicon ----
-	const DEFAULT_FAVICON_LABEL = "Usando o favicon padrão do tema";
+	const DEFAULT_FAVICON_LABEL = "Using the theme's default favicon";
 	const faviconFilenameEl = document.getElementById("favicon-filename")!;
 	let siteFaviconUrl =
 		faviconFilenameEl.textContent?.trim() === DEFAULT_FAVICON_LABEL
@@ -221,7 +220,7 @@ const settings = await getSettings(env.DB);
 		if (!res.ok) {
 			// The server says why (type not allowed, too large...).
 			const err = (await res.json().catch(() => ({}))) as { error?: string };
-			throw new Error(err.error || "Falha no upload.");
+			throw new Error(err.error || "Upload failed.");
 		}
 		const data = (await res.json()) as { url: string };
 		return data.url;
@@ -234,9 +233,9 @@ const settings = await getSettings(env.DB);
 			siteFaviconUrl = await uploadFile(file);
 			faviconFilenameEl.textContent = siteFaviconUrl;
 			faviconPreview.src = siteFaviconUrl;
-			toast("Favicon enviado. Clique em Salvar para publicar.");
+			toast("Favicon uploaded. Click Save to publish.");
 		} catch (err) {
-			toast(err instanceof Error ? err.message : "Erro ao enviar favicon.", true);
+			toast(err instanceof Error ? err.message : "Couldn't upload the favicon.", true);
 		}
 	});
 
@@ -249,14 +248,14 @@ const settings = await getSettings(env.DB);
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ siteFaviconUrl: "" }),
 		});
-		if (res.ok) toast("Favicon padrão restaurado.");
-		else toast("Erro ao salvar.", true);
+		if (res.ok) toast("Default favicon restored.");
+		else toast("Couldn't save.", true);
 	});
 
 	// ---- SEO ----
 	const ogImageFilenameEl = document.getElementById("og-image-filename")!;
 	let ogImageUrl =
-		ogImageFilenameEl.textContent?.trim() === "Nenhuma imagem definida"
+		ogImageFilenameEl.textContent?.trim() === "No image set"
 			? ""
 			: (ogImageFilenameEl.textContent?.trim() ?? "");
 
@@ -270,9 +269,9 @@ const settings = await getSettings(env.DB);
 			ogImageUrl = await uploadFile(file);
 			ogImageFilenameEl.textContent = ogImageUrl;
 			ogImagePreview.src = ogImageUrl;
-			toast("Imagem enviada. Clique em Salvar para publicar.");
+			toast("Image uploaded. Click Save to publish.");
 		} catch (err) {
-			toast(err instanceof Error ? err.message : "Erro ao enviar imagem.", true);
+			toast(err instanceof Error ? err.message : "Couldn't upload the image.", true);
 		}
 	});
 
@@ -288,7 +287,7 @@ const settings = await getSettings(env.DB);
 			if (error) {
 				const network = SOCIAL_NETWORKS.find((n) => n.key === key);
 				error.hidden = ok;
-				error.textContent = ok ? "" : `Use um link completo do ${network?.label}, ex.: ${network?.defaultUrl}seu-perfil`;
+				error.textContent = ok ? "" : `Use a full ${network?.label} link, e.g. ${network?.defaultUrl}your-profile`;
 			}
 			input.setAttribute("aria-invalid", String(!ok));
 			if (!ok) valid = false;
@@ -296,13 +295,18 @@ const settings = await getSettings(env.DB);
 		return valid;
 	}
 
+	// Checked when saving (not on blur: an error appearing as the field loses
+	// focus pushes the Save button down mid-click, swallowing that click).
+	// Once flagged, a field re-checks as it's edited, so the error clears.
 	document.querySelectorAll<HTMLInputElement>(".social-link-input").forEach((input) =>
-		input.addEventListener("blur", validateSocialLinks),
+		input.addEventListener("input", () => {
+			if (input.getAttribute("aria-invalid") === "true") validateSocialLinks();
+		}),
 	);
 
 	document.getElementById("save-all")!.addEventListener("click", async () => {
 		if (!validateSocialLinks()) {
-			toast("Corrija os links de redes sociais destacados.", true);
+			toast("Fix the highlighted social media links.", true);
 			return;
 		}
 		const siteTitle = (document.getElementById("f-seo-site-title") as HTMLInputElement).value.trim();
@@ -329,8 +333,8 @@ const settings = await getSettings(env.DB);
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ siteTitle, siteFaviconUrl, seo }),
 		});
-		if (res.ok) toast("Alterações salvas e publicadas.");
-		else toast("Erro ao salvar.", true);
+		if (res.ok) toast("Changes saved and published.");
+		else toast("Couldn't save.", true);
 	});
 
 	// ---- security / change password ----
@@ -340,11 +344,11 @@ const settings = await getSettings(env.DB);
 		const confirmPassword = (document.getElementById("f-confirm-password") as HTMLInputElement).value;
 
 		if (!currentPassword || !newPassword) {
-			toast("Preencha a senha atual e a nova senha.", true);
+			toast("Fill in the current and the new password.", true);
 			return;
 		}
 		if (newPassword !== confirmPassword) {
-			toast("A confirmação não é igual à nova senha.", true);
+			toast("The confirmation doesn't match the new password.", true);
 			return;
 		}
 
@@ -356,12 +360,12 @@ const settings = await getSettings(env.DB);
 		const data = (await res.json().catch(() => ({}))) as { error?: string };
 
 		if (res.ok) {
-			toast("Senha alterada. Faça login novamente.");
+			toast("Password changed. Please log in again.");
 			setTimeout(() => {
 				window.location.href = "/admin/login";
 			}, 1500);
 		} else {
-			toast(data.error || "Erro ao alterar a senha.", true);
+			toast(data.error || "Couldn't change the password.", true);
 		}
 	});
 </script>

@@ -5,7 +5,7 @@ import "../../styles/main.css";
 ---
 
 <!doctype html>
-<html lang="pt-BR">
+<html lang="en">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
@@ -22,16 +22,16 @@ import "../../styles/main.css";
 				</div>
 
 				<div class="admin-field">
-					<label for="f-email">E-mail</label>
+					<label for="f-email">Email</label>
 					<input id="f-email" name="email" type="email" required autocomplete="username" />
 				</div>
 
 				<div class="admin-field">
-					<label for="f-password">Senha</label>
+					<label for="f-password">Password</label>
 					<input id="f-password" name="password" type="password" required autocomplete="current-password" />
 				</div>
 
-				<button type="submit" class="admin-btn" id="submit-btn">Entrar</button>
+				<button type="submit" class="admin-btn" id="submit-btn">Log in</button>
 
 				<p class="login-error" id="login-error" role="alert"></p>
 			</form>
@@ -65,9 +65,9 @@ import "../../styles/main.css";
 						return;
 					}
 
-					errorEl.textContent = data.error || "Não foi possível entrar.";
+					errorEl.textContent = data.error || "Couldn't log in.";
 				} catch {
-					errorEl.textContent = "Erro de conexão. Tente novamente.";
+					errorEl.textContent = "Connection error. Please try again.";
 				} finally {
 					submitBtn.disabled = false;
 				}

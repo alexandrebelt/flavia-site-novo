@@ -12,7 +12,7 @@ import {
 
 export const prerender = false;
 
-const GENERIC_ERROR = "E-mail ou senha inválidos.";
+const GENERIC_ERROR = "Invalid email or password.";
 
 export const POST: APIRoute = async ({ request, cookies }) => {
 	let body: { email?: string; password?: string };
@@ -32,7 +32,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 	const rateLimit = ipLimit.blocked ? ipLimit : await checkRateLimit(env.SESSION, accountLimitKey);
 	if (rateLimit.blocked) {
 		return Response.json(
-			{ error: "Muitas tentativas de login. Tente novamente em alguns minutos." },
+			{ error: "Too many login attempts. Please try again in a few minutes." },
 			{ status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
 		);
 	}
