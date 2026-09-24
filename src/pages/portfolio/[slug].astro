@@ -1,23 +1,28 @@
 ---
-export const prerender = true;
+import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
-import Page from "../../components/Page.astro";
-import { projects } from "../../data/projects.js";
+import { loadProject, projectCover } from "../../lib/server/site-data";
+import { sanitizeRichText } from "../../lib/server/sanitize-rich-text.js";
 
-export function getStaticPaths() {
-	return projects.map((project) => ({
-		params: { slug: project.slug },
-		props: { project },
-	}));
+// Looked up per request, so a project created or edited in the admin is
+// live right away — no build step lists the slugs ahead of time.
+const project = Astro.params.slug ? await loadProject(env.DB, Astro.params.slug) : null;
+if (!project) {
+	return Astro.rewrite("/404");
 }
 
-const { project } = Astro.props;
+// Same block tags the admin editor produces (ProjectForm's validBlockTags);
+// anything else stored in the row renders as a paragraph. The text is
+// sanitized again here (it already is on save) so a row edited any other
+// way still can't inject markup.
+const BLOCK_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6", "p"]);
+const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 ---
 
 <Layout
-	title={`Flávia — ${project.client}`}
+	title={project.client}
 	description={project.shortDescription}
-	ogImage={project.thumbnail}
+	ogImage={projectCover(project) || undefined}
 >
 	<section class="single-project">
 		<div class="single-project-wrapper limit">
@@ -54,12 +59,10 @@ const { project } = Astro.props;
 					{
 						project.description?.length > 0 && (
 							<div class="description">
-								{project.description.map(
-									(block: { type: string; text: string }) => {
-										const Tag = block.type;
-										return <Tag set:html={block.text} />;
-									},
-								)}
+								{project.description.map((block) => {
+									const Tag = blockTag(block.type);
+									return <Tag set:html={sanitizeRichText(block.text)} />;
+								})}
 							</div>
 						)
 					}
@@ -67,7 +70,7 @@ const { project } = Astro.props;
 			</div>
 			<div class="gallery">
 				{
-					project.images?.map((image: { url: string; alt: string }) => (
+					project.images?.map((image) => (
 						<img src={image.url} alt={image.alt} loading="lazy" />
 					))
 				}
@@ -79,7 +82,6 @@ const { project } = Astro.props;
 <script>
 	import gsap from "gsap";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
-	import { splitIntoLetterSpans } from "../../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../../scripts/scroll-timing";
 
 	gsap.registerPlugin(ScrollTrigger);
@@ -93,26 +95,19 @@ const { project } = Astro.props;
 		galleryTriggers.forEach((trigger) => trigger.kill());
 		galleryTriggers = [];
 
-		const dds = document.querySelectorAll<HTMLElement>(".project-text-content dd");
-		const heading = document.querySelector<HTMLElement>(".short-description");
-		const description = document.querySelector<HTMLElement>(".description");
+		// Two blocks, each fading in as a whole — the facts list, then the
+		// text column — rather than their contents staggering in piece by piece.
+		const blocks = [
+			document.querySelector<HTMLElement>(".project-text-content .facts"),
+			document.querySelector<HTMLElement>(".project-text-content-col"),
+		].filter((el): el is HTMLElement => !!el);
 		const images = document.querySelectorAll<HTMLElement>(".gallery img");
 
-		if (dds.length) gsap.set(dds, { opacity: 0 });
-
-		const headingLetters = heading ? splitIntoLetterSpans(heading) : [];
-		if (headingLetters.length) {
-			gsap.set(headingLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
-		}
-
-		if (description) gsap.set(description, { opacity: 0 });
+		if (blocks.length) gsap.set(blocks, { opacity: 0 });
 		if (images.length) gsap.set(images, { opacity: 0 });
 
 		whenPageSettled(() => {
-			// The dd's reveal one at a time, then the short-description
-			// heading spins in letter by letter, then the description
-			// paragraph fades in — one continuous sequence.
-			if (dds.length || headingLetters.length || description) {
+			if (blocks.length) {
 				const timeline = gsap.timeline({
 					scrollTrigger: {
 						trigger: ".project-text-content",
@@ -120,34 +115,9 @@ const { project } = Astro.props;
 						toggleActions: "play none none reverse",
 					},
 				});
-				if (dds.length) {
-					timeline.to(dds, {
-						opacity: 1,
-						duration: 0.4,
-						ease: "power2.out",
-						stagger: { amount: 0.5 },
-					});
-				}
-				if (headingLetters.length) {
-					timeline.to(
-						headingLetters,
-						{
-							rotateY: 0,
-							opacity: 1,
-							duration: 0.5,
-							ease: "power3.out",
-							stagger: { amount: 0.5 },
-						},
-						">",
-					);
-				}
-				if (description) {
-					timeline.to(
-						description,
-						{ opacity: 1, duration: 0.6, ease: "power2.out" },
-						">",
-					);
-				}
+				blocks.forEach((block) => {
+					timeline.to(block, { opacity: 1, duration: 0.6, ease: "power2.out" }, ">");
+				});
 				detailTrigger = timeline.scrollTrigger ?? null;
 			}
 

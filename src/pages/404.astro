@@ -1,0 +1,22 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+Astro.response.status = 404;
+---
+
+<Layout title="Page not found" noindex>
+	<section class="full-height">
+		<div class="limit center-content not-found">
+			<h1>404</h1>
+			<h6>This page doesn't exist, or it has moved.</h6>
+			<a href="/" class="btn-primary">Back to home</a>
+		</div>
+	</section>
+</Layout>
+
+<style>
+	.not-found {
+		gap: 1.5rem;
+		align-items: center;
+	}
+</style>

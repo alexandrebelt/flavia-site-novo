@@ -1,33 +1,11 @@
+---
+// Set in the admin (Home › achievements text); rendered per request.
+const { home } = await Astro.locals.siteSettings();
+---
+
 <div class="experiences-text">
-	<h5 id="experiences-text-content">
-		( 150+ Projects developed · 7 Years of experience · 13+ Countries · 19+
-		Features & Recognitions )
-	</h5>
+	<h5 id="experiences-text-content">{home.achievementsText}</h5>
 </div>
-
-<script>
-	async function applyAchievementsText() {
-		const el = document.getElementById("experiences-text-content");
-		if (!el) return;
-		try {
-			const res = await fetch("/api/site-settings");
-			if (res.ok) {
-				const { home } = await res.json();
-				if (home?.achievementsText) el.textContent = home.achievementsText;
-			}
-		} catch {
-			// keep the default text on any error
-		} finally {
-			// Signals that the final text is in place — index.astro's section 5
-			// reveal waits for this before splitting it into letters, since
-			// splitting first and then overwriting textContent here would wipe
-			// out the letter spans.
-			document.dispatchEvent(new CustomEvent("experiences-text-ready"));
-		}
-	}
-
-	document.addEventListener("astro:page-load", applyAchievementsText);
-</script>
 <style>
 	.experiences-text {
 		margin: 0 auto !important;

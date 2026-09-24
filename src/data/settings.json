@@ -1,5 +1,5 @@
 {
-	"siteTitle": "Flávia J",
+	"siteTitle": "Flávia",
 	"siteFaviconUrl": "",
 	"bannerText": "Currently accepting new projects for 2026",
 	"home": {
@@ -21,12 +21,22 @@
 			"Abduzeedo — Bruno X ↑"
 		]
 	},
+	"projects": {
+		"order": "newest"
+	},
 	"seo": {
 		"siteUrl": "",
 		"defaultDescription": "",
 		"ogImageUrl": "",
 		"twitterHandle": "",
 		"googleSiteVerification": "",
-		"allowIndexing": true
+		"allowIndexing": true,
+		"socialLinks": {
+			"instagram": "",
+			"behance": "",
+			"linkedin": "",
+			"pinterest": "",
+			"x": ""
+		}
 	}
 }

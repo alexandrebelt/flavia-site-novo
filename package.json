@@ -19,7 +19,6 @@
     "quill": "^2.0.3",
     "resend": "^6.28.1",
     "sanitize-html": "^2.17.7",
-    "three": "^0.186.0",
     "typescript": "^6.0.3"
   },
   "allowScripts": {
@@ -27,7 +26,6 @@
   },
   "devDependencies": {
     "@astrojs/cloudflare": "^14.3.2",
-    "@types/sanitize-html": "^2.16.1",
-    "@types/three": "^0.186.0"
+    "@types/sanitize-html": "^2.16.1"
   }
 }

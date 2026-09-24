@@ -1,22 +1,33 @@
 ---
-import { Image } from "astro:assets";
-import { projects } from "../data/projects.js";
-import leonBergara from "../assets/1-leonbergara-world-brand-design 1.png";
+import { PROJECTS_PAGE_SIZE, projectCover } from "../lib/server/site-data";
 
 interface Props {
-	/** Max number of projects to show. Omit to show all of them. */
+	/** Show only the first N projects plus a "View all" link (the home page). */
 	limit?: number;
+	/**
+	 * Show every project, PROJECTS_PAGE_SIZE at a time: the first page is
+	 * rendered here and the rest are lazy-loaded from /partials/projects as
+	 * the visitor scrolls (the portfolio page).
+	 */
+	paginate?: boolean;
+	/** First project to render — used by /partials/projects for later pages. */
+	offset?: number;
 }
 
-const { limit } = Astro.props;
+const { limit, paginate = false, offset = 0 } = Astro.props;
+// Managed in the admin (Projetos), stored in D1, in the admin's chosen
+// order with featured projects first (see orderProjects).
+const projects = await Astro.locals.projects();
 
-const visibleProjects =
-	typeof limit === "number" ? projects.slice(0, limit) : projects;
+const pageSize = limit ?? (paginate ? PROJECTS_PAGE_SIZE : projects.length);
+const visibleProjects = projects.slice(offset, offset + pageSize);
+const nextOffset =
+	paginate && offset + pageSize < projects.length ? offset + pageSize : null;
 const showViewAll = typeof limit === "number";
 ---
 
 {
-	visibleProjects.length === 0 ? (
+	visibleProjects.length === 0 && offset === 0 ? (
 		<p class="empty">Projects will be added here soon.</p>
 	) : (
 		<ul class="project-list">
@@ -28,17 +39,20 @@ const showViewAll = typeof limit === "number";
 					>
 						<div class="project-col project-col--index col">
 							<span class="project-number">
-								{String(i + 1).padStart(2, "0")}
+								{String(offset + i + 1).padStart(2, "0")}
 							</span>
 							<h4>{project.client}</h4>
 						</div>
 
 						<div class="project-col project-col--media col">
-							<Image
-								src={leonBergara}
-								alt={project.client}
-								loading="lazy"
-							/>
+							{projectCover(project) && (
+								<img
+									src={projectCover(project)}
+									alt={project.client}
+									loading="lazy"
+									decoding="async"
+								/>
+							)}
 						</div>
 
 						<div class="project-col project-col--meta col">
@@ -50,6 +64,13 @@ const showViewAll = typeof limit === "number";
 					</a>
 				</li>
 			))}
+			{nextOffset !== null && (
+				<li
+					class="project-list-sentinel"
+					data-next-offset={nextOffset}
+					aria-hidden="true"
+				/>
+			)}
 		</ul>
 	)
 }
@@ -150,6 +171,11 @@ const showViewAll = typeof limit === "number";
 		font-size: 13px;
 	}
 
+	.project-list-sentinel {
+		list-style: none;
+		height: 1px;
+	}
+
 	.project-list-footer {
 		display: flex;
 		justify-content: flex-end;
@@ -189,11 +215,13 @@ const showViewAll = typeof limit === "number";
 	import gsap from "gsap";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
-	import { whenPageSettled } from "../scripts/scroll-timing";
+	import { refreshScrollTriggers, whenPageSettled } from "../scripts/scroll-timing";
 
 	gsap.registerPlugin(ScrollTrigger);
 
 	let triggers: ScrollTrigger[] = [];
+	let observer: IntersectionObserver | null = null;
+	let loadController: AbortController | null = null;
 
 	interface PreparedItem {
 		item: HTMLElement;
@@ -203,21 +231,17 @@ const showViewAll = typeof limit === "number";
 		meta: HTMLElement;
 	}
 
-	function initProjectGridReveal() {
-		cleanupProjectGridReveal();
-
-		const items = document.querySelectorAll<HTMLElement>(".project-list .project-item");
+	// Hides each item's parts (immediately, so nothing flashes fully
+	// visible before its reveal exists) and splits its title into letters.
+	function prepareItems(items: Iterable<HTMLElement>): PreparedItem[] {
 		const prepared: PreparedItem[] = [];
-
-		items.forEach((item) => {
+		for (const item of items) {
 			const row = item.querySelector<HTMLElement>(".project-row");
 			const number = item.querySelector<HTMLElement>(".project-number");
 			const title = item.querySelector<HTMLElement>(".project-col--index h4");
 			const meta = item.querySelector<HTMLElement>(".project-col--meta");
-			if (!row || !number || !title || !meta) return;
+			if (!row || !number || !title || !meta) continue;
 
-			// Hidden immediately (not deferred below) so nothing flashes
-			// fully visible while waiting for the page to settle.
 			gsap.set(row, { opacity: 0 });
 			gsap.set(number, { opacity: 0 });
 			gsap.set(meta, { opacity: 0 });
@@ -225,17 +249,8 @@ const showViewAll = typeof limit === "number";
 			gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
 
 			prepared.push({ item, row, number, letters, meta });
-		});
-
-		// This script can run before the homepage's own pinned section
-		// (index.astro's section 3, which reserves extra scroll space via a
-		// ScrollTrigger pin spacer) has been created, or before the hero
-		// video/images finish loading and settle the layout below them.
-		// Reading "top X%" positions before that bakes in the wrong
-		// position — and ScrollTrigger.refresh() afterwards does not
-		// correct it — so trigger creation waits until the page has
-		// actually settled.
-		whenPageSettled(() => createTriggers(prepared));
+		}
+		return prepared;
 	}
 
 	function createTriggers(prepared: PreparedItem[]) {
@@ -290,9 +305,80 @@ const showViewAll = typeof limit === "number";
 		});
 	}
 
+	// Portfolio lazy loading: when the sentinel left after the last rendered
+	// project nears the viewport, the next page of items is fetched from
+	// /partials/projects (rendered by this same component, so the markup and
+	// scoped styles match), swapped in for the sentinel — which brings the
+	// next sentinel along, if there are more — and revealed like the rest.
+	function observeSentinel() {
+		const sentinel = document.querySelector<HTMLElement>(".project-list-sentinel");
+		if (!sentinel) return;
+		observer ??= new IntersectionObserver(
+			(entries) => {
+				for (const entry of entries) {
+					if (entry.isIntersecting) loadMore(entry.target as HTMLElement);
+				}
+			},
+			{ rootMargin: "600px 0px" },
+		);
+		observer.observe(sentinel);
+	}
+
+	async function loadMore(sentinel: HTMLElement) {
+		if (sentinel.dataset.loading) return;
+		sentinel.dataset.loading = "true";
+		observer?.unobserve(sentinel);
+
+		loadController = new AbortController();
+		try {
+			const res = await fetch(`/partials/projects?offset=${sentinel.dataset.nextOffset}`, {
+				signal: loadController.signal,
+			});
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+			const doc = new DOMParser().parseFromString(await res.text(), "text/html");
+			const newNodes = Array.from(doc.querySelectorAll<HTMLElement>(".project-list > li"));
+			sentinel.replaceWith(...newNodes);
+
+			const newItems = newNodes.filter((node) => node.classList.contains("project-item"));
+			createTriggers(prepareItems(newItems));
+			refreshScrollTriggers();
+			observeSentinel();
+		} catch (err) {
+			if ((err as Error).name === "AbortError") return;
+			console.error("Couldn't load more projects:", err);
+			// Let a later scroll past it try again.
+			delete sentinel.dataset.loading;
+			observer?.observe(sentinel);
+		}
+	}
+
+	function initProjectGridReveal() {
+		cleanupProjectGridReveal();
+
+		const prepared = prepareItems(
+			document.querySelectorAll<HTMLElement>(".project-list .project-item"),
+		);
+
+		// This script can run before the homepage's own pinned section
+		// (index.astro's section 3, which reserves extra scroll space via a
+		// ScrollTrigger pin spacer) has been created, or before the hero
+		// video/images finish loading and settle the layout below them.
+		// Reading "top X%" positions before that bakes in the wrong
+		// position, so trigger creation waits until the page has actually
+		// settled.
+		whenPageSettled(() => {
+			createTriggers(prepared);
+			observeSentinel();
+		});
+	}
+
 	function cleanupProjectGridReveal() {
 		triggers.forEach((trigger) => trigger.kill());
 		triggers = [];
+		observer?.disconnect();
+		observer = null;
+		loadController?.abort();
+		loadController = null;
 	}
 
 	document.addEventListener("astro:page-load", initProjectGridReveal);

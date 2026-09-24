@@ -4,6 +4,7 @@ export const prerender = false;
 import { env } from "cloudflare:workers";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import { getSettings } from "../../../lib/server/settings-store.js";
+import { SOCIAL_NETWORKS } from "../../../data/social-links";
 
 const settings = await getSettings(env.DB);
 ---
@@ -42,18 +43,18 @@ const settings = await getSettings(env.DB);
 		<h2 class="block-title">SEO</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
 			Campos usados nas meta tags de todas as páginas (título, descrição,
-			Open Graph, Twitter Card) e na indexação por buscadores. Como essas
-			tags precisam existir no HTML já publicado para os buscadores
-			confiarem nelas, alterações aqui só valem depois de um rebuild do
-			site.
+			Open Graph, Twitter Card), no sitemap e na indexação por buscadores.
+			Ao salvar, o site já é publicado com os novos valores — o Google e
+			os previews de link (WhatsApp, LinkedIn) passam a ler na próxima vez
+			que visitarem a página.
 		</p>
 
 		<div class="admin-field">
 			<label for="f-seo-site-title">Título do site</label>
 			<input id="f-seo-site-title" value={settings.siteTitle || ""} required />
 			<p class="admin-hint">
-				Usado no &lt;title&gt; das páginas, no cabeçalho do admin e na tag
-				og:site_name exibida quando o link é compartilhado.
+				Usado no &lt;title&gt; das páginas do site ("Título — About") e na
+				tag og:site_name exibida quando o link é compartilhado.
 			</p>
 		</div>
 
@@ -118,6 +119,29 @@ const settings = await getSettings(env.DB);
 			</div>
 		</div>
 
+		<h3 class="block-subtitle">Redes sociais</h3>
+		<p class="admin-hint" style="margin-bottom: 1rem;">
+			Links da coluna "Connect" do rodapé e da lista de contato da página
+			About. Use a URL completa do perfil (https://…), do domínio da
+			própria rede. Campo vazio leva para a página inicial da rede.
+		</p>
+		{
+			SOCIAL_NETWORKS.map((network) => (
+				<div class="admin-field">
+					<label for={`f-social-${network.key}`}>{network.label}</label>
+					<input
+						id={`f-social-${network.key}`}
+						class="social-link-input"
+						data-social-key={network.key}
+						type="url"
+						value={settings.seo?.socialLinks?.[network.key] || ""}
+						placeholder={`${network.defaultUrl}seu-perfil`}
+					/>
+					<p class="admin-hint social-link-error" hidden></p>
+				</div>
+			))
+		}
+
 		<label class="seo-checkbox">
 			<input
 				type="checkbox"
@@ -169,6 +193,8 @@ const settings = await getSettings(env.DB);
 <div class="admin-toast" id="toast"></div>
 
 <script>
+	import { SOCIAL_NETWORKS, isValidSocialUrl, type SocialKey } from "../../../data/social-links";
+
 	function toast(message: string, isError = false) {
 		const el = document.getElementById("toast")!;
 		el.textContent = message;
@@ -192,8 +218,12 @@ const settings = await getSettings(env.DB);
 		const body = new FormData();
 		body.append("file", file);
 		const res = await fetch("/api/admin/upload", { method: "POST", body });
-		if (!res.ok) throw new Error("Falha no upload.");
-		const data = await res.json();
+		if (!res.ok) {
+			// The server says why (type not allowed, too large...).
+			const err = (await res.json().catch(() => ({}))) as { error?: string };
+			throw new Error(err.error || "Falha no upload.");
+		}
+		const data = (await res.json()) as { url: string };
 		return data.url;
 	}
 
@@ -205,8 +235,8 @@ const settings = await getSettings(env.DB);
 			faviconFilenameEl.textContent = siteFaviconUrl;
 			faviconPreview.src = siteFaviconUrl;
 			toast("Favicon enviado. Clique em Salvar para publicar.");
-		} catch {
-			toast("Erro ao enviar favicon.", true);
+		} catch (err) {
+			toast(err instanceof Error ? err.message : "Erro ao enviar favicon.", true);
 		}
 	});
 
@@ -241,12 +271,40 @@ const settings = await getSettings(env.DB);
 			ogImageFilenameEl.textContent = ogImageUrl;
 			ogImagePreview.src = ogImageUrl;
 			toast("Imagem enviada. Clique em Salvar para publicar.");
-		} catch {
-			toast("Erro ao enviar imagem.", true);
+		} catch (err) {
+			toast(err instanceof Error ? err.message : "Erro ao enviar imagem.", true);
 		}
 	});
 
+	// Each social field must be empty or a URL on that network's own domain
+	// (the server re-checks and drops anything else).
+	function validateSocialLinks(): boolean {
+		let valid = true;
+		document.querySelectorAll<HTMLInputElement>(".social-link-input").forEach((input) => {
+			const key = input.dataset.socialKey as SocialKey;
+			const value = input.value.trim();
+			const ok = !value || isValidSocialUrl(key, value);
+			const error = input.parentElement?.querySelector<HTMLElement>(".social-link-error");
+			if (error) {
+				const network = SOCIAL_NETWORKS.find((n) => n.key === key);
+				error.hidden = ok;
+				error.textContent = ok ? "" : `Use um link completo do ${network?.label}, ex.: ${network?.defaultUrl}seu-perfil`;
+			}
+			input.setAttribute("aria-invalid", String(!ok));
+			if (!ok) valid = false;
+		});
+		return valid;
+	}
+
+	document.querySelectorAll<HTMLInputElement>(".social-link-input").forEach((input) =>
+		input.addEventListener("blur", validateSocialLinks),
+	);
+
 	document.getElementById("save-all")!.addEventListener("click", async () => {
+		if (!validateSocialLinks()) {
+			toast("Corrija os links de redes sociais destacados.", true);
+			return;
+		}
 		const siteTitle = (document.getElementById("f-seo-site-title") as HTMLInputElement).value.trim();
 		const seo = {
 			siteUrl: (document.getElementById("f-seo-site-url") as HTMLInputElement).value.trim(),
@@ -259,6 +317,11 @@ const settings = await getSettings(env.DB);
 				document.getElementById("f-seo-google-verification") as HTMLInputElement
 			).value.trim(),
 			allowIndexing: (document.getElementById("f-seo-allow-indexing") as HTMLInputElement).checked,
+			socialLinks: Object.fromEntries(
+				Array.from(document.querySelectorAll<HTMLInputElement>(".social-link-input")).map(
+					(input) => [input.dataset.socialKey, input.value.trim()],
+				),
+			),
 		};
 
 		const res = await fetch("/api/admin/settings", {
@@ -266,7 +329,7 @@ const settings = await getSettings(env.DB);
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ siteTitle, siteFaviconUrl, seo }),
 		});
-		if (res.ok) toast("Alterações salvas. Rode um novo build para publicar o SEO.");
+		if (res.ok) toast("Alterações salvas e publicadas.");
 		else toast("Erro ao salvar.", true);
 	});
 
@@ -290,7 +353,7 @@ const settings = await getSettings(env.DB);
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ currentPassword, newPassword }),
 		});
-		const data = await res.json().catch(() => ({}));
+		const data = (await res.json().catch(() => ({}))) as { error?: string };
 
 		if (res.ok) {
 			toast("Senha alterada. Faça login novamente.");
@@ -311,6 +374,13 @@ const settings = await getSettings(env.DB);
 		font-family: var(--font-sans);
 		font-weight: 600;
 		margin-bottom: 0.5rem;
+	}
+
+	.block-subtitle {
+		font-size: 0.95rem;
+		font-family: var(--font-sans);
+		font-weight: 600;
+		margin: 1.5rem 0 0.4rem;
 	}
 
 	.favicon-field {
@@ -348,6 +418,11 @@ const settings = await getSettings(env.DB);
 
 	.upload-row span {
 		overflow-wrap: anywhere;
+	}
+
+	.social-link-error {
+		color: #b3261e;
+		margin-top: 0.35rem;
 	}
 
 	.seo-checkbox {

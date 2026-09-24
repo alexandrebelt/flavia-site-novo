@@ -1,0 +1,13 @@
+---
+// Next page of the portfolio list, fetched by ProjectsGrid's lazy loader.
+// An HTML fragment (no <html>/<head>), rendered by the same component so
+// the markup and scoped styles match what's already on the page.
+import ProjectsGrid from "../../components/ProjectsGrid.astro";
+
+export const partial = true;
+
+const offset = Math.max(0, Math.floor(Number(Astro.url.searchParams.get("offset")) || 0));
+Astro.response.headers.set("X-Robots-Tag", "noindex");
+---
+
+<ProjectsGrid paginate offset={offset} />

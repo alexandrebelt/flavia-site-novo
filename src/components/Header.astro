@@ -9,6 +9,8 @@ const links = [
 	{ href: "/inquire", label: "Inquire" },
 ];
 
+const { bannerText } = await Astro.locals.siteSettings();
+
 const isContact = pathname === "/inquire" || pathname.startsWith("/inquire/");
 
 const isActive = (href: string) =>
@@ -18,7 +20,7 @@ const isActive = (href: string) =>
 <header class="site-header" data-contact={String(isContact)}>
 	<div class="banner">
 		<span class="banner-dot" aria-hidden="true"></span>
-		<p id="banner-text">Currently accepting new projects for 2026</p>
+		<p id="banner-text">{bannerText}</p>
 	</div>
 
 	<nav>
@@ -68,18 +70,32 @@ const isActive = (href: string) =>
 			});
 	}
 
+	// Always acts on whichever header is currently in the DOM — every SPA
+	// navigation swaps in a fresh one, so nothing here may hold on to the
+	// previous page's elements.
+	function setMenuOpen(open: boolean) {
+		const btn = document.querySelector<HTMLButtonElement>(".btn-menu");
+		const menu = document.querySelector<HTMLElement>(".menu-content");
+		if (!btn || !menu) return;
+		menu.classList.toggle("active-menu", open);
+		btn.classList.toggle("active-btn", open);
+		btn.setAttribute("aria-expanded", String(open));
+		document.body.classList.toggle("menu-open", open);
+	}
+
+	// Document-level listeners are registered once for the whole session;
+	// registering them inside bindHeader (which runs for every new header)
+	// stacked one more of each on every navigation.
+	document.addEventListener("keydown", (e) => {
+		if (e.key === "Escape") setMenuOpen(false);
+	});
+	document.addEventListener("astro:before-swap", () => setMenuOpen(false));
+
 	function bindHeader() {
 		const btn = document.querySelector<HTMLButtonElement>(".btn-menu");
 		const menu = document.querySelector<HTMLElement>(".menu-content");
 		if (!btn || !menu || btn.dataset.ready) return;
 		btn.dataset.ready = "1";
-
-		const setOpen = (open: boolean) => {
-			menu.classList.toggle("active-menu", open);
-			btn.classList.toggle("active-btn", open);
-			btn.setAttribute("aria-expanded", String(open));
-			document.body.classList.toggle("menu-open", open);
-		};
 
 		// Wave on hover — always plays a full cycle, even if the mouse
 		// leaves mid-animation.
@@ -93,34 +109,16 @@ const isActive = (href: string) =>
 		lastBar?.addEventListener("animationend", () => btn.classList.remove("wave"));
 
 		btn.addEventListener("click", () =>
-			setOpen(!menu.classList.contains("active-menu")),
+			setMenuOpen(!menu.classList.contains("active-menu")),
 		);
 		menu.querySelectorAll("a").forEach((a) =>
-			a.addEventListener("click", () => setOpen(false)),
+			a.addEventListener("click", () => setMenuOpen(false)),
 		);
-		document.addEventListener("keydown", (e) => {
-			if (e.key === "Escape") setOpen(false);
-		});
-		document.addEventListener("astro:before-swap", () => setOpen(false));
-	}
-
-	async function applyBannerText() {
-		const el = document.getElementById("banner-text");
-		if (!el) return;
-		try {
-			const res = await fetch("/api/site-settings");
-			if (!res.ok) return;
-			const { bannerText } = await res.json();
-			if (bannerText) el.textContent = bannerText;
-		} catch {
-			// keep the bundled default text on any error
-		}
 	}
 
 	document.addEventListener("astro:page-load", () => {
 		bindHeader();
 		syncActiveLink();
-		applyBannerText();
 	});
 </script>
 

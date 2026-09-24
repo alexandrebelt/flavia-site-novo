@@ -2,7 +2,7 @@ import sanitizeHtml from "sanitize-html";
 
 /**
  * Cleans the inline HTML the admin's rich-text block editor produces before
- * it's written to projects.json. Only inline formatting is allowed — no
+ * it's written to the projects table. Only inline formatting is allowed — no
  * block tags, scripts, styles or event handlers — since each entry is one
  * block's text, not a full document.
  */

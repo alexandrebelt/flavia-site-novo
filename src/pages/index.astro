@@ -1,5 +1,4 @@
 ---
-export const prerender = true;
 import { Image } from "astro:assets";
 import Layout from "../layouts/Layout.astro";
 import FotoFlavia from "../assets/flavia-jackeline.webp";
@@ -24,10 +23,13 @@ const letters = Object.entries(letterModules)
 				.pop()
 				?.replace(/\.[^.]+$/, "") ?? "",
 	}));
+
+// Admin overrides (Home) — empty fields keep the bundled defaults.
+const { home } = await Astro.locals.siteSettings();
 ---
 
 <Layout
-	title="Flávia — Home"
+	title="Home"
 	description="Flávia Jackeline is an independent Brazilian brand studio creating refined, distinctive identities for founders and businesses worldwide."
 >
 	<section class="full-height hero-section">
@@ -56,8 +58,8 @@ const letters = Object.entries(letterModules)
 			<video
 				id="home-video"
 				class="home-video"
-				src={videoHome}
-				poster={videoHomePoster.src}
+				src={home.sectionVideoUrl || videoHome}
+				poster={home.sectionVideoPosterUrl || videoHomePoster.src}
 				autoplay
 				muted
 				loop
@@ -143,7 +145,7 @@ const letters = Object.entries(letterModules)
 					<div class="about-flavia-img-wrapper">
 						<img
 							id="about-flavia-img"
-							src={FotoFlavia.src}
+							src={home.aboutImageUrl || FotoFlavia.src}
 							alt="Flávia Jackeline"
 						/>
 					</div>
@@ -191,9 +193,9 @@ const letters = Object.entries(letterModules)
 <script>
 	import gsap from "gsap";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
-	import { MathUtils } from "three";
 	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
+	import { onPageReady } from "../scripts/page-ready";
 
 	gsap.registerPlugin(ScrollTrigger);
 
@@ -233,9 +235,11 @@ const letters = Object.entries(letterModules)
 			targetRotY = 0;
 		}
 
+		const lerp = (from: number, to: number, t: number) => from + (to - from) * t;
+
 		function tick() {
-			currentRotX = MathUtils.lerp(currentRotX, targetRotX, ease);
-			currentRotY = MathUtils.lerp(currentRotY, targetRotY, ease);
+			currentRotX = lerp(currentRotX, targetRotX, ease);
+			currentRotY = lerp(currentRotY, targetRotY, ease);
 			target!.style.transform = `perspective(1200px) rotateX(${currentRotX.toFixed(2)}deg) rotateY(${currentRotY.toFixed(2)}deg)`;
 			rafId = requestAnimationFrame(tick);
 		}
@@ -286,25 +290,21 @@ const letters = Object.entries(letterModules)
 		// Waits for the page-entrance transition to actually finish (see
 		// Layout.astro) — running immediately on astro:page-load instead
 		// would play this out mostly hidden during the fade.
-		document.addEventListener(
-			"astro:page-ready",
-			() => {
-				gsap.to(letters, {
-					rotateY: 0,
-					opacity: 1,
-					duration: 0.9,
-					ease: "power3.out",
-					stagger: 0.12,
-					onComplete: enableHoverTilt,
-				});
-				gsap.to(".hero-section-wrapper h6", {
-					opacity: 1,
-					duration: 1,
-					delay: 1,
-				});
-			},
-			{ once: true },
-		);
+		onPageReady(() => {
+			gsap.to(letters, {
+				rotateY: 0,
+				opacity: 1,
+				duration: 0.9,
+				ease: "power3.out",
+				stagger: 0.12,
+				onComplete: enableHoverTilt,
+			});
+			gsap.to(".hero-section-wrapper h6", {
+				opacity: 1,
+				duration: 1,
+				delay: 1,
+			});
+		});
 	}
 
 	// Fires right as the page swaps in — playHeroReveal hides the letters
@@ -313,40 +313,6 @@ const letters = Object.entries(letterModules)
 	// the page-entrance transition is done.
 	document.addEventListener("astro:page-load", playHeroReveal);
 
-	async function applyHomeSettings() {
-		const video = document.getElementById(
-			"home-video",
-		) as HTMLVideoElement | null;
-		const aboutImg = document.getElementById(
-			"about-flavia-img",
-		) as HTMLImageElement | null;
-		if (!video && !aboutImg) return;
-		try {
-			const res = await fetch("/api/site-settings");
-			if (!res.ok) return;
-			const { home } = await res.json();
-
-			if (video) {
-				if (home?.sectionVideoPosterUrl)
-					video.poster = home.sectionVideoPosterUrl;
-				if (
-					home?.sectionVideoUrl &&
-					video.currentSrc !== home.sectionVideoUrl
-				) {
-					video.src = home.sectionVideoUrl;
-					video.load();
-				}
-			}
-
-			if (aboutImg && home?.aboutImageUrl) {
-				aboutImg.src = home.aboutImageUrl;
-			}
-		} catch {
-			// keep the bundled defaults on any error
-		}
-	}
-
-	document.addEventListener("astro:page-load", applyHomeSettings);
 
 	let section3Trigger: ScrollTrigger | null = null;
 
@@ -466,18 +432,7 @@ const letters = Object.entries(letterModules)
 	}
 
 	function initSection5Reveal() {
-		// Build immediately with whatever text is already in the DOM (the
-		// static default), then rebuild once the achievements text is
-		// finalized (it may be overridden via the admin panel) — splitting
-		// first and letting that fetch overwrite textContent afterwards
-		// would silently drop the letter spans.
 		buildSection5Timeline();
-		// Removed on astro:before-swap below — without that, navigating away
-		// before ExperiencesText's fetch resolves leaves this listener
-		// registered forever, stacking up one more each revisit.
-		document.addEventListener("experiences-text-ready", buildSection5Timeline, {
-			once: true,
-		});
 	}
 
 	document.addEventListener("astro:page-load", initSection5Reveal);
@@ -526,7 +481,6 @@ const letters = Object.entries(letterModules)
 	document.addEventListener("astro:page-load", initSection6Reveal);
 
 	document.addEventListener("astro:before-swap", () => {
-		document.removeEventListener("experiences-text-ready", buildSection5Timeline);
 		section3Trigger?.kill();
 		section3Trigger = null;
 		section4Trigger?.kill();

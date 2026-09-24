@@ -1,12 +1,10 @@
 ---
-export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
-import Page from "../../components/Page.astro";
 import ProjectsGrid from "../../components/ProjectsGrid.astro";
 ---
 
 <Layout
-	title="Flávia — Portfolio"
+	title="Portfolio"
 	description="A collection of brand identity projects built for founders who treat branding as an investment — distinctive, considered and built to last."
 >
 	<section class="portfolio-section limit">
@@ -25,7 +23,7 @@ import ProjectsGrid from "../../components/ProjectsGrid.astro";
 			</div>
 		</div>
 
-		<ProjectsGrid />
+		<ProjectsGrid paginate />
 	</section>
 </Layout>
 

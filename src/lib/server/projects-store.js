@@ -9,6 +9,22 @@ export async function listProjects(db) {
 	return results.map(rowToProject);
 }
 
+/** How many projects other than `exceptId` are marked featured. */
+export async function countFeaturedProjects(db, exceptId) {
+	const row = await db
+		.prepare(
+			"SELECT COUNT(*) AS total FROM projects WHERE json_extract(data, '$.featured') = 1 AND id != ?",
+		)
+		.bind(exceptId ?? "")
+		.first();
+	return Number(row?.total ?? 0);
+}
+
+export async function getProjectBySlug(db, slug) {
+	const row = await db.prepare("SELECT data FROM projects WHERE slug = ?").bind(slug).first();
+	return row ? rowToProject(row) : null;
+}
+
 export async function getProjectById(db, id) {
 	const row = await db.prepare("SELECT data FROM projects WHERE id = ?").bind(id).first();
 	return row ? rowToProject(row) : null;

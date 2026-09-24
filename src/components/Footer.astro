@@ -1,5 +1,6 @@
 ---
 import FooterLogo from "../assets/footer-logo.png";
+import { SOCIAL_NETWORKS, resolveSocialUrl } from "../data/social-links";
 const year = new Date().getFullYear();
 
 const navLinks = [
@@ -9,13 +10,13 @@ const navLinks = [
 	{ href: "/inquire", label: "Inquire" },
 ];
 
-const connectLinks = [
-	{ href: "https://instagram.com/", label: "Instagram" },
-	{ href: "https://behance.net/", label: "Behance" },
-	{ href: "https://linkedin.com/", label: "LinkedIn" },
-	{ href: "https://pinterest.com/", label: "Pinterest" },
-	{ href: "https://x.com/", label: "X" },
-];
+// Set in the admin (Configurações › SEO); rendered per request.
+const { seo } = await Astro.locals.siteSettings();
+const socialLinks = seo.socialLinks;
+const connectLinks = SOCIAL_NETWORKS.map((network) => ({
+	label: network.label,
+	href: resolveSocialUrl(network.key, socialLinks),
+}));
 
 const email = "hello@flaviajackeline.com";
 ---
@@ -210,12 +211,16 @@ const email = "hello@flaviajackeline.com";
 
 	gsap.registerPlugin(ScrollTrigger);
 
-	// The footer has transition:persist in Layout.astro — it's the same DOM
-	// node across every SPA navigation, never remounted — so this only ever
-	// needs to run once. Layout's own ScrollTrigger.refresh() (called on
-	// every astro:page-load) keeps this trigger's position correct as page
-	// content above the footer changes.
+	// Every SPA navigation swaps in a fresh footer node, so, like every other reveal,
+	// this re-runs on each astro:page-load and kills its trigger on
+	// astro:before-swap; running it only once left every page after the
+	// first with a static footer and a trigger pointing at a detached node.
+	let footerTrigger: ScrollTrigger | null = null;
+
 	function initFooterReveal() {
+		footerTrigger?.kill();
+		footerTrigger = null;
+
 		const items = document.querySelectorAll<HTMLElement>(".footer-col > *");
 		const hr = document.querySelector<HTMLElement>(".site-footer hr");
 		const bottom = document.querySelector<HTMLElement>(".footer-bottom");
@@ -245,8 +250,14 @@ const email = "hello@flaviajackeline.com";
 				})
 				.to(hr, { width: "100%", duration: 0.6, ease: "power2.out" }, ">")
 				.to(bottom, { opacity: 1, duration: 0.5, ease: "power2.out" }, ">");
+
+			footerTrigger = timeline.scrollTrigger ?? null;
 		});
 	}
 
-	document.addEventListener("astro:page-load", initFooterReveal, { once: true });
+	document.addEventListener("astro:page-load", initFooterReveal);
+	document.addEventListener("astro:before-swap", () => {
+		footerTrigger?.kill();
+		footerTrigger = null;
+	});
 </script>

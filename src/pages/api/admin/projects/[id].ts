@@ -1,10 +1,12 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import {
+	countFeaturedProjects,
 	deleteProject,
 	getProjectById,
 	updateProject,
 } from "../../../../lib/server/projects-store.js";
+import { MAX_FEATURED_PROJECTS } from "../../../../lib/server/site-data";
 
 export const prerender = false;
 
@@ -15,7 +17,16 @@ export const GET: APIRoute = async ({ params }) => {
 };
 
 export const PUT: APIRoute = async ({ params, request }) => {
-	const patch = await request.json();
+	const patch = (await request.json()) as Record<string, unknown>;
+	if ("featured" in patch) {
+		patch.featured = patch.featured === true;
+		if (patch.featured && (await countFeaturedProjects(env.DB, params.id)) >= MAX_FEATURED_PROJECTS) {
+			return Response.json(
+				{ error: `Máximo de ${MAX_FEATURED_PROJECTS} projetos em destaque. Desmarque um antes.` },
+				{ status: 409 },
+			);
+		}
+	}
 	const updated = await updateProject(env.DB, params.id!, patch);
 	if (!updated) return Response.json({ error: "Projeto não encontrado." }, { status: 404 });
 	return Response.json(updated);

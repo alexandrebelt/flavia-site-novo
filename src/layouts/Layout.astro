@@ -2,36 +2,62 @@
 import { ClientRouter } from 'astro:transitions';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import settingsData from '../data/settings.json';
+import { SOCIAL_NETWORKS, resolveSocialUrl } from '../data/social-links';
+import defaultShareImage from '../assets/video-home-poster.jpg';
+import { siteOrigin as resolveSiteOrigin } from '../lib/server/site-data';
 import '../styles/main.css';
 import 'locomotive-scroll/dist/locomotive-scroll.css';
 
 interface Props {
+	/** This page's own name ("About", a project's client...). The full
+	 *  <title> is "<site title> — <this>", with the site title set in the
+	 *  admin (Configurações › SEO). */
 	title?: string;
 	description?: string;
 	ogImage?: string;
 	noindex?: boolean;
 }
 
-const { title = settingsData.siteTitle || 'Flávia', description, ogImage, noindex } = Astro.props;
+const { title: pageTitle, description, ogImage, noindex } = Astro.props;
 
-// Pages using this layout are prerendered (static), so SEO settings are read
-// from the build-time snapshot of settings.json — a static import (resolved
-// by Vite) rather than the runtime fs-based getSettings(), which doesn't
-// resolve correctly during Astro's prerender build step. Admin changes here
-// need a rebuild to take effect, same as the meta tags they control.
-const seo = settingsData.seo ?? {};
+// Rendered per request from what the admin saved in D1 (see
+// lib/server/site-data.ts) — a save there shows up on the next page view,
+// and link previews (WhatsApp, LinkedIn, Google) read these tags straight
+// from the HTML, without running any JavaScript.
+const settings = await Astro.locals.siteSettings();
+const seo = settings.seo;
+const siteTitle = settings.siteTitle || 'Flávia';
+const title = pageTitle ? `${siteTitle} — ${pageTitle}` : siteTitle;
+
+// Canonical and preview URLs have to be absolute.
+const siteOrigin = resolveSiteOrigin(settings, Astro.url);
+const absoluteUrl = (value: string) => new URL(value, `${siteOrigin}/`).toString();
 
 const metaDescription = description || seo.defaultDescription || '';
-const rawMetaImage = ogImage || seo.ogImageUrl || '';
-const siteUrl = (seo.siteUrl || '').replace(/\/$/, '');
-const canonicalUrl = siteUrl ? new URL(Astro.url.pathname, siteUrl).toString() : undefined;
-// Social platforms need an absolute image URL; resolve a relative one
-// (e.g. an admin-uploaded "/uploads/x.jpg") against the configured site URL.
-const metaImage = rawMetaImage && siteUrl && rawMetaImage.startsWith('/')
-	? new URL(rawMetaImage, siteUrl).toString()
-	: rawMetaImage;
+const canonicalUrl = absoluteUrl(Astro.url.pathname);
+// Every page gets a preview image: its own (a project's cover), else the
+// admin's default share image, else the home video's poster frame.
+const metaImage = absoluteUrl(ogImage || seo.ogImageUrl || defaultShareImage.src);
 const shouldIndex = seo.allowIndexing !== false && !noindex;
+
+// Only the profiles the admin actually filled in — the networks' generic
+// homepages say nothing about the studio.
+const sameAs = SOCIAL_NETWORKS.map((network) => resolveSocialUrl(network.key, seo.socialLinks)).filter(
+	(url) => !SOCIAL_NETWORKS.some((network) => network.defaultUrl === url),
+);
+const structuredData = {
+	'@context': 'https://schema.org',
+	'@type': 'ProfessionalService',
+	name: siteTitle,
+	url: siteOrigin,
+	image: metaImage,
+	...(seo.defaultDescription && { description: seo.defaultDescription }),
+	founder: { '@type': 'Person', name: 'Flávia Jackeline', jobTitle: 'Brand Designer' },
+	areaServed: 'Worldwide',
+	...(sameAs.length && { sameAs }),
+};
+// Escaped so a "</script>" inside any admin-entered value can't end the tag.
+const structuredDataJson = JSON.stringify(structuredData).replace(/</g, '\\u003c');
 
 // Astro's built-in "fade" preset crossfades in 180ms — the old and new page
 // briefly overlap, and that's not much of a window for the scroll-to-top
@@ -73,41 +99,50 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" id="site-favicon-svg" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" id="site-favicon-ico" href="/favicon.ico" />
-		<meta name="generator" content={Astro.generator} />
+		{settings.siteFaviconUrl ? (
+			<link rel="icon" href={settings.siteFaviconUrl} />
+		) : (
+			<>
+				<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+				<link rel="icon" href="/favicon.ico" />
+			</>
+		)}
 		<title>{title}</title>
 
 		{metaDescription && <meta name="description" content={metaDescription} />}
 		<meta name="robots" content={shouldIndex ? 'index, follow' : 'noindex, nofollow'} />
-		{canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+		<link rel="canonical" href={canonicalUrl} />
 		{seo.googleSiteVerification && (
 			<meta name="google-site-verification" content={seo.googleSiteVerification} />
 		)}
 
 		<meta property="og:type" content="website" />
-		<meta property="og:site_name" content={settingsData.siteTitle || 'Flávia'} />
+		<meta property="og:locale" content="en_US" />
+		<meta property="og:site_name" content={siteTitle} />
 		<meta property="og:title" content={title} />
 		{metaDescription && <meta property="og:description" content={metaDescription} />}
-		{canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-		{metaImage && <meta property="og:image" content={metaImage} />}
+		<meta property="og:url" content={canonicalUrl} />
+		<meta property="og:image" content={metaImage} />
+		<meta property="og:image:alt" content={title} />
 
-		<meta name="twitter:card" content={metaImage ? 'summary_large_image' : 'summary'} />
+		<meta name="twitter:card" content="summary_large_image" />
 		<meta name="twitter:title" content={title} />
 		{metaDescription && <meta name="twitter:description" content={metaDescription} />}
-		{metaImage && <meta name="twitter:image" content={metaImage} />}
+		<meta name="twitter:image" content={metaImage} />
 		{seo.twitterHandle && (
 			<meta name="twitter:site" content={`@${seo.twitterHandle.replace(/^@/, '')}`} />
 		)}
 
+		<script type="application/ld+json" is:inline set:html={structuredDataJson} />
+
 		<ClientRouter />
 	</head>
 	<body>
-		<Header transition:persist />
+		<Header />
 		<main transition:animate={pageTransition}>
 			<slot />
 		</main>
-		<Footer transition:persist />
+		<Footer />
 	</body>
 </html>
 
@@ -125,19 +160,30 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 	// the first thing the visitor sees (a hero letter reveal) should wait
 	// for this instead, or it plays out mostly hidden during the fade and
 	// is never actually seen running. The very first hard page load has no
-	// transition to wait for, so it fires immediately.
+	// transition to wait for, so it fires immediately. The data-page-ready
+	// flag lets listeners registered after the event still catch it (see
+	// scripts/page-ready.ts) — on that first load this handler can run
+	// before a page's own astro:page-load handler has started listening.
 	const pageTransitionMs = Number(document.documentElement.dataset.pageTransitionMs) || 0;
 	let hasLoadedOnce = false;
+	let pageReadyTimer = 0;
+	function markPageReady() {
+		document.documentElement.dataset.pageReady = "true";
+		document.dispatchEvent(new CustomEvent("astro:page-ready"));
+	}
 	document.addEventListener("astro:page-load", () => {
 		if (!hasLoadedOnce) {
 			hasLoadedOnce = true;
-			document.dispatchEvent(new CustomEvent("astro:page-ready"));
+			markPageReady();
 			return;
 		}
-		setTimeout(
-			() => document.dispatchEvent(new CustomEvent("astro:page-ready")),
-			pageTransitionMs,
-		);
+		pageReadyTimer = window.setTimeout(markPageReady, pageTransitionMs);
+	});
+	// A navigation that starts before the previous page's timer fired must
+	// not let that stale timer mark the incoming page ready mid-fade.
+	document.addEventListener("astro:before-swap", () => {
+		clearTimeout(pageReadyTimer);
+		delete document.documentElement.dataset.pageReady;
 	});
 
 	// Stop the browser from restoring the previous scroll position on
@@ -217,9 +263,7 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 	// time the page first settles. It misses anything that changes the
 	// page's height afterwards: a `loading="lazy"` image (gallery, project
 	// grid thumbnails) that only starts fetching once it nears the
-	// viewport, or an admin-configured hero image/video swapped in later via
-	// a site-settings fetch (about.astro, index.astro, Header.astro all do
-	// this). Left uncorrected, every trigger below that element keeps the
+	// viewport. Left uncorrected, every trigger below that element keeps the
 	// stale position it was created with. Listening here, once, for the
 	// whole session — instead of every page remembering to refresh after
 	// its own async media — catches all of it, on every page, including
@@ -245,28 +289,14 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 
 	document.addEventListener("astro:page-load", initSmoothScroll);
 
-	async function applyCustomFavicon() {
-		try {
-			const res = await fetch("/api/site-settings");
-			if (!res.ok) return;
-			const { siteFaviconUrl } = await res.json();
-			if (!siteFaviconUrl) return;
-			document.querySelectorAll<HTMLLinkElement>('link[rel="icon"]').forEach((link) => {
-				link.removeAttribute("type");
-				link.href = siteFaviconUrl;
-			});
-		} catch {
-			// keep the bundled default favicon on any error
-		}
-	}
+	// Letter-by-letter hover: each letter dims slightly, one after another,
+	// and undims the same way on mouseleave. Used by .btn-primary (whose
+	// underline fades via pure CSS, see main.css) and by the footer's text
+	// links, which get the same letters effect without any underline.
+	const LETTER_HOVER_SELECTOR = ".btn-primary, .site-footer .footer-col a:not(.brand)";
 
-	document.addEventListener("astro:page-load", applyCustomFavicon);
-
-	// .btn-primary's hover: each letter dims slightly, one after another,
-	// and undims the same way on mouseleave — the underline itself thickens
-	// via pure CSS (see main.css), this only handles the per-letter opacity.
-	function bindBtnPrimaryLetterHover() {
-		document.querySelectorAll<HTMLElement>(".btn-primary").forEach((btn) => {
+	function bindLetterHover() {
+		document.querySelectorAll<HTMLElement>(LETTER_HOVER_SELECTOR).forEach((btn) => {
 			if (btn.dataset.letterHoverBound) return;
 			btn.dataset.letterHoverBound = "true";
 
@@ -291,7 +321,7 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 		});
 	}
 
-	document.addEventListener("astro:page-load", bindBtnPrimaryLetterHover);
+	document.addEventListener("astro:page-load", bindLetterHover);
 </script>
 
 <style>

@@ -1,21 +1,26 @@
 ---
-export const prerender = true;
 import Layout from "../layouts/Layout.astro";
-import Page from "../components/Page.astro";
 import HeroFlavia from "../assets/flavia-jackeline2.webp";
 import ExperiencesText from "../components/ExperiencesText.astro";
 import CtaInquire from "../components/CtaInquire.astro";
+import { resolveSocialUrl } from "../data/social-links";
+
+// Admin overrides (Sobre) — empty fields keep the bundled defaults. The
+// social links are the same admin-set URLs as the footer's "Connect" ones.
+const { about, seo } = await Astro.locals.siteSettings();
+const socialLinks = seo.socialLinks;
+const recognitions = about.recognitions ?? [];
 ---
 
 <Layout
-	title="Flávia — About"
+	title="About"
 	description="Founded by Brazilian designer Flávia Jackeline, the studio has developed more than 150 brand identity projects for clients across 13+ countries."
 >
 	<section class="full-height hero-about-section">
 		<div class="hero-about-wrapper">
 			<img
 				id="about-hero-img"
-				src={HeroFlavia.src}
+				src={about.heroImageUrl || HeroFlavia.src}
 				alt="Flávia Jackeline"
 			/>
 			<div class="hero-about-section-row row limit">
@@ -45,10 +50,31 @@ import CtaInquire from "../components/CtaInquire.astro";
 					</h4>
 					<div class="about-section-2-contact-row">
 						<ul class="about-section-social-media-ul">
-							<li>Email</li>
-							<li>Instagram</li>
-							<li>Linkedin</li>
-							<li>Behance</li>
+							<li><a href="mailto:hello@flaviajackeline.com">Email</a></li>
+							<li>
+								<a
+									href={resolveSocialUrl("instagram", socialLinks)}
+									data-social="instagram"
+									target="_blank"
+									rel="noopener noreferrer">Instagram</a
+								>
+							</li>
+							<li>
+								<a
+									href={resolveSocialUrl("linkedin", socialLinks)}
+									data-social="linkedin"
+									target="_blank"
+									rel="noopener noreferrer">Linkedin</a
+								>
+							</li>
+							<li>
+								<a
+									href={resolveSocialUrl("behance", socialLinks)}
+									data-social="behance"
+									target="_blank"
+									rel="noopener noreferrer">Behance</a
+								>
+							</li>
 						</ul>
 					</div>
 				</div>
@@ -100,14 +126,7 @@ import CtaInquire from "../components/CtaInquire.astro";
 				</div>
 				<div class="about-section-3-col col">
 					<ul id="about-recognitions-list">
-						<li>Behance — 12 Featured Projects ↑</li>
-						<li>World Brand Design Society — Cedar Coast ↑</li>
-						<li>Kittl — Women in Graphic Design ↑</li>
-						<li>Behance — Best of 2024 ↑</li>
-						<li>Brands On Cue — Featured Designer ↑</li>
-						<li>Brands On Cue — Vol. 1, Featured in Book ↑</li>
-						<li>Design do Brasil — Selected Designer ↑</li>
-						<li>Abduzeedo — Bruno X ↑</li>
+						{recognitions.map((text) => <li>{text}</li>)}
 					</ul>
 				</div>
 			</div>
@@ -121,6 +140,7 @@ import CtaInquire from "../components/CtaInquire.astro";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { splitIntoLetterSpans, splitPreservingMarkup } from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
+	import { onPageReady } from "../scripts/page-ready";
 
 	gsap.registerPlugin(ScrollTrigger);
 
@@ -140,26 +160,22 @@ import CtaInquire from "../components/CtaInquire.astro";
 		// Waits for the page-entrance transition to actually finish (see
 		// Layout.astro) — running immediately on astro:page-load instead
 		// would play this out mostly hidden during the fade.
-		document.addEventListener(
-			"astro:page-ready",
-			() => {
-				const timeline = gsap.timeline();
-				spanLetters.forEach((letters, i) => {
-					timeline.to(
-						letters,
-						{
-							rotateY: 0,
-							opacity: 1,
-							duration: 0.6,
-							ease: "power3.out",
-							stagger: { amount: 0.5 },
-						},
-						i === 0 ? undefined : ">",
-					);
-				});
-			},
-			{ once: true },
-		);
+		onPageReady(() => {
+			const timeline = gsap.timeline();
+			spanLetters.forEach((letters, i) => {
+				timeline.to(
+					letters,
+					{
+						rotateY: 0,
+						opacity: 1,
+						duration: 0.6,
+						ease: "power3.out",
+						stagger: { amount: 0.5 },
+					},
+					i === 0 ? undefined : ">",
+				);
+			});
+		});
 	}
 
 	// Fires right as the page swaps in — playHeroAboutReveal hides the
@@ -195,10 +211,8 @@ import CtaInquire from "../components/CtaInquire.astro";
 		gsap.set(socialItems, { opacity: 0 });
 		gsap.set(paragraphs, { opacity: 0 });
 
-		// The achievements text is (re)built once ExperiencesText's own fetch
-		// finalizes its content (see the "experiences-text-ready" listener
-		// below) — splitting it now, before that, is what lets it be part of
-		// this same immediate pin instead of arriving late.
+		// The achievements line (shared with the homepage) is the last part
+		// of this same pinned sequence.
 		const experiencesEl = document.getElementById("experiences-text-content");
 		const experiencesLetters = experiencesEl ? splitIntoLetterSpans(experiencesEl) : [];
 		if (experiencesLetters.length) {
@@ -250,13 +264,6 @@ import CtaInquire from "../components/CtaInquire.astro";
 
 	function initAboutSection2Reveal() {
 		buildAboutSection2Timeline();
-		// Removed on astro:before-swap below — without that, navigating away
-		// before ExperiencesText's fetch resolves leaves this listener
-		// registered forever, and it stacks up one more each time the user
-		// revisits the page.
-		document.addEventListener("experiences-text-ready", buildAboutSection2Timeline, {
-			once: true,
-		});
 	}
 
 	document.addEventListener("astro:page-load", initAboutSection2Reveal);
@@ -293,7 +300,6 @@ import CtaInquire from "../components/CtaInquire.astro";
 	document.addEventListener("astro:page-load", initAboutSection3Reveal);
 
 	document.addEventListener("astro:before-swap", () => {
-		document.removeEventListener("experiences-text-ready", buildAboutSection2Timeline);
 		aboutSection2Trigger?.kill();
 		aboutSection2Trigger = null;
 		aboutSection2Mm?.revert();
@@ -302,46 +308,9 @@ import CtaInquire from "../components/CtaInquire.astro";
 		aboutSection3Trigger = null;
 	});
 
-	async function applyAboutSettings() {
-		const heroImg = document.getElementById(
-			"about-hero-img",
-		) as HTMLImageElement | null;
-		const list = document.getElementById(
-			"about-recognitions-list",
-		) as HTMLUListElement | null;
-		if (!heroImg && !list) return;
-		try {
-			const res = await fetch("/api/site-settings");
-			if (!res.ok) return;
-			const { about } = await res.json();
-
-			if (heroImg && about?.heroImageUrl)
-				heroImg.src = about.heroImageUrl;
-
-			if (
-				list &&
-				Array.isArray(about?.recognitions) &&
-				about.recognitions.length > 0
-			) {
-				list.innerHTML = "";
-				for (const text of about.recognitions) {
-					const li = document.createElement("li");
-					li.textContent = text;
-					list.appendChild(li);
-				}
-			}
-		} catch {
-			// keep the bundled defaults on any error
-		}
-	}
-
-	document.addEventListener("astro:page-load", applyAboutSettings);
 </script>
 
 <style is:global>
-	/* #about-recognitions-list is rebuilt at runtime (applyAboutSettings)
-	   with freshly created <li> elements, which never get Astro's
-	   scoped-style attribute — this whole block has to be global. */
 	.hero-about-section {
 		max-height: 100vh;
 		overflow: hidden;
@@ -397,6 +366,10 @@ import CtaInquire from "../components/CtaInquire.astro";
 	}
 	.about-section-2-col:nth-of-type(2) {
 		max-width: 57ch;
+	}
+	.about-section-2-contact-row a {
+		color: inherit;
+		text-decoration: none;
 	}
 	.about-section-2-contact-row li::before {
 		content: "●";

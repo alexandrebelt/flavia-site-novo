@@ -11,7 +11,7 @@ export const GET: APIRoute = async () => {
 };
 
 export const DELETE: APIRoute = async ({ request }) => {
-	const { url } = await request.json();
+	const { url } = (await request.json()) as { url?: unknown };
 	if (typeof url !== "string") {
 		return Response.json({ error: "url é obrigatório." }, { status: 400 });
 	}

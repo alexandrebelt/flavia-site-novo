@@ -1,13 +1,11 @@
 ---
-export const prerender = true;
 import Layout from "../layouts/Layout.astro";
-import Page from "../components/Page.astro";
 import CtaInquire from "../components/CtaInquire.astro";
 import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 ---
 
 <Layout
-	title="Flávia — Services"
+	title="Services"
 	description="Brand strategy, visual identity and brand applications — a considered process from discovery to delivery for founders ready to invest in their brand."
 >
 	<section class="full-height hero-services-section">
@@ -103,7 +101,7 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 						</ul>
 					</div>
 				</div>
-				<a class="btn-primary">start a project</a>
+				<a href="/inquire" class="btn-primary">start a project</a>
 			</div>
 			<div class="services-section-3-main-col col">
 				<ProjectsCoverFade />

@@ -1,7 +1,5 @@
 ---
-import { Image } from "astro:assets";
-import { projects } from "../data/projects.js";
-import leonBergara from "../assets/1-leonbergara-world-brand-design 1.png";
+import { projectCover } from "../lib/server/site-data";
 
 interface Props {
 	/** Seconds each cover stays visible before crossfading to the next. */
@@ -9,25 +7,22 @@ interface Props {
 }
 
 const { interval = 3.5 } = Astro.props;
+// Every project with a cover image (admin › Projetos), in admin order.
+const covers = (await Astro.locals.projects())
+	.map((project) => ({ src: projectCover(project), alt: project.client }))
+	.filter((cover) => cover.src);
 ---
 
 <div class="cover-fade" data-interval={interval * 1000}>
 	{
-		projects.length === 0 ? (
-			<Image
-				src={leonBergara}
-				alt=""
-				class="cover-fade-img is-active"
+		covers.map((cover, i) => (
+			<img
+				src={cover.src}
+				alt={cover.alt}
+				decoding="async"
+				class:list={["cover-fade-img", { "is-active": i === 0 }]}
 			/>
-		) : (
-			projects.map((project, i) => (
-				<Image
-					src={leonBergara}
-					alt={project.client}
-					class:list={["cover-fade-img", { "is-active": i === 0 }]}
-				/>
-			))
-		)
+		))
 	}
 </div>
 

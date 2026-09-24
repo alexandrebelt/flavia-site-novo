@@ -1,7 +1,7 @@
 ---
-export const prerender = true;
+import { env } from "cloudflare:workers";
 import Layout from "../layouts/Layout.astro";
-import Page from "../components/Page.astro";
+import { turnstileSiteKey } from "../lib/server/turnstile.js";
 
 const scopeOptions = [
 	{ label: "Brand Strategy" },
@@ -19,7 +19,7 @@ const scopeOptions = [
 ];
 ---
 
-<Layout title="Flávia — Inquire">
+<Layout title="Inquire">
 	<section class="full-height inquire-hero-section bg-black">
 		<div
 			class="inquire-hero-wrapper hero-reveal-wrapper limit center-content"
@@ -36,7 +36,19 @@ const scopeOptions = [
 	<section class="inquire-section-2">
 		<div class="inquire-section-2-wrapper limit">
 			<div class="inquire-form-stage">
-			<form class="inquire-form" id="inquiry-form" novalidate>
+			<form
+				class="inquire-form"
+				id="inquiry-form"
+				data-turnstile-sitekey={turnstileSiteKey(env)}
+				novalidate
+			>
+				<!-- Honeypot: invisible to people (and skipped by keyboard and
+				     screen readers); a bot that fills it is silently dropped
+				     by /api/inquiry. -->
+				<div class="inquire-hp" aria-hidden="true">
+					<label for="inquiry-company">Company</label>
+					<input type="text" id="inquiry-company" name="company" tabindex="-1" autocomplete="off" />
+				</div>
 				<div class="inquire-form-col">
 					<div class="field">
 						<input
@@ -245,6 +257,7 @@ const scopeOptions = [
 							required></textarea>
 					</div>
 
+					<div class="inquire-turnstile" id="inquiry-turnstile"></div>
 					<div class="inquire-submit-row">
 						<button
 							type="submit"
@@ -290,6 +303,7 @@ const scopeOptions = [
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { playHeroLetterReveal, splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
+	import { mountTurnstile, type TurnstileWidget } from "../scripts/turnstile";
 
 	gsap.registerPlugin(ScrollTrigger);
 
@@ -476,6 +490,13 @@ const scopeOptions = [
 			return;
 		form.dataset.bound = "true";
 
+		const turnstileContainer = document.getElementById("inquiry-turnstile");
+		turnstile?.remove();
+		turnstile =
+			turnstileContainer && form.dataset.turnstileSitekey
+				? mountTurnstile(turnstileContainer, form.dataset.turnstileSitekey)
+				: null;
+
 		// Some browsers restore previously typed values on a hard refresh
 		// (and the status text/error messages from a prior fill), so every
 		// time this page is shown — first load, refresh, or navigating back
@@ -595,9 +616,13 @@ const scopeOptions = [
 			const formData = new FormData(form);
 			const scope = formData.getAll("scope");
 			const payload: Record<string, unknown> = Object.fromEntries(
-				[...formData.entries()].filter(([key]) => key !== "scope"),
+				[...formData.entries()].filter(
+					// Turnstile's own hidden input — the token is sent explicitly below.
+					([key]) => key !== "scope" && key !== "cf-turnstile-response",
+				),
 			);
 			payload.scope = scope;
+			payload.turnstileToken = (await turnstile?.getToken()) ?? "";
 
 			try {
 				const res = await fetch("/api/inquiry", {
@@ -605,7 +630,7 @@ const scopeOptions = [
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(payload),
 				});
-				const data = await res.json().catch(() => ({}));
+				const data = (await res.json().catch(() => ({}))) as { error?: string };
 
 				if (!res.ok)
 					throw new Error(data.error || "Something went wrong.");
@@ -620,11 +645,19 @@ const scopeOptions = [
 						: "Something went wrong. Please try again.";
 			} finally {
 				submitBtn.disabled = false;
+				// Each token is single-use, success or not.
+				turnstile?.reset();
 			}
 		});
 	}
 
+	let turnstile: TurnstileWidget | null = null;
+
 	document.addEventListener("astro:page-load", bindInquiryForm);
+	document.addEventListener("astro:before-swap", () => {
+		turnstile?.remove();
+		turnstile = null;
+	});
 </script>
 
 <style>
@@ -900,6 +933,18 @@ const scopeOptions = [
 	.inquire-form button[type="submit"]:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.inquire-hp {
+		position: absolute;
+		left: -10000px;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+	}
+
+	.inquire-turnstile:empty {
+		display: none;
 	}
 
 	.inquire-submit-row {

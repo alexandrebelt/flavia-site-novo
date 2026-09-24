@@ -33,7 +33,7 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 
 	async function loadMedia() {
 		const res = await fetch("/api/admin/media");
-		const files = await res.json();
+		const files = (await res.json()) as Array<{ url: string; filename: string; size: number; uploadedAt: string }>;
 		grid.innerHTML = "";
 		emptyState.hidden = files.length > 0;
 		for (const file of files) {
@@ -71,7 +71,10 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 			const body = new FormData();
 			body.append("file", file);
 			const res = await fetch("/api/admin/upload", { method: "POST", body });
-			if (!res.ok) toast(`Erro ao enviar ${file.name}.`, true);
+			if (!res.ok) {
+				const err = (await res.json().catch(() => ({}))) as { error?: string };
+				toast(`${file.name}: ${err.error || "erro ao enviar."}`, true);
+			}
 		}
 		loadMedia();
 	}

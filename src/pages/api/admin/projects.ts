@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
-import { createProject, listProjects } from "../../../lib/server/projects-store.js";
+import { countFeaturedProjects, createProject, listProjects } from "../../../lib/server/projects-store.js";
+import { MAX_FEATURED_PROJECTS } from "../../../lib/server/site-data";
 
 export const prerender = false;
 
@@ -10,7 +11,11 @@ export const GET: APIRoute = async () => {
 };
 
 export const POST: APIRoute = async ({ request }) => {
-	const project = await request.json();
+	const project = (await request.json()) as Record<string, unknown>;
+
+	// New projects only start featured if there's still a free slot.
+	project.featured =
+		project.featured === true && (await countFeaturedProjects(env.DB)) < MAX_FEATURED_PROJECTS;
 
 	if (!project.id || !project.slug || !project.client) {
 		return Response.json({ error: "id, slug e client são obrigatórios." }, { status: 400 });

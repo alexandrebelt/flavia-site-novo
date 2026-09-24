@@ -3,7 +3,12 @@ import { env } from "cloudflare:workers";
 import { getUserByEmail } from "../../../lib/server/users-store.js";
 import { verifyPassword, verifyAgainstDummy } from "../../../lib/server/auth.js";
 import { createSession } from "../../../lib/server/session.js";
-import { checkRateLimit, registerFailedAttempt, clearRateLimit } from "../../../lib/server/rate-limit.js";
+import {
+	ACCOUNT_MAX_ATTEMPTS,
+	checkRateLimit,
+	clearRateLimit,
+	registerFailedAttempt,
+} from "../../../lib/server/rate-limit.js";
 
 export const prerender = false;
 
@@ -21,8 +26,10 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 	const password = body.password || "";
 	const ip = request.headers.get("cf-connecting-ip") || "unknown";
 	const rateLimitKey = `${ip}:${email}`;
+	const accountLimitKey = `account:${email}`;
 
-	const rateLimit = await checkRateLimit(env.SESSION, rateLimitKey);
+	const ipLimit = await checkRateLimit(env.SESSION, rateLimitKey);
+	const rateLimit = ipLimit.blocked ? ipLimit : await checkRateLimit(env.SESSION, accountLimitKey);
 	if (rateLimit.blocked) {
 		return Response.json(
 			{ error: "Muitas tentativas de login. Tente novamente em alguns minutos." },
@@ -40,16 +47,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 		// password" path so a stranger can't use timing to enumerate emails.
 		await verifyAgainstDummy(password);
 		await registerFailedAttempt(env.SESSION, rateLimitKey);
+		await registerFailedAttempt(env.SESSION, accountLimitKey, ACCOUNT_MAX_ATTEMPTS);
 		return Response.json({ error: GENERIC_ERROR }, { status: 401 });
 	}
 
 	const isValid = await verifyPassword(password, user.password_hash as string);
 	if (!isValid) {
 		await registerFailedAttempt(env.SESSION, rateLimitKey);
+		await registerFailedAttempt(env.SESSION, accountLimitKey, ACCOUNT_MAX_ATTEMPTS);
 		return Response.json({ error: GENERIC_ERROR }, { status: 401 });
 	}
 
 	await clearRateLimit(env.SESSION, rateLimitKey);
+	await clearRateLimit(env.SESSION, accountLimitKey);
 	const { token, ttl } = await createSession(env.SESSION, user as { id: string; email: string });
 
 	cookies.set("admin_session", token, {
