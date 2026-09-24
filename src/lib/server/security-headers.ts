@@ -8,6 +8,8 @@
  * 'unsafe-inline' — the admin, GSAP and Turnstile all set inline styles,
  * and styles can't execute code.
  */
+import { VIDEO_EMBED_ORIGINS } from "../../data/video-embeds";
+
 const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 
 const CONTENT_SECURITY_POLICY = [
@@ -18,7 +20,8 @@ const CONTENT_SECURITY_POLICY = [
 	"media-src 'self' blob:",
 	"font-src 'self' data:",
 	"connect-src 'self'",
-	`frame-src ${TURNSTILE_ORIGIN}`,
+	// Turnstile, plus the YouTube / Vimeo players embedded in project galleries.
+	`frame-src ${TURNSTILE_ORIGIN} ${VIDEO_EMBED_ORIGINS.join(" ")}`,
 	"worker-src 'self' blob:",
 	"object-src 'none'",
 	"base-uri 'self'",

@@ -213,6 +213,7 @@ const showViewAll = typeof limit === "number";
 
 <script>
 	import gsap from "gsap";
+	import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { refreshScrollTriggers, whenPageSettled } from "../scripts/scroll-timing";
@@ -242,11 +243,11 @@ const showViewAll = typeof limit === "number";
 			const meta = item.querySelector<HTMLElement>(".project-col--meta");
 			if (!row || !number || !title || !meta) continue;
 
-			gsap.set(row, { opacity: 0 });
-			gsap.set(number, { opacity: 0 });
-			gsap.set(meta, { opacity: 0 });
+			gsap.set(row, textRevealHidden());
+			gsap.set(number, textRevealHidden());
+			gsap.set(meta, textRevealHidden());
 			const letters = splitIntoLetterSpans(title);
-			gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+			gsap.set(letters, textRevealHidden());
 
 			prepared.push({ item, row, number, letters, meta });
 		}
@@ -261,9 +262,9 @@ const showViewAll = typeof limit === "number";
 			// than a fade).
 			const settle = gsap.fromTo(
 				row,
-				{ opacity: 0 },
+				textRevealHidden(),
 				{
-					opacity: 1,
+					...textRevealVisible,
 					duration: 0.8,
 					ease: "power2.out",
 					scrollTrigger: {
@@ -288,19 +289,18 @@ const showViewAll = typeof limit === "number";
 				},
 			});
 			detail
-				.to(number, { opacity: 1, duration: 0.4, ease: "power2.out" })
+				.to(number, { ...textRevealVisible, duration: 0.4, ease: "power2.out" })
 				.to(
 					letters,
 					{
-						rotateY: 0,
-						opacity: 1,
+						...textRevealVisible,
 						duration: 0.5,
 						ease: "power3.out",
 						stagger: { amount: 0.3 },
 					},
 					"-=0.1",
 				)
-				.to(meta, { opacity: 1, duration: 0.5, ease: "power2.out" }, "-=0.1");
+				.to(meta, { ...textRevealVisible, duration: 0.5, ease: "power2.out" }, "-=0.1");
 			if (detail.scrollTrigger) triggers.push(detail.scrollTrigger);
 		});
 	}

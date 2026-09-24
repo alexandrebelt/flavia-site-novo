@@ -14,7 +14,8 @@ const home = settings.home ?? {};
 		<h2 class="block-title">Photo — About Flávia</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
 			Photo shown next to the "About Flávia" text on the home page.
-			Recommended: portrait (vertical), at least 800px wide, JPG or WEBP.
+			Recommended: portrait (vertical), at least 800px wide, JPG, PNG or WebP.
+			Automatically resized and converted to WebP when uploaded.
 		</p>
 		<div class="video-field">
 			<div class="photo-preview">
@@ -179,6 +180,7 @@ const home = settings.home ?? {};
 </style>
 
 <script>
+	import { compressImage } from "../../../scripts/admin/image-compression";
 	const DEFAULT_VIDEO_LABEL = "Using the theme's default video";
 	const DEFAULT_POSTER_LABEL = "Using the theme's default poster";
 	const DEFAULT_PHOTO_LABEL = "Using the theme's default photo";
@@ -213,6 +215,8 @@ const home = settings.home ?? {};
 	}
 
 	async function uploadFile(file: File): Promise<string> {
+		// Photos are resized and converted to WebP first (videos pass through).
+		file = await compressImage(file);
 		const body = new FormData();
 		body.append("file", file);
 		const res = await fetch("/api/admin/upload", { method: "POST", body });

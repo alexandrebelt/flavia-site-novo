@@ -85,12 +85,16 @@ const covers = (await Astro.locals.projects())
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		/* Same fade-with-blur as every other reveal; --reveal-blur comes from
+		   scripts/text-reveal.ts (set on <html> by Layout.astro). */
 		opacity: 0;
-		transition: opacity 1.2s ease;
+		filter: blur(var(--reveal-blur, 30px));
+		transition: opacity 1.2s ease, filter 1.2s ease;
 	}
 
 	.cover-fade-img.is-active {
 		opacity: 1;
+		filter: blur(0);
 	}
 
 	@media (prefers-reduced-motion: reduce) {

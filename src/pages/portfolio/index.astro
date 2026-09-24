@@ -29,6 +29,7 @@ import ProjectsGrid from "../../components/ProjectsGrid.astro";
 
 <script>
 	import gsap from "gsap";
+	import { textRevealHidden, textRevealVisible } from "../../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { whenPageSettled } from "../../scripts/scroll-timing";
 
@@ -43,7 +44,7 @@ import ProjectsGrid from "../../components/ProjectsGrid.astro";
 		const cols = document.querySelectorAll<HTMLElement>(".portfolio-top-section-col");
 		if (!cols.length) return;
 
-		gsap.set(cols, { opacity: 0 });
+		gsap.set(cols, textRevealHidden());
 
 		whenPageSettled(() => {
 			const timeline = gsap.timeline({
@@ -54,7 +55,7 @@ import ProjectsGrid from "../../components/ProjectsGrid.astro";
 				},
 			});
 			timeline.to(cols, {
-				opacity: 1,
+				...textRevealVisible,
 				duration: 0.6,
 				ease: "power2.out",
 			});

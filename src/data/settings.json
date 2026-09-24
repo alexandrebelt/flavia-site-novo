@@ -21,6 +21,15 @@
 			"Abduzeedo — Bruno X ↑"
 		]
 	},
+	"testimonials": [
+		{
+			"id": "linen-handmade-studio",
+			"client": "Founder",
+			"company": "Linen Handmade Studio",
+			"quote": "She understood the brand before we had fully articulated it ourselves. What came back felt inevitable, like it had always existed.",
+			"visible": true
+		}
+	],
 	"projects": {
 		"order": "newest"
 	},

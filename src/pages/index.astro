@@ -1,5 +1,5 @@
 ---
-import { Image } from "astro:assets";
+import { Image, getImage } from "astro:assets";
 import Layout from "../layouts/Layout.astro";
 import FotoFlavia from "../assets/flavia-jackeline.webp";
 import CtaInquire from "../components/CtaInquire.astro";
@@ -7,6 +7,7 @@ import ExperiencesText from "../components/ExperiencesText.astro";
 import ProjectsGrid from "../components/ProjectsGrid.astro";
 import videoHome from "../assets/video-home.mp4";
 import videoHomePoster from "../assets/video-home-poster.jpg";
+import { normalizeTestimonials, testimonialAttribution } from "../data/testimonials";
 
 const letterModules = import.meta.glob<{ default: ImageMetadata }>(
 	"../assets/hero-letters/*.{png,jpg,jpeg,webp,svg,avif}",
@@ -25,7 +26,11 @@ const letters = Object.entries(letterModules)
 	}));
 
 // Admin overrides (Home) — empty fields keep the bundled defaults.
-const { home } = await Astro.locals.siteSettings();
+const { home, testimonials: storedTestimonials } = await Astro.locals.siteSettings();
+// admin › Testimonials: the visible ones, in the order arranged there.
+const testimonials = normalizeTestimonials(storedTestimonials).filter((item) => item.visible);
+// The bundled poster is a JPG; serve it as WebP like every other image.
+const defaultPoster = await getImage({ src: videoHomePoster, format: "webp", width: 1920 });
 ---
 
 <Layout
@@ -59,7 +64,7 @@ const { home } = await Astro.locals.siteSettings();
 				id="home-video"
 				class="home-video"
 				src={home.sectionVideoUrl || videoHome}
-				poster={home.sectionVideoPosterUrl || videoHomePoster.src}
+				poster={home.sectionVideoPosterUrl || defaultPoster.src}
 				autoplay
 				muted
 				loop
@@ -171,27 +176,50 @@ const { home } = await Astro.locals.siteSettings();
 			</div>
 		</div>
 	</section>
-	<section class="index-section-6">
-		<div class="index-section-6-wrapper limit center-content">
-			<div class="index-section-6-row row">
-				<div class="index-section-6-col col">
-					<h5>
-						“She understood the brand before we had fully
-						articulated it ourselves. What came back felt
-						inevitable, like it had always existed.”
-					</h5>
-					<h6 class="h6-letter-spacing">
-						FOUNDER, LINEN HANDMADE STUDIO
-					</h6>
+	{
+		testimonials.length > 0 && (
+			<section class="index-section-6">
+				<div class="index-section-6-wrapper limit center-content">
+					<div class="index-section-6-row row">
+						<div class="index-section-6-col col">
+							<div class="testimonials" aria-live="polite">
+								{testimonials.map((item, i) => (
+									<figure
+										class:list={["testimonial", { "is-active": i === 0 }]}
+										aria-hidden={i === 0 ? undefined : "true"}
+									>
+										<h5>“{item.quote}”</h5>
+										{testimonialAttribution(item) && (
+											<h6 class="h6-letter-spacing">{testimonialAttribution(item)}</h6>
+										)}
+									</figure>
+								))}
+							</div>
+							{testimonials.length > 1 && (
+								<div class="testimonial-dots" role="group" aria-label="Testimonials">
+									{testimonials.map((item, i) => (
+										<button
+											type="button"
+											class:list={["testimonial-dot", { "is-active": i === 0 }]}
+											data-index={i}
+											aria-label={`Show testimonial ${i + 1}: ${testimonialAttribution(item) || item.quote.slice(0, 40)}`}
+											aria-pressed={i === 0 ? "true" : "false"}
+										/>
+									))}
+								</div>
+							)}
+						</div>
+					</div>
 				</div>
-			</div>
-		</div>
-	</section>
+			</section>
+		)
+	}
 	<CtaInquire />
 </Layout>
 
 <script>
 	import gsap from "gsap";
+	import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
@@ -265,8 +293,8 @@ const { home } = await Astro.locals.siteSettings();
 
 		// Hidden immediately (not deferred below) so nothing flashes fully
 		// visible while waiting for the page-entrance transition to finish.
-		gsap.set(letters, { rotateY: -90, opacity: 0 });
-		gsap.set(".hero-section-wrapper h6", { opacity: 0 });
+		gsap.set(letters, textRevealHidden());
+		gsap.set(".hero-section-wrapper h6", textRevealHidden());
 
 		function enableHoverTilt() {
 			letters.forEach((letter) => {
@@ -292,15 +320,14 @@ const { home } = await Astro.locals.siteSettings();
 		// would play this out mostly hidden during the fade.
 		onPageReady(() => {
 			gsap.to(letters, {
-				rotateY: 0,
-				opacity: 1,
+				...textRevealVisible,
 				duration: 0.9,
 				ease: "power3.out",
 				stagger: 0.12,
 				onComplete: enableHoverTilt,
 			});
 			gsap.to(".hero-section-wrapper h6", {
-				opacity: 1,
+				...textRevealVisible,
 				duration: 1,
 				delay: 1,
 			});
@@ -333,9 +360,9 @@ const { home } = await Astro.locals.siteSettings();
 		// settled-layout wait the others do — this one creates immediately.
 		const tween = gsap.fromTo(
 			cols,
-			{ opacity: 0 },
+			textRevealHidden(),
 			{
-				opacity: 1,
+				...textRevealVisible,
 				stagger: 1,
 				scrollTrigger: {
 					trigger: ".full-height.index-section-3",
@@ -362,14 +389,14 @@ const { home } = await Astro.locals.siteSettings();
 		const cols = document.querySelectorAll<HTMLElement>(".index-section-4-col");
 		if (!cols.length) return;
 
-		gsap.set(cols, { opacity: 0 });
+		gsap.set(cols, textRevealHidden());
 
 		whenPageSettled(() => {
 			const tween = gsap.fromTo(
 				cols,
-				{ opacity: 0 },
+				textRevealHidden(),
 				{
-					opacity: 1,
+					...textRevealVisible,
 					duration: 1,
 					stagger: 0.2,
 					ease: "power2.out",
@@ -400,12 +427,12 @@ const { home } = await Astro.locals.siteSettings();
 		const cols = document.querySelectorAll<HTMLElement>(".index-section-5-col");
 		if (!cols.length) return;
 
-		gsap.set(cols, { opacity: 0 });
+		gsap.set(cols, textRevealHidden());
 
 		const experiencesEl = document.getElementById("experiences-text-content");
 		const letters = experiencesEl ? splitIntoLetterSpans(experiencesEl) : [];
 		if (letters.length) {
-			gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+			gsap.set(letters, textRevealHidden());
 		}
 
 		// Pinned (see the identical note on section 3) — created immediately
@@ -423,9 +450,9 @@ const { home } = await Astro.locals.siteSettings();
 			},
 		});
 
-		timeline.fromTo(cols, { opacity: 0 }, { opacity: 1, stagger: 1 });
+		timeline.fromTo(cols, textRevealHidden(), { ...textRevealVisible, stagger: 1 });
 		if (letters.length) {
-			timeline.to(letters, { rotateY: 0, opacity: 1, stagger: { amount: 0.5 } }, ">");
+			timeline.to(letters, { ...textRevealVisible, stagger: { amount: 0.5 } }, ">");
 		}
 
 		section5Trigger = timeline.scrollTrigger ?? null;
@@ -439,48 +466,132 @@ const { home } = await Astro.locals.siteSettings();
 
 
 	let section6Trigger: ScrollTrigger | null = null;
+	let testimonialTimer = 0;
+
+	// Testimonials: one shown at a time, in the same spot. The first one
+	// reveals as the section scrolls into view (letters clearing from the
+	// blur, then the name); with more than one, they take turns every
+	// TESTIMONIAL_INTERVAL_MS while the section is on screen (the current one
+	// fades out with the blur, the next reveals like the first), and the
+	// dots jump straight to one.
+	const TESTIMONIAL_INTERVAL_MS = 7000;
+
+	function stopTestimonialRotation() {
+		clearInterval(testimonialTimer);
+		testimonialTimer = 0;
+	}
 
 	function initSection6Reveal() {
 		section6Trigger?.kill();
 		section6Trigger = null;
+		stopTestimonialRotation();
 
-		const quote = document.querySelector<HTMLElement>(".index-section-6-col h5");
-		const attribution = document.querySelector<HTMLElement>(".index-section-6-col h6");
-		if (!quote || !attribution) return;
+		const figures = Array.from(document.querySelectorAll<HTMLElement>(".testimonial"));
+		if (!figures.length) return;
+		const dots = Array.from(document.querySelectorAll<HTMLButtonElement>(".testimonial-dot"));
 
-		const letters = splitIntoLetterSpans(quote);
-		gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
-		gsap.set(attribution, { opacity: 0 });
+		const items = figures.map((figure) => {
+			const quote = figure.querySelector<HTMLElement>("h5")!;
+			const attribution = figure.querySelector<HTMLElement>("h6");
+			const letters = splitIntoLetterSpans(quote);
+			gsap.set(letters, textRevealHidden());
+			if (attribution) gsap.set(attribution, textRevealHidden());
+			return { figure, letters, attribution };
+		});
+
+		let current = 0;
+		let revealed = false;
+
+		function reveal(index: number) {
+			const { letters, attribution } = items[index];
+			const timeline = gsap.timeline().to(letters, {
+				...textRevealVisible,
+				duration: 0.6,
+				ease: "power3.out",
+				// A fixed total spread (not a fixed per-letter delay) so a long
+				// quote doesn't stretch the reveal into several seconds.
+				stagger: { amount: 0.5 },
+			});
+			if (attribution) timeline.to(attribution, { ...textRevealVisible, duration: 0.5, ease: "power2.out" }, ">");
+			return timeline;
+		}
+
+		// The way out mirrors the way in: fading while blurring back up —
+		// the whole quote and name together, then the next one reveals
+		// exactly like the first did.
+		function conceal(index: number, duration = 0.6) {
+			const { letters, attribution } = items[index];
+			const targets = [...letters, attribution].filter((el): el is HTMLElement => !!el);
+			gsap.killTweensOf(targets);
+			return gsap.timeline().to(targets, { ...textRevealHidden(), duration, ease: "power2.in" });
+		}
+
+		function markActive(index: number) {
+			figures.forEach((figure, i) => {
+				figure.classList.toggle("is-active", i === index);
+				if (i === index) figure.removeAttribute("aria-hidden");
+				else figure.setAttribute("aria-hidden", "true");
+			});
+			dots.forEach((dot, i) => {
+				dot.classList.toggle("is-active", i === index);
+				dot.setAttribute("aria-pressed", String(i === index));
+			});
+		}
+
+		function show(index: number) {
+			if (index === current) return;
+			const previous = current;
+			current = index;
+			conceal(previous).eventCallback("onComplete", () => {
+				markActive(index);
+				reveal(index);
+			});
+		}
+
+		function startRotation() {
+			stopTestimonialRotation();
+			if (items.length < 2) return;
+			testimonialTimer = window.setInterval(() => {
+				if (!document.hidden) show((current + 1) % items.length);
+			}, TESTIMONIAL_INTERVAL_MS);
+		}
+
+		dots.forEach((dot) =>
+			dot.addEventListener("click", () => {
+				show(Number(dot.dataset.index));
+				startRotation(); // a fresh full interval after a manual pick
+			}),
+		);
 
 		whenPageSettled(() => {
-			const timeline = gsap.timeline({
-				scrollTrigger: {
-					trigger: ".index-section-6",
-					start: "top 75%",
-					toggleActions: "play none none reverse",
+			section6Trigger = ScrollTrigger.create({
+				trigger: ".index-section-6",
+				start: "top 75%",
+				end: "bottom top",
+				onEnter: () => {
+					if (!revealed) {
+						revealed = true;
+						reveal(current);
+					}
+					startRotation();
+				},
+				onEnterBack: startRotation,
+				onLeave: stopTestimonialRotation,
+				// Scrolled back up above the section: hide it again, so it
+				// reveals afresh next time (same as the other reveals).
+				onLeaveBack: () => {
+					stopTestimonialRotation();
+					revealed = false;
+					conceal(current, 0.3);
 				},
 			});
-			timeline
-				.to(letters, {
-					rotateY: 0,
-					opacity: 1,
-					duration: 0.6,
-					ease: "power3.out",
-					// A fixed total spread (not a fixed per-letter delay) so a
-					// long quote like this one doesn't stretch the reveal —
-					// and, just as importantly, doesn't stretch the reverse
-					// when scrolling back up past it — into several seconds.
-					stagger: { amount: 0.5 },
-				})
-				.to(attribution, { opacity: 1, duration: 0.5, ease: "power2.out" }, ">");
-
-			section6Trigger = timeline.scrollTrigger ?? null;
 		});
 	}
 
 	document.addEventListener("astro:page-load", initSection6Reveal);
 
 	document.addEventListener("astro:before-swap", () => {
+		stopTestimonialRotation();
 		section3Trigger?.kill();
 		section3Trigger = null;
 		section4Trigger?.kill();
@@ -606,6 +717,51 @@ const { home } = await Astro.locals.siteSettings();
 	.index-section-6 h5 {
 		max-width: 1000px;
 		padding-bottom: 1em;
+	}
+
+	/* Every testimonial sits in the same grid cell, so the section keeps the
+	   height of the longest one and nothing jumps as they take turns. */
+	.testimonials {
+		display: grid;
+	}
+
+	.testimonial {
+		grid-area: 1 / 1;
+		margin: 0;
+		visibility: hidden;
+	}
+
+	.testimonial.is-active {
+		visibility: visible;
+	}
+
+	.testimonial-dots {
+		display: /*flex*/ none;
+		justify-content: center;
+		gap: 0.6rem;
+		margin-top: 2rem;
+	}
+
+	.testimonial-dot {
+		width: 8px;
+		height: 8px;
+		padding: 0;
+		border-radius: 50%;
+		border: 1px solid currentColor;
+		background: transparent;
+		cursor: pointer;
+		opacity: 0.5;
+		transition: opacity 0.3s ease, background-color 0.3s ease;
+	}
+
+	.testimonial-dot:hover,
+	.testimonial-dot:focus-visible {
+		opacity: 1;
+	}
+
+	.testimonial-dot.is-active {
+		background: currentColor;
+		opacity: 1;
 	}
 
 	@media (max-width: 1110px) {

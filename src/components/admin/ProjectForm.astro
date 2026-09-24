@@ -23,7 +23,11 @@ const initial = {
 ---
 
 <form id="project-form" data-mode={mode}>
-	<script type="application/json" id="initial-project-data" set:html={JSON.stringify(initial)} />
+	<script
+		type="application/json"
+		id="initial-project-data"
+		set:html={JSON.stringify(initial).replace(/</g, "\\u003c")}
+	/>
 
 	<div class="admin-card" style="margin-bottom: 1.5rem;">
 		<div class="admin-field-row">
@@ -81,6 +85,16 @@ const initial = {
 	</div>
 
 	<div class="admin-card" style="margin-bottom: 1.5rem;">
+		<div class="image-guidelines">
+			<strong>Image guidelines</strong>
+			<ul>
+				<li><strong>Formats:</strong> JPG, PNG, WebP or AVIF. GIF and SVG are accepted too, but kept exactly as uploaded (no compression).</li>
+				<li><strong>Size:</strong> ideally under 5 MB per file (max 25 MB).</li>
+				<li><strong>Dimensions:</strong> at least 2000px on the longest side for full-width gallery images; the thumbnail looks best at 1600×1200px (4:3) or larger.</li>
+				<li><strong>Automatic compression:</strong> every photo is resized to at most 2560px and converted to WebP before uploading — usually 200–600 KB — so the site stays fast whatever you upload.</li>
+			</ul>
+		</div>
+
 		<div class="admin-field">
 			<label>Thumbnail</label>
 			<div id="thumbnail-row"></div>
@@ -88,10 +102,32 @@ const initial = {
 
 		<div class="admin-field">
 			<label>Image gallery</label>
+			<div
+				class="admin-dropzone gallery-dropzone"
+				id="gallery-dropzone"
+				role="button"
+				tabindex="0"
+				aria-describedby="gallery-dropzone-status"
+			>
+				<p>Drag images here, or click to choose several at once</p>
+				<p class="admin-hint" id="gallery-dropzone-status">
+					Compressed to WebP automatically (see the guidelines above). They're
+					added to the gallery below, in the order you drop them.
+				</p>
+				<input type="file" id="gallery-files" accept="image/*" multiple hidden />
+			</div>
 			<div id="images-list"></div>
-			<button type="button" class="admin-btn secondary" id="add-image" style="width: fit-content;">
-				+ Add image
-			</button>
+			<div class="gallery-add-buttons">
+				<button type="button" class="admin-btn secondary" id="add-image">+ Add image</button>
+				<button type="button" class="admin-btn secondary" id="add-video">+ Add video (YouTube / Vimeo)</button>
+			</div>
+			<p class="admin-hint">
+				Videos sit in the gallery like images — drag them into place. Paste the
+				link from the browser's address bar or the Share button, then choose
+				<strong>Loop</strong> (plays silently on repeat, no controls — like a
+				moving image) or <strong>Player</strong> (regular player with controls;
+				the visitor presses play). Vimeo gives the cleanest loop.
+			</p>
 		</div>
 	</div>
 
@@ -259,6 +295,34 @@ const initial = {
 		background: #fff;
 	}
 
+	.image-guidelines {
+		font-size: 0.8rem;
+		color: var(--color-dark-gray);
+		background: var(--color-offwhite);
+		border-radius: 8px;
+		padding: 0.9rem 1.1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.image-guidelines ul {
+		margin: 0.4rem 0 0;
+		padding-left: 1.1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.gallery-dropzone {
+		padding: 1.75rem 1.25rem;
+		margin: 0.25rem 0 1.25rem;
+	}
+
+	.gallery-dropzone.is-busy {
+		cursor: progress;
+		border-color: var(--color-black);
+		color: var(--color-black);
+	}
+
 	.gallery-row.dragging {
 		opacity: 0.4;
 	}
@@ -277,9 +341,59 @@ const initial = {
 		flex: 1;
 	}
 
+	.gallery-add-buttons {
+		display: flex;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+		margin-bottom: 0.6rem;
+	}
+
+	.video-tile {
+		width: 64px;
+		height: 64px;
+		flex-shrink: 0;
+		border-radius: 6px;
+		background: var(--color-black);
+		color: #fff;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.2rem;
+		font-size: 0.6rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		text-align: center;
+	}
+
+	.video-tile svg {
+		width: 20px;
+		height: 20px;
+	}
+
+	.video-tile.is-invalid {
+		background: #b3261e;
+	}
+
+	.gallery-video-url {
+		flex: 1;
+		min-width: 0;
+	}
+
+	.gallery-video-url[aria-invalid="true"] {
+		border-color: #b3261e !important;
+	}
+
+	.gallery-video-mode {
+		flex: 0 0 auto;
+		max-width: 260px;
+	}
+
 </style>
 
 <script>
+	import { compressImage } from "../../scripts/admin/image-compression";
+	import { parseVideoUrl, type VideoMode } from "../../data/video-embeds";
 	import Quill from "quill";
 	import "quill/dist/quill.snow.css";
 
@@ -311,6 +425,8 @@ const initial = {
 	}
 
 	async function uploadFile(file: File): Promise<string> {
+		// Photos are resized and converted to WebP first (videos pass through).
+		file = await compressImage(file);
 		const body = new FormData();
 		body.append("file", file);
 		const res = await fetch("/api/admin/upload", { method: "POST", body });
@@ -433,8 +549,14 @@ const initial = {
 
 		row.querySelector(".row-remove")!.addEventListener("click", () => row.remove());
 
-		// Drag-to-reorder: only the handle starts a drag, not the whole row.
-		dragHandle.addEventListener("mousedown", () => {
+		makeRowDraggable(row, dragHandle);
+		imagesList.appendChild(row);
+	}
+
+	// Drag-to-reorder: only the handle starts a drag, not the whole row.
+	// Shared by image and video rows — they live in the same gallery list.
+	function makeRowDraggable(row: HTMLElement, handle: HTMLElement) {
+		handle.addEventListener("mousedown", () => {
 			row.draggable = true;
 		});
 		row.addEventListener("dragend", () => {
@@ -445,8 +567,67 @@ const initial = {
 			e.dataTransfer?.setData("text/plain", "");
 			row.classList.add("dragging");
 		});
+	}
 
+	const PROVIDER_LABELS = { youtube: "YouTube", vimeo: "Vimeo" } as const;
+
+	function addVideoRow(video: { url: string; mode: VideoMode } = { url: "", mode: "loop" }) {
+		const row = document.createElement("div");
+		row.className = "gallery-row gallery-row--video";
+		row.dataset.type = "video";
+		row.innerHTML = `
+			<div class="video-tile" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+				<span class="video-tile-label">Video</span>
+			</div>
+			<input type="url" class="gallery-video-url" placeholder="Paste a YouTube or Vimeo link" aria-label="Video link" />
+			<select class="gallery-video-mode" aria-label="How the video plays">
+				<option value="loop">Loop — autoplay, muted, no controls</option>
+				<option value="player">Player — with controls, press play</option>
+			</select>
+			<button type="button" class="icon-btn drag-handle" title="Drag to reorder">
+				<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>
+			</button>
+			<button type="button" class="icon-btn danger row-remove" title="Remove from gallery">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+			</button>
+		`;
+		const urlInput = row.querySelector(".gallery-video-url") as HTMLInputElement;
+		const modeSelect = row.querySelector(".gallery-video-mode") as unknown as { value: string };
+		const tile = row.querySelector(".video-tile") as HTMLDivElement;
+		const tileLabel = row.querySelector(".video-tile-label") as HTMLSpanElement;
+
+		// The tile says which service the link was recognised as, live.
+		function renderTile() {
+			const value = urlInput.value.trim();
+			const parsed = value ? parseVideoUrl(value) : null;
+			tileLabel.textContent = parsed ? PROVIDER_LABELS[parsed.provider] : value ? "Invalid" : "Video";
+			tile.classList.toggle("is-invalid", Boolean(value) && !parsed);
+			if (urlInput.getAttribute("aria-invalid") === "true" && parsed) {
+				urlInput.setAttribute("aria-invalid", "false");
+			}
+		}
+
+		urlInput.value = video.url;
+		modeSelect.value = video.mode === "player" ? "player" : "loop";
+		renderTile();
+		urlInput.addEventListener("input", renderTile);
+		row.querySelector(".row-remove")!.addEventListener("click", () => row.remove());
+		makeRowDraggable(row, row.querySelector(".drag-handle") as HTMLElement);
 		imagesList.appendChild(row);
+		return row;
+	}
+
+	// Every video row needs a recognisable YouTube/Vimeo link before saving.
+	function validateVideoRows(): boolean {
+		let valid = true;
+		imagesList.querySelectorAll<HTMLElement>(".gallery-row--video").forEach((row) => {
+			const input = row.querySelector(".gallery-video-url") as HTMLInputElement;
+			const ok = Boolean(parseVideoUrl(input.value.trim()));
+			input.setAttribute("aria-invalid", String(!ok));
+			if (!ok) valid = false;
+		});
+		return valid;
 	}
 
 	function getDragAfterRow(container: Element, y: number) {
@@ -471,20 +652,110 @@ const initial = {
 		else imagesList.insertBefore(dragging, afterRow);
 	});
 
-	(initial.images || []).forEach((image: string | { url: string; alt: string }) =>
-		addImageRow(typeof image === "string" ? { url: image, alt: "" } : image),
-	);
+	type InitialGalleryItem =
+		| string
+		| { type?: "image"; url: string; alt: string }
+		| { type: "video"; url: string; mode: VideoMode };
+	(initial.images || []).forEach((item: InitialGalleryItem) => {
+		if (typeof item === "string") addImageRow({ url: item, alt: "" });
+		else if (item.type === "video") addVideoRow(item);
+		else addImageRow(item);
+	});
 	$("#add-image").addEventListener("click", () => addImageRow());
+	$("#add-video").addEventListener("click", () => {
+		const row = addVideoRow();
+		(row.querySelector(".gallery-video-url") as HTMLInputElement).focus();
+	});
 
+	// ---- bulk upload: drop (or pick) many images at once ----
+	// Uploaded one after another so the gallery keeps the order they were
+	// dropped in; each becomes a gallery row with its alt text pre-filled
+	// from the file name. Like every other change here, it's published
+	// when the project is saved.
+	const galleryDropzone = $<HTMLDivElement>("#gallery-dropzone");
+	const galleryFiles = $("#gallery-files") as HTMLInputElement;
+	const galleryStatus = $("#gallery-dropzone-status");
+	const galleryStatusDefault = galleryStatus.textContent;
+	let bulkUploading = false;
+
+	async function uploadGalleryFiles(fileList: FileList | File[]) {
+		if (bulkUploading) return;
+		const files = Array.from(fileList).filter((file) => file.type.startsWith("image/"));
+		if (!files.length) {
+			toast("Only image files can be added to the gallery.", true);
+			return;
+		}
+
+		bulkUploading = true;
+		galleryDropzone.classList.add("is-busy");
+		const failed: string[] = [];
+		let added = 0;
+
+		for (const [index, file] of files.entries()) {
+			galleryStatus.textContent = `Compressing and uploading ${index + 1} of ${files.length}: ${file.name}…`;
+			try {
+				const url = await uploadFile(file);
+				addImageRow({ url, alt: deriveAltFromUrl(url) });
+				added++;
+			} catch (err) {
+				failed.push(`${file.name} (${err instanceof Error ? err.message : "upload failed"})`);
+			}
+		}
+
+		galleryStatus.textContent = galleryStatusDefault;
+		galleryDropzone.classList.remove("is-busy");
+		galleryFiles.value = "";
+		bulkUploading = false;
+
+		if (failed.length) {
+			toast(`${added} added, ${failed.length} failed: ${failed.join("; ")}`, true);
+		} else {
+			toast(`${added} image${added === 1 ? "" : "s"} added — save the project to publish.`);
+		}
+	}
+
+	galleryDropzone.addEventListener("click", () => {
+		if (!bulkUploading) galleryFiles.click();
+	});
+	galleryDropzone.addEventListener("keydown", (e) => {
+		if (e.key === "Enter" || e.key === " ") {
+			e.preventDefault();
+			if (!bulkUploading) galleryFiles.click();
+		}
+	});
+	galleryFiles.addEventListener("change", () => {
+		if (galleryFiles.files?.length) uploadGalleryFiles(galleryFiles.files);
+	});
+	galleryDropzone.addEventListener("dragover", (e) => {
+		// Only files from the computer — not a gallery row being reordered.
+		if (!e.dataTransfer?.types.includes("Files")) return;
+		e.preventDefault();
+		galleryDropzone.classList.add("dragover");
+	});
+	galleryDropzone.addEventListener("dragleave", () => galleryDropzone.classList.remove("dragover"));
+	galleryDropzone.addEventListener("drop", (e) => {
+		e.preventDefault();
+		galleryDropzone.classList.remove("dragover");
+		if (e.dataTransfer?.files?.length) uploadGalleryFiles(e.dataTransfer.files);
+	});
+
+	// The gallery in its on-screen order: images and videos mixed.
 	function readImages() {
 		return Array.from(imagesList.querySelectorAll<HTMLElement>(".gallery-row"))
 			.map((row) => {
+				if (row.dataset.type === "video") {
+					return {
+						type: "video" as const,
+						url: (row.querySelector(".gallery-video-url") as HTMLInputElement).value.trim(),
+						mode: (row.querySelector(".gallery-video-mode") as unknown as { value: string }).value as VideoMode,
+					};
+				}
 				const url = row.dataset.url || "";
 				const altInput = row.querySelector(".gallery-alt-input") as HTMLInputElement;
 				const alt = altInput.value.trim() || deriveAltFromUrl(url);
 				return { url, alt };
 			})
-			.filter((image) => image.url);
+			.filter((item) => item.url);
 	}
 
 	// ---- thumbnail ----
@@ -534,6 +805,10 @@ const initial = {
 	// ---- submit ----
 	form.addEventListener("submit", async (e) => {
 		e.preventDefault();
+		if (!validateVideoRows()) {
+			toast("Fix the highlighted video links — use a YouTube or Vimeo link.", true);
+			return;
+		}
 		const submitBtn = $("#submit-btn") as HTMLButtonElement;
 		submitBtn.disabled = true;
 

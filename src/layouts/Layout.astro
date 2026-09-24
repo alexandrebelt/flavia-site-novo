@@ -151,6 +151,16 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 	import gsap from "gsap";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
+	import { TEXT_REVEAL } from "../scripts/text-reveal";
+
+	// Hands the reveal blur to CSS-only fades too (e.g. the Services cover
+	// carousel), so text-reveal.ts stays the single place to change it.
+	// Re-applied on every navigation, since the router swaps <html>'s attributes.
+	function shareRevealBlur() {
+		document.documentElement.style.setProperty("--reveal-blur", TEXT_REVEAL.blur);
+	}
+	shareRevealBlur();
+	document.addEventListener("astro:page-load", shareRevealBlur);
 
 	gsap.registerPlugin(ScrollTrigger);
 
@@ -291,9 +301,15 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 
 	// Letter-by-letter hover: each letter dims slightly, one after another,
 	// and undims the same way on mouseleave. Used by .btn-primary (whose
-	// underline fades via pure CSS, see main.css) and by the footer's text
-	// links, which get the same letters effect without any underline.
-	const LETTER_HOVER_SELECTOR = ".btn-primary, .site-footer .footer-col a:not(.brand)";
+	// underline fades via pure CSS, see main.css) and by plain text links —
+	// the footer's, the Inquire page's contact info and the About page's
+	// social links — which get the same letters effect without any underline.
+	const LETTER_HOVER_SELECTOR = [
+		".btn-primary",
+		".site-footer .footer-col a:not(.brand)",
+		".inquire-contact-info a",
+		".about-section-social-media-ul a",
+	].join(", ");
 
 	function bindLetterHover() {
 		document.querySelectorAll<HTMLElement>(LETTER_HOVER_SELECTOR).forEach((btn) => {

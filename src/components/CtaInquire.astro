@@ -26,6 +26,7 @@
 
 	<script>
 		import gsap from "gsap";
+		import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
 		import { ScrollTrigger } from "gsap/ScrollTrigger";
 		import { whenPageSettled } from "../scripts/scroll-timing";
 
@@ -41,7 +42,7 @@
 			const link = document.querySelector<HTMLElement>(".cta-inquire-col a");
 			if (!p || !link) return;
 
-			gsap.set([p, link], { opacity: 0 });
+			gsap.set([p, link], textRevealHidden());
 
 			whenPageSettled(() => {
 				const timeline = gsap.timeline({
@@ -52,8 +53,8 @@
 					},
 				});
 				timeline
-					.to(p, { opacity: 1, duration: 0.6, ease: "power2.out" })
-					.to(link, { opacity: 1, duration: 0.5, ease: "power2.out" }, ">");
+					.to(p, { ...textRevealVisible, duration: 0.6, ease: "power2.out" })
+					.to(link, { ...textRevealVisible, duration: 0.5, ease: "power2.out" }, ">");
 
 				trigger = timeline.scrollTrigger ?? null;
 			});

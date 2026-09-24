@@ -15,6 +15,8 @@ const order = isProjectOrder(settings.projects?.order) ? settings.projects.order
 // Listed exactly as the site shows them, so the effect of each choice is visible here.
 const projects = await loadOrderedProjects(env.DB, settings);
 const featuredCount = projects.filter((project) => project.featured).length;
+const hasCustomOrder = (settings.projects?.customOrder?.length ?? 0) > 0;
+const ordinal = (n: number) => ["1st", "2nd", "3rd"][n - 1] ?? `${n}th`;
 ---
 
 <AdminLayout title="Projects">
@@ -26,9 +28,9 @@ const featuredCount = projects.filter((project) => project.featured).length;
 	<div class="admin-card projects-order-card">
 		<h2 class="projects-block-title">Project order</h2>
 		<p class="admin-hint">
-			Applies to the home page and the Portfolio. Featured projects always
-			come first; the rest follow the order chosen here, by project year
-			(within the same year, the one added last counts as newer).
+			Applies to the home page (which shows the first 3) and the Portfolio.{" "}
+			<strong>Featured</strong> projects always come first, in the order you
+			ticked them — up to {MAX_FEATURED_PROJECTS}. The rest follow the option below.
 		</p>
 		<div class="projects-order-options" role="radiogroup" aria-label="Project order">
 			<label>
@@ -39,12 +41,18 @@ const featuredCount = projects.filter((project) => project.featured).length;
 				<input type="radio" name="project-order" value="oldest" checked={order === "oldest"} />
 				Oldest first
 			</label>
+			<label>
+				<input type="radio" name="project-order" value="custom" checked={order === "custom"} />
+				Order defined in the list
+			</label>
 		</div>
 		<p class="admin-hint">
-			<strong>Featured:</strong> tick up to {MAX_FEATURED_PROJECTS} projects in the
-			table below. They come first on the home page (which shows 3
-			projects); with fewer than {MAX_FEATURED_PROJECTS} ticked, the remaining
-			slots follow the order above.
+			<strong>Newest / Oldest:</strong> by project year (within the same year,
+			the one added last counts as newer).{" "}
+			<strong>Order defined in the list:</strong> drag the projects in the table
+			below by their{" "}
+			<span class="inline-handle" aria-hidden="true">⠿</span> handle — dragging
+			switches to this option automatically. New projects start at the end.
 		</p>
 	</div>
 
@@ -53,9 +61,15 @@ const featuredCount = projects.filter((project) => project.featured).length;
 			<div class="admin-card admin-empty">No projects yet.</div>
 		) : (
 			<div class="admin-card" style="padding: 0;">
-				<table class="admin-table" data-max-featured={MAX_FEATURED_PROJECTS}>
+				<table
+					class="admin-table"
+					data-max-featured={MAX_FEATURED_PROJECTS}
+					data-order={order}
+					data-has-custom-order={String(hasCustomOrder)}
+				>
 					<thead>
 						<tr>
+							<th class="col-handle"><span class="visually-hidden">Reorder</span></th>
 							<th>#</th>
 							<th>Featured</th>
 							<th>Client</th>
@@ -65,21 +79,48 @@ const featuredCount = projects.filter((project) => project.featured).length;
 							<th />
 						</tr>
 					</thead>
-					<tbody>
+					<tbody id="projects-tbody">
 						{projects.map((project, i) => (
-							<tr class:list={{ "is-home": i < 3 }}>
+							<tr
+								class:list={{ "is-home": i < 3, "is-featured": !!project.featured }}
+								data-project-id={project.id}
+							>
+								<td class="col-handle">
+									{project.featured ? (
+										<span
+											class="featured-pin"
+											title="Featured projects stay on top, in the order they were ticked"
+										>
+											★
+										</span>
+									) : (
+										<button type="button" class="icon-btn drag-handle" title="Drag to reorder">
+											<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+												<circle cx="9" cy="6" r="1.6" />
+												<circle cx="15" cy="6" r="1.6" />
+												<circle cx="9" cy="12" r="1.6" />
+												<circle cx="15" cy="12" r="1.6" />
+												<circle cx="9" cy="18" r="1.6" />
+												<circle cx="15" cy="18" r="1.6" />
+											</svg>
+										</button>
+									)}
+								</td>
 								<td class="projects-position" title={i < 3 ? "Shown on the home page" : undefined}>
 									{i + 1}
 								</td>
 								<td>
-									<input
-										type="checkbox"
-										class="featured-toggle"
-										data-project-id={project.id}
-										checked={!!project.featured}
-										disabled={!project.featured && featuredCount >= MAX_FEATURED_PROJECTS}
-										aria-label={`Feature ${project.client}`}
-									/>
+									<label class="featured-cell">
+										<input
+											type="checkbox"
+											class="featured-toggle"
+											data-project-id={project.id}
+											checked={!!project.featured}
+											disabled={!project.featured && featuredCount >= MAX_FEATURED_PROJECTS}
+											aria-label={`Feature ${project.client}`}
+										/>
+										{project.featured && <span class="featured-rank">{ordinal(i + 1)}</span>}
+									</label>
 								</td>
 								<td>{project.client}</td>
 								<td>{project.category}</td>
@@ -116,14 +157,35 @@ const featuredCount = projects.filter((project) => project.featured).length;
 		setTimeout(() => window.location.reload(), 900);
 	}
 
+	async function saveProjectsSettings(projects: Record<string, unknown>) {
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ projects }),
+		});
+		return res.ok;
+	}
+
+	const table = document.querySelector<HTMLTableElement>(".admin-table");
+	const tbody = document.getElementById("projects-tbody");
+
+	function currentListOrder(): string[] {
+		return Array.from(tbody?.querySelectorAll<HTMLElement>("tr[data-project-id]") ?? []).map(
+			(row) => row.dataset.projectId!,
+		);
+	}
+
 	document.querySelectorAll<HTMLInputElement>('input[name="project-order"]').forEach((radio) =>
 		radio.addEventListener("change", async () => {
-			const res = await fetch("/api/admin/settings", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ projects: { order: radio.value } }),
-			});
-			if (res.ok) {
+			// Choosing "Order defined in the list" brings back the arrangement
+			// saved earlier (switching to Newest/Oldest never erases it). The
+			// first time, there's none yet, so the list is frozen exactly as
+			// it's shown right now and nothing jumps around.
+			const firstCustomOrder = radio.value === "custom" && table?.dataset.hasCustomOrder !== "true";
+			const ok = await saveProjectsSettings(
+				firstCustomOrder ? { order: "custom", customOrder: currentListOrder() } : { order: radio.value },
+			);
+			if (ok) {
 				toast("Order saved and published.");
 				reloadSoon();
 			} else {
@@ -132,7 +194,64 @@ const featuredCount = projects.filter((project) => project.featured).length;
 		}),
 	);
 
-	const table = document.querySelector<HTMLTableElement>(".admin-table");
+	// ---- drag to reorder ----
+	// Same interaction as the project image gallery: only the handle starts
+	// a drag. Featured rows have no handle and stay on top — dragged rows
+	// can only move among the non-featured ones.
+	function getDragAfterRow(y: number): HTMLElement | null {
+		const rows = Array.from(
+			tbody?.querySelectorAll<HTMLElement>("tr:not(.dragging):not(.is-featured)") ?? [],
+		);
+		return rows.reduce(
+			(closest, row) => {
+				const box = row.getBoundingClientRect();
+				const offset = y - box.top - box.height / 2;
+				if (offset < 0 && offset > closest.offset) return { offset, element: row };
+				return closest;
+			},
+			{ offset: Number.NEGATIVE_INFINITY, element: null as HTMLElement | null },
+		).element;
+	}
+
+	let orderBeforeDrag = "";
+
+	tbody?.querySelectorAll<HTMLTableRowElement>("tr:not(.is-featured)").forEach((row) => {
+		const handle = row.querySelector<HTMLButtonElement>(".drag-handle");
+		handle?.addEventListener("mousedown", () => {
+			row.draggable = true;
+		});
+		row.addEventListener("dragstart", (e) => {
+			e.dataTransfer?.setData("text/plain", "");
+			orderBeforeDrag = currentListOrder().join(",");
+			row.classList.add("dragging");
+		});
+		row.addEventListener("dragend", async () => {
+			row.draggable = false;
+			row.classList.remove("dragging");
+			const customOrder = currentListOrder();
+			if (customOrder.join(",") === orderBeforeDrag) return;
+
+			const switching = table?.dataset.order !== "custom";
+			if (await saveProjectsSettings({ order: "custom", customOrder })) {
+				toast(switching ? 'Order saved — switched to "Order defined in the list".' : "Order saved and published.");
+				reloadSoon();
+			} else {
+				toast("Couldn't save the order.", true);
+				reloadSoon();
+			}
+		});
+	});
+
+	tbody?.addEventListener("dragover", (e) => {
+		const dragging = tbody.querySelector<HTMLElement>(".dragging");
+		if (!dragging) return;
+		e.preventDefault();
+		const afterRow = getDragAfterRow((e as DragEvent).clientY);
+		if (afterRow) tbody.insertBefore(dragging, afterRow);
+		else tbody.appendChild(dragging);
+	});
+
+	// ---- featured ----
 	const maxFeatured = Number(table?.dataset.maxFeatured) || 3;
 	const toggles = Array.from(document.querySelectorAll<HTMLInputElement>(".featured-toggle"));
 
@@ -209,6 +328,53 @@ const featuredCount = projects.filter((project) => project.featured).length;
 		cursor: not-allowed;
 	}
 
+	.featured-cell {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		cursor: pointer;
+	}
+
+	.featured-rank {
+		font-size: 0.7rem;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.1rem 0.45rem;
+		border-radius: 999px;
+		background: var(--color-black);
+		color: #fff;
+	}
+
+	.col-handle {
+		width: 44px;
+		padding-right: 0 !important;
+	}
+
+	.drag-handle {
+		cursor: grab;
+	}
+
+	.drag-handle:active {
+		cursor: grabbing;
+	}
+
+	.featured-pin {
+		display: inline-flex;
+		justify-content: center;
+		width: 30px;
+		color: var(--color-gray);
+		cursor: help;
+	}
+
+	.inline-handle {
+		font-size: 0.9em;
+	}
+
+	tr.dragging {
+		opacity: 0.4;
+	}
+
 	.projects-position {
 		color: var(--color-gray);
 		font-variant-numeric: tabular-nums;
@@ -217,5 +383,14 @@ const featuredCount = projects.filter((project) => project.featured).length;
 	tr.is-home .projects-position {
 		color: var(--color-black);
 		font-weight: 600;
+	}
+
+	.visually-hidden {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
 	}
 </style>

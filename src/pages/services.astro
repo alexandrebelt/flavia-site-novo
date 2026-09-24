@@ -170,6 +170,7 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 
 <script>
 	import gsap from "gsap";
+	import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import {
 		playHeroLetterReveal,
@@ -194,7 +195,7 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		);
 		if (!cols.length) return;
 
-		gsap.set(cols, { opacity: 0 });
+		gsap.set(cols, textRevealHidden());
 
 		whenPageSettled(() => {
 			const timeline = gsap.timeline({
@@ -205,7 +206,7 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 				},
 			});
 			timeline.to(cols, {
-				opacity: 1,
+				...textRevealVisible,
 				duration: 0.6,
 				ease: "power2.out",
 				stagger: { amount: 0.5 },
@@ -231,12 +232,8 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		if (!heading || !subtext) return;
 
 		const letters = splitPreservingMarkup(heading);
-		gsap.set(letters, {
-			rotateY: -90,
-			opacity: 0,
-			transformPerspective: 400,
-		});
-		gsap.set(subtext, { opacity: 0 });
+		gsap.set(letters, textRevealHidden());
+		gsap.set(subtext, textRevealHidden());
 
 		whenPageSettled(() => {
 			const timeline = gsap.timeline({
@@ -248,15 +245,14 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 			});
 			timeline
 				.to(letters, {
-					rotateY: 0,
-					opacity: 1,
+					...textRevealVisible,
 					duration: 0.6,
 					ease: "power3.out",
 					stagger: { amount: 0.4 },
 				})
 				.to(
 					subtext,
-					{ opacity: 1, duration: 0.6, ease: "power2.out" },
+					{ ...textRevealVisible, duration: 0.6, ease: "power2.out" },
 					">",
 				);
 			section2Trigger = timeline.scrollTrigger ?? null;
@@ -288,12 +284,12 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		].filter((el): el is HTMLElement => !!el);
 		if (!items.length) return;
 
-		gsap.set(items, { opacity: 0 });
+		gsap.set(items, textRevealHidden());
 
 		whenPageSettled(() => {
 			items.forEach((el) => {
 				const tween = gsap.to(el, {
-					opacity: 1,
+					...textRevealVisible,
 					duration: 0.6,
 					ease: "power2.out",
 					scrollTrigger: {
@@ -327,9 +323,9 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		// inserted underneath them mid-scroll.
 		const tween = gsap.fromTo(
 			cols,
-			{ opacity: 0 },
+			textRevealHidden(),
 			{
-				opacity: 1,
+				...textRevealVisible,
 				stagger: 1,
 				scrollTrigger: {
 					trigger: ".full-height.services-section-4",
@@ -384,9 +380,12 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		column-count: 2;
 	}
 	.services-section-3-main-col {
-		width: 50%;
+		width: 60%;
 		align-self: stretch;
 		justify-content: space-between;
+	}
+	.services-section-3-main-col:nth-of-type(2) {
+		width: 40%;
 	}
 	.services-section-3-row p {
 		max-width: 460px;

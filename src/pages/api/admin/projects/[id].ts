@@ -7,6 +7,7 @@ import {
 	updateProject,
 } from "../../../../lib/server/projects-store.js";
 import { MAX_FEATURED_PROJECTS } from "../../../../lib/server/site-data";
+import { normalizeGallery } from "../../../../data/video-embeds";
 
 export const prerender = false;
 
@@ -18,13 +19,23 @@ export const GET: APIRoute = async ({ params }) => {
 
 export const PUT: APIRoute = async ({ params, request }) => {
 	const patch = (await request.json()) as Record<string, unknown>;
+	// The client only sends the flag; when it was ticked is recorded here —
+	// featured projects are listed in the order they were ticked.
+	delete patch.featuredAt;
+	if ("images" in patch) patch.images = normalizeGallery(patch.images);
 	if ("featured" in patch) {
 		patch.featured = patch.featured === true;
-		if (patch.featured && (await countFeaturedProjects(env.DB, params.id)) >= MAX_FEATURED_PROJECTS) {
-			return Response.json(
-				{ error: `At most ${MAX_FEATURED_PROJECTS} featured projects. Untick one first.` },
-				{ status: 409 },
-			);
+		if (patch.featured) {
+			if ((await countFeaturedProjects(env.DB, params.id)) >= MAX_FEATURED_PROJECTS) {
+				return Response.json(
+					{ error: `At most ${MAX_FEATURED_PROJECTS} featured projects. Untick one first.` },
+					{ status: 409 },
+				);
+			}
+			const current = (await getProjectById(env.DB, params.id!)) as { featured?: boolean } | null;
+			if (!current?.featured) patch.featuredAt = Date.now();
+		} else {
+			patch.featuredAt = null;
 		}
 	}
 	const updated = await updateProject(env.DB, params.id!, patch);

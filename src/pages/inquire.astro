@@ -2,20 +2,18 @@
 import { env } from "cloudflare:workers";
 import Layout from "../layouts/Layout.astro";
 import { turnstileSiteKey } from "../lib/server/turnstile.js";
+import { STUDIO_PHONE } from "../data/contact";
 
+// All plain, independent checkboxes, shown in two columns.
 const scopeOptions = [
-	{ label: "Brand Strategy" },
-	{ label: "Brand Identity" },
-	{
-		label: "Social Media Kit",
-		children: [
-			"Digital",
-			"Print & Stationery",
-			"Packaging",
-			"Motion",
-			"Illustration",
-		],
-	},
+	"Brand Strategy",
+	"Brand Identity",
+	"Social Media Kit",
+	"Digital",
+	"Print & Stationery",
+	"Packaging",
+	"Motion",
+	"Illustration",
 ];
 ---
 
@@ -136,45 +134,11 @@ const scopeOptions = [
 						<div class="scope-options">
 							{
 								scopeOptions.map((option) => (
-									<div class="scope-item">
-										<label class="scope-option">
-											<input
-												type="checkbox"
-												name="scope"
-												value={option.label}
-												class:list={[
-													"scope-parent-input",
-													{
-														"has-children":
-															option.children,
-													},
-												]}
-											/>
-											<span class="scope-dot" />
-											{option.label}
-										</label>
-										{option.children && (
-											<div class="scope-suboptions">
-												<div class="scope-suboptions-inner">
-													{option.children.map(
-														(child) => (
-															<label class="scope-option scope-option--sub">
-																<input
-																	type="checkbox"
-																	name="scope"
-																	value={
-																		child
-																	}
-																/>
-																<span class="scope-dot scope-dot--sub" />
-																{child}
-															</label>
-														),
-													)}
-												</div>
-											</div>
-										)}
-									</div>
+									<label class="scope-option">
+										<input type="checkbox" name="scope" value={option} />
+										<span class="scope-dot" />
+										{option}
+									</label>
 								))
 							}
 						</div>
@@ -278,7 +242,7 @@ const scopeOptions = [
 							>
 						</h5>
 						<p>
-							<a href="tel:+5541988531707">+55 41 98853-1707</a>
+							<a href={STUDIO_PHONE.href}>{STUDIO_PHONE.display}</a>
 						</p>
 						<p>
 							<a href="mailto:studio@flaviajackeline.com"
@@ -300,6 +264,7 @@ const scopeOptions = [
 
 <script>
 	import gsap from "gsap";
+	import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { playHeroLetterReveal, splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
@@ -322,7 +287,7 @@ const scopeOptions = [
 		);
 		if (!items.length) return;
 
-		gsap.set(items, { opacity: 0 });
+		gsap.set(items, textRevealHidden());
 
 		whenPageSettled(() => {
 			const timeline = gsap.timeline({
@@ -333,7 +298,7 @@ const scopeOptions = [
 				},
 			});
 			timeline.to(items, {
-				opacity: 1,
+				...textRevealVisible,
 				duration: 0.5,
 				ease: "power2.out",
 				stagger: { amount: 0.6 },
@@ -348,22 +313,6 @@ const scopeOptions = [
 		formRevealTrigger = null;
 	});
 
-	function bindScopeToggles() {
-		document
-			.querySelectorAll<HTMLInputElement>(
-				".scope-parent-input.has-children",
-			)
-			.forEach((input) => {
-				const item = input.closest(".scope-item");
-				if (!item) return;
-				item.classList.toggle("expanded", input.checked);
-				input.addEventListener("change", () => {
-					item.classList.toggle("expanded", input.checked);
-				});
-			});
-	}
-
-	document.addEventListener("astro:page-load", bindScopeToggles);
 
 	let clockInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -392,9 +341,8 @@ const scopeOptions = [
 	});
 
 	// Writes (or clears) an English error message right after whatever it
-	// belongs to — a field's own box, the scope fieldset as a whole, or (for
-	// the Social Media Kit sub-option rule) that one scope item. Passing
-	// `null` clears it. Reusing the same element on repeat calls keeps this
+	// belongs to — a field's own box or the scope fieldset as a whole.
+	// Passing `null` clears it. Reusing the same element on repeat calls keeps this
 	// idempotent, so it's safe to call on every input/change.
 	function setFieldError(container: Element | null, message: string | null) {
 		if (!container) return;
@@ -436,27 +384,26 @@ const scopeOptions = [
 		if (!heading || !subtext) return;
 
 		const letters = splitIntoLetterSpans(heading);
-		gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
-		gsap.set(subtext, { opacity: 0 });
+		gsap.set(letters, textRevealHidden());
+		gsap.set(subtext, textRevealHidden());
 
 		successEl.removeAttribute("aria-hidden");
 		successEl.classList.add("active");
 
 		gsap
 			.timeline()
-			.to(successEl, { opacity: 1, duration: 0.3, ease: "power2.out" })
+			.to(successEl, { ...textRevealVisible, duration: 0.3, ease: "power2.out" })
 			.to(
 				letters,
 				{
-					rotateY: 0,
-					opacity: 1,
+					...textRevealVisible,
 					duration: 0.5,
 					ease: "power3.out",
 					stagger: { amount: 0.4 },
 				},
 				"-=0.1",
 			)
-			.to(subtext, { opacity: 1, duration: 0.5, ease: "power2.out" }, ">");
+			.to(subtext, { ...textRevealVisible, duration: 0.5, ease: "power2.out" }, ">");
 	}
 
 	function showSuccess(form: HTMLFormElement, successEl: HTMLElement) {
@@ -508,20 +455,9 @@ const scopeOptions = [
 		form.querySelectorAll(".field-error").forEach((el) => el.remove());
 		gsap.set(form, { opacity: 1 });
 		form.classList.remove("is-hidden");
-		gsap.set(success, { opacity: 0 });
+		gsap.set(success, textRevealHidden());
 		success.classList.remove("active");
 		success.setAttribute("aria-hidden", "true");
-		// reset() doesn't fire "change", so the Social Media Kit sub-options
-		// panel (expanded by bindScopeToggles off that event) needs its own
-		// re-sync here, or it'd stay visually expanded after a reset that
-		// unchecked its box.
-		form.querySelectorAll<HTMLElement>(".scope-item").forEach((item) => {
-			const input = item.querySelector<HTMLInputElement>(
-				".scope-parent-input.has-children",
-			);
-			item.classList.toggle("expanded", !!input?.checked);
-		});
-
 		// Every plain input/select/textarea in the form is required — one
 		// generic check (via the browser's own constraint validation, native
 		// popup suppressed by novalidate on the form) covers all of them
@@ -565,38 +501,9 @@ const scopeOptions = [
 			return anyChecked;
 		};
 
-		// Social Media Kit is only actually invalid once at least one of its
-		// sub-options (Digital, Print & Stationery, ...) is required to go
-		// with it — checked with none of those checked.
-		const socialKitInput = form.querySelector<HTMLInputElement>(
-			'.scope-parent-input[value="Social Media Kit"]',
-		);
-		const socialKitItem = socialKitInput?.closest(".scope-item") ?? null;
-		const validateSocialKit = () => {
-			if (!socialKitInput) return true;
-			if (!socialKitInput.checked) {
-				setFieldError(socialKitItem, null);
-				return true;
-			}
-			const hasChildChecked =
-				!!socialKitItem?.querySelector<HTMLInputElement>(
-					".scope-suboptions input:checked",
-				);
-			setFieldError(
-				socialKitItem,
-				hasChildChecked
-					? null
-					: "Select at least one Social Media Kit sub-option.",
-			);
-			return hasChildChecked;
-		};
-
 		form.querySelectorAll<HTMLInputElement>('input[name="scope"]').forEach(
 			(cb) =>
-				cb.addEventListener("change", () => {
-					validateScope();
-					validateSocialKit();
-				}),
+				cb.addEventListener("change", validateScope),
 		);
 
 		form.addEventListener("submit", async (e) => {
@@ -606,8 +513,7 @@ const scopeOptions = [
 				.map(validateField)
 				.every(Boolean);
 			const validScope = validateScope();
-			const validSocialKit = validateSocialKit();
-			if (!fieldsValid || !validScope || !validSocialKit) return;
+			if (!fieldsValid || !validScope) return;
 
 			submitBtn.disabled = true;
 			status.textContent = "Sending…";
@@ -742,13 +648,13 @@ const scopeOptions = [
 		margin: 0;
 		height: 0;
 		transform: translateY(4px);
-		font-weight: 500;
+		font-weight: 400;
 		color: #5e1115;
 	}
 
 	.scope-field legend {
 		font-size: var(--font-size-h6);
-		font-weight: 500;
+		font-weight: 400;
 		text-transform: uppercase;
 		letter-spacing: 0.02em;
 	}
@@ -821,10 +727,9 @@ const scopeOptions = [
 	}
 
 	.scope-options {
-		display: flex;
-		flex-wrap: wrap;
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 0.75rem 1.75rem;
-		flex-direction: column;
 		padding-top: 1rem;
 	}
 
@@ -868,59 +773,6 @@ const scopeOptions = [
 	.scope-option input:focus-visible + .scope-dot {
 		outline: 2px solid var(--color-black);
 		outline-offset: 2px;
-	}
-
-	.scope-item {
-		display: flex;
-		flex-direction: column;
-	}
-
-	/* Height-animating a "0 to auto" reveal needs the grid-rows trick: the
-	   track goes from 0fr to 1fr (transitionable, unlike height:auto), and
-	   the inner wrapper clips content while the track is still growing. */
-	.scope-suboptions {
-		display: grid;
-		grid-template-rows: 0fr;
-		transition: grid-template-rows 0.3s ease;
-	}
-
-	.scope-item.expanded .scope-suboptions {
-		grid-template-rows: 1fr;
-	}
-
-	.scope-suboptions-inner {
-		overflow: hidden;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		padding-left: 1.6em;
-		/* Fades out immediately when collapsing (no delay) so it doesn't
-		   linger visible while the space shrinks back to 0 — but fades in
-		   only after that same delay when expanding, so the space opens up
-		   first and the content settles into it a beat later instead of
-		   popping in all at once. */
-		opacity: 0;
-		transition: opacity 0.25s ease;
-	}
-
-	.scope-item.expanded .scope-suboptions-inner {
-		padding-top: 0.6rem;
-		opacity: 1;
-		transition: opacity 0.25s ease 0.2s;
-	}
-
-	.scope-option--sub {
-		font-size: 0.8em;
-		gap: 0.5em;
-	}
-
-	.scope-dot--sub {
-		width: 11px;
-		height: 11px;
-	}
-
-	.scope-option--sub input:checked + .scope-dot--sub::after {
-		inset: 2px;
 	}
 
 	.inquire-form button[type="submit"] {
@@ -983,13 +835,11 @@ const scopeOptions = [
 		margin: 0;
 	}
 
+	/* Hover: letter-by-letter dim, like .btn-primary (Layout.astro), with
+	   no underline or bottom border. */
 	.inquire-contact-info a {
 		color: inherit;
 		text-decoration: none;
-	}
-
-	.inquire-contact-info a:hover {
-		text-decoration: underline;
 	}
 
 	@media (max-width: 900px) {

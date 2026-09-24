@@ -1,6 +1,8 @@
 ---
+import { Image } from "astro:assets";
 import FooterLogo from "../assets/footer-logo.png";
 import { SOCIAL_NETWORKS, resolveSocialUrl } from "../data/social-links";
+import { STUDIO_PHONE } from "../data/contact";
 const year = new Date().getFullYear();
 
 const navLinks = [
@@ -26,7 +28,7 @@ const email = "hello@flaviajackeline.com";
 		<div class="footer-cols">
 			<div class="footer-col">
 				<a href="/" class="brand"
-					><img src={FooterLogo.src} alt="Flávia Jackeline" /></a
+					><Image src={FooterLogo} alt="Flávia Jackeline" format="webp" width={500} /></a
 				>
 				<p>
 					Creating refined identities for thoughtful brands. Minimal,
@@ -68,8 +70,11 @@ const email = "hello@flaviajackeline.com";
 			</div>
 
 			<div class="footer-col">
-				<h3>Email</h3>
-				<a href={`mailto:${email}`}>{email}</a>
+				<h3>Contact</h3>
+				<ul>
+					<li><a href={`mailto:${email}`}>{email}</a></li>
+					<li><a href={STUDIO_PHONE.href}>{STUDIO_PHONE.display}</a></li>
+				</ul>
 			</div>
 		</div>
 
@@ -126,6 +131,7 @@ const email = "hello@flaviajackeline.com";
 	}
 	.brand img {
 		max-width: 250px;
+		height: auto;
 	}
 
 	.footer-col h3 {
@@ -206,6 +212,7 @@ const email = "hello@flaviajackeline.com";
 
 <script>
 	import gsap from "gsap";
+	import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { whenPageSettled } from "../scripts/scroll-timing";
 
@@ -226,9 +233,9 @@ const email = "hello@flaviajackeline.com";
 		const bottom = document.querySelector<HTMLElement>(".footer-bottom");
 		if (!items.length || !hr || !bottom) return;
 
-		gsap.set(items, { opacity: 0 });
+		gsap.set(items, textRevealHidden());
 		gsap.set(hr, { width: "0%" });
-		gsap.set(bottom, { opacity: 0 });
+		gsap.set(bottom, textRevealHidden());
 
 		whenPageSettled(() => {
 			const timeline = gsap.timeline({
@@ -240,7 +247,7 @@ const email = "hello@flaviajackeline.com";
 			});
 			timeline
 				.to(items, {
-					opacity: 1,
+					...textRevealVisible,
 					duration: 0.5,
 					ease: "power2.out",
 					// A fixed total spread, not a fixed per-item delay — so it
@@ -249,7 +256,7 @@ const email = "hello@flaviajackeline.com";
 					stagger: { amount: 0.5 },
 				})
 				.to(hr, { width: "100%", duration: 0.6, ease: "power2.out" }, ">")
-				.to(bottom, { opacity: 1, duration: 0.5, ease: "power2.out" }, ">");
+				.to(bottom, { ...textRevealVisible, duration: 0.5, ease: "power2.out" }, ">");
 
 			footerTrigger = timeline.scrollTrigger ?? null;
 		});

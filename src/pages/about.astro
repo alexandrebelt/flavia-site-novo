@@ -4,12 +4,14 @@ import HeroFlavia from "../assets/flavia-jackeline2.webp";
 import ExperiencesText from "../components/ExperiencesText.astro";
 import CtaInquire from "../components/CtaInquire.astro";
 import { resolveSocialUrl } from "../data/social-links";
+import { normalizeRecognitions } from "../data/recognitions";
 
 // Admin overrides (About) — empty fields keep the bundled defaults. The
 // social links are the same admin-set URLs as the footer's "Connect" ones.
 const { about, seo } = await Astro.locals.siteSettings();
 const socialLinks = seo.socialLinks;
-const recognitions = about.recognitions ?? [];
+// Each item links out only when the admin gave it a link; otherwise it's plain text.
+const recognitions = normalizeRecognitions(about.recognitions);
 ---
 
 <Layout
@@ -24,18 +26,18 @@ const recognitions = about.recognitions ?? [];
 				alt="Flávia Jackeline"
 			/>
 			<div class="hero-about-section-row row limit">
-				<span>
-					Flavia jackeline <br />Brand Designer
-				</span>
-				<span>
-					Creating refined identities<br />for thoughtful brands.
-				</span>
-				<span>
-					Minimal, strategic, <br />and quietly distinctive.
-				</span>
-				<span>
-					Based in Brazil<br />working worldwide.
-				</span>
+				<div class="hero-about-phrase hero-about-phrase--name">
+					<span>Flavia jackeline <br />Brand Designer</span>
+				</div>
+				<div class="hero-about-phrase hero-about-phrase--tagline">
+					<span>Creating refined identities<br />for thoughtful brands.</span>
+				</div>
+				<div class="hero-about-phrase hero-about-phrase--approach">
+					<span>Minimal, strategic, <br />and quietly distinctive.</span>
+				</div>
+				<div class="hero-about-phrase hero-about-phrase--location">
+					<span>Based in Brazil<br />working worldwide.</span>
+				</div>
 			</div>
 		</div>
 	</section>
@@ -126,7 +128,17 @@ const recognitions = about.recognitions ?? [];
 				</div>
 				<div class="about-section-3-col col">
 					<ul id="about-recognitions-list">
-						{recognitions.map((text) => <li>{text}</li>)}
+						{recognitions.map(({ text, url }) => (
+							<li>
+								{url ? (
+									<a href={url} target="_blank" rel="noopener noreferrer">
+										{text}
+									</a>
+								) : (
+									text
+								)}
+							</li>
+						))}
 					</ul>
 				</div>
 			</div>
@@ -137,6 +149,7 @@ const recognitions = about.recognitions ?? [];
 
 <script>
 	import gsap from "gsap";
+	import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { splitIntoLetterSpans, splitPreservingMarkup } from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
@@ -146,7 +159,7 @@ const recognitions = about.recognitions ?? [];
 
 	function playHeroAboutReveal() {
 		const spans = document.querySelectorAll<HTMLElement>(
-			".hero-about-section-row > span",
+			".hero-about-phrase > span",
 		);
 		if (!spans.length) return;
 
@@ -155,7 +168,7 @@ const recognitions = about.recognitions ?? [];
 		// then the second's, and so on), not all four at once.
 		const spanLetters = Array.from(spans).map((span) => splitPreservingMarkup(span));
 		const allLetters = spanLetters.flat();
-		gsap.set(allLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+		gsap.set(allLetters, textRevealHidden());
 
 		// Waits for the page-entrance transition to actually finish (see
 		// Layout.astro) — running immediately on astro:page-load instead
@@ -166,8 +179,7 @@ const recognitions = about.recognitions ?? [];
 				timeline.to(
 					letters,
 					{
-						rotateY: 0,
-						opacity: 1,
+						...textRevealVisible,
 						duration: 0.6,
 						ease: "power3.out",
 						stagger: { amount: 0.5 },
@@ -207,16 +219,16 @@ const recognitions = about.recognitions ?? [];
 		if (!heading || !socialItems.length || !paragraphs.length) return;
 
 		const headingLetters = splitIntoLetterSpans(heading);
-		gsap.set(headingLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
-		gsap.set(socialItems, { opacity: 0 });
-		gsap.set(paragraphs, { opacity: 0 });
+		gsap.set(headingLetters, textRevealHidden());
+		gsap.set(socialItems, textRevealHidden());
+		gsap.set(paragraphs, textRevealHidden());
 
 		// The achievements line (shared with the homepage) is the last part
 		// of this same pinned sequence.
 		const experiencesEl = document.getElementById("experiences-text-content");
 		const experiencesLetters = experiencesEl ? splitIntoLetterSpans(experiencesEl) : [];
 		if (experiencesLetters.length) {
-			gsap.set(experiencesLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+			gsap.set(experiencesLetters, textRevealHidden());
 		}
 
 		// Pinned on desktop — created immediately (not deferred), so its
@@ -244,13 +256,13 @@ const recognitions = about.recognitions ?? [];
 				});
 
 				timeline
-					.to(headingLetters, { rotateY: 0, opacity: 1, stagger: { amount: 0.5 } })
-					.to(socialItems, { opacity: 1, stagger: { amount: 0.3 } }, ">")
-					.to(paragraphs, { opacity: 1, stagger: { amount: 0.4 } }, ">");
+					.to(headingLetters, { ...textRevealVisible, stagger: { amount: 0.5 } })
+					.to(socialItems, { ...textRevealVisible, stagger: { amount: 0.3 } }, ">")
+					.to(paragraphs, { ...textRevealVisible, stagger: { amount: 0.4 } }, ">");
 				if (experiencesLetters.length) {
 					timeline.to(
 						experiencesLetters,
-						{ rotateY: 0, opacity: 1, stagger: { amount: 0.5 } },
+						{ ...textRevealVisible, stagger: { amount: 0.5 } },
 						">",
 					);
 				}
@@ -277,7 +289,7 @@ const recognitions = about.recognitions ?? [];
 		const cols = document.querySelectorAll<HTMLElement>(".about-section-3-col");
 		if (!cols.length) return;
 
-		gsap.set(cols, { opacity: 0 });
+		gsap.set(cols, textRevealHidden());
 
 		whenPageSettled(() => {
 			const timeline = gsap.timeline({
@@ -288,7 +300,7 @@ const recognitions = about.recognitions ?? [];
 				},
 			});
 			timeline.to(cols, {
-				opacity: 1,
+				...textRevealVisible,
 				duration: 0.6,
 				ease: "power2.out",
 				stagger: { amount: 0.4 },
@@ -339,8 +351,8 @@ const recognitions = about.recognitions ?? [];
 		color: var(--color-offwhite);
 		text-transform: uppercase;
 	}
-	.hero-about-section-row span:nth-of-type(1),
-	.hero-about-section-row span:nth-last-of-type(1) {
+	.hero-about-phrase--name,
+	.hero-about-phrase--location {
 		font-weight: 500;
 	}
 	.about-section-2-row.row {
@@ -395,6 +407,14 @@ const recognitions = about.recognitions ?? [];
 		border-bottom: 1px solid rgba(255, 255, 255, 0.6);
 		width: fit-content;
 		margin-bottom: 3px;
+	}
+	#about-recognitions-list a {
+		color: inherit;
+		text-decoration: none;
+		transition: opacity 0.3s ease;
+	}
+	#about-recognitions-list a:hover {
+		opacity: 0.6;
 	}
 
 	@media (max-width: 885px) {

@@ -4,9 +4,15 @@ export const prerender = false;
 import { env } from "cloudflare:workers";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import { getSettings } from "../../../lib/server/settings-store.js";
+import { normalizeRecognitions } from "../../../data/recognitions";
 
 const settings = await getSettings(env.DB);
 const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
+// "<" escaped so no saved text can close the <script> it's embedded in.
+const initialRecognitionsJson = JSON.stringify(normalizeRecognitions(about.recognitions)).replace(
+	/</g,
+	"\\u003c",
+);
 ---
 
 <AdminLayout title="About">
@@ -14,7 +20,8 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 		<h2 class="block-title">Photo — Opening section</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
 			Background photo of the About page's first section. Recommended:
-			landscape, at least 1600px wide, JPG or WEBP.
+			landscape, at least 1600px wide, JPG, PNG or WebP. Automatically resized
+			and converted to WebP when uploaded.
 		</p>
 		<div class="photo-field">
 			<div class="photo-preview">
@@ -45,7 +52,9 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 	<div class="admin-card">
 		<h2 class="block-title">Recognitions</h2>
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
-			List shown in the About page's "Selected Recognition" section.
+			List shown in the About page's "Selected Recognition" section. Add a
+			link (https://…) to make an item clickable — it opens in a new tab.
+			Items without a link show as plain text.
 		</p>
 		<div id="recognitions-list"></div>
 		<button type="button" class="admin-btn secondary" id="add-recognition" style="width: fit-content;">
@@ -116,12 +125,21 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 
 	.recognition-row input {
 		flex: 1;
+		min-width: 0;
 		font-family: var(--font-sans);
 		font-size: 0.95rem;
 		padding: 0.65rem 0.8rem;
 		border: 1px solid rgba(14, 14, 14, 0.14);
 		border-radius: 7px;
 		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+	}
+
+	.recognition-row .recognition-url {
+		flex: 0.8;
+	}
+
+	.recognition-row input[aria-invalid="true"] {
+		border-color: #b3261e;
 	}
 
 	.recognition-row input:hover {
@@ -140,6 +158,8 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 </style>
 
 <script>
+	import { compressImage } from "../../../scripts/admin/image-compression";
+	import { isValidRecognitionUrl, type Recognition } from "../../../data/recognitions";
 	const DEFAULT_PHOTO_LABEL = "Using the theme's default photo";
 
 	function toast(message: string, isError = false) {
@@ -151,6 +171,8 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 	}
 
 	async function uploadFile(file: File): Promise<string> {
+		// Photos are resized and converted to WebP first (videos pass through).
+		file = await compressImage(file);
 		const body = new FormData();
 		body.append("file", file);
 		const res = await fetch("/api/admin/upload", { method: "POST", body });
@@ -205,36 +227,62 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 	);
 	const recognitionsList = document.getElementById("recognitions-list")!;
 
-	function addRecognitionRow(text = "") {
+	function addRecognitionRow({ text = "", url = "" }: Partial<Recognition> = {}) {
 		const row = document.createElement("div");
 		row.className = "recognition-row";
 		row.innerHTML = `
-			<input type="text" placeholder="E.g. Behance — Featured Project" />
+			<input type="text" class="recognition-text" placeholder="E.g. Behance — Featured Project" aria-label="Recognition" />
+			<input type="url" class="recognition-url" placeholder="Link (optional) — https://…" aria-label="Link" />
 			<button type="button" class="icon-btn danger row-remove" title="Remove">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
 			</button>
 		`;
-		(row.querySelector("input") as HTMLInputElement).value = text;
+		(row.querySelector(".recognition-text") as HTMLInputElement).value = text;
+		const urlInput = row.querySelector(".recognition-url") as HTMLInputElement;
+		urlInput.value = url;
+		// Once flagged, the link re-checks as it's edited, so the red border clears.
+		urlInput.addEventListener("input", () => {
+			if (urlInput.getAttribute("aria-invalid") === "true") validateRecognitionLinks();
+		});
 		row.querySelector(".row-remove")!.addEventListener("click", () => row.remove());
 		recognitionsList.appendChild(row);
 	}
 
-	(initialRecognitions as string[]).forEach((text) => addRecognitionRow(text));
+	(initialRecognitions as Recognition[]).forEach((item) => addRecognitionRow(item));
 	document.getElementById("add-recognition")!.addEventListener("click", () => {
 		addRecognitionRow();
 		recognitionsList.lastElementChild
-			?.querySelector("input")
+			?.querySelector(".recognition-text")
 			?.scrollIntoView({ block: "nearest" });
-		(recognitionsList.lastElementChild?.querySelector("input") as HTMLInputElement)?.focus();
+		(recognitionsList.lastElementChild?.querySelector(".recognition-text") as HTMLInputElement)?.focus();
 	});
 
-	function readRecognitions() {
-		return Array.from(recognitionsList.querySelectorAll("input"))
-			.map((input) => (input as HTMLInputElement).value.trim())
-			.filter(Boolean);
+	// A link is optional, but if one is typed it must be a full web address.
+	function validateRecognitionLinks(): boolean {
+		let valid = true;
+		recognitionsList.querySelectorAll<HTMLInputElement>(".recognition-url").forEach((input) => {
+			const value = input.value.trim();
+			const ok = !value || isValidRecognitionUrl(value);
+			input.setAttribute("aria-invalid", String(!ok));
+			if (!ok) valid = false;
+		});
+		return valid;
+	}
+
+	function readRecognitions(): Recognition[] {
+		return Array.from(recognitionsList.querySelectorAll<HTMLElement>(".recognition-row"))
+			.map((row) => ({
+				text: (row.querySelector(".recognition-text") as HTMLInputElement).value.trim(),
+				url: (row.querySelector(".recognition-url") as HTMLInputElement).value.trim(),
+			}))
+			.filter((item) => item.text);
 	}
 
 	document.getElementById("save-all")!.addEventListener("click", async () => {
+		if (!validateRecognitionLinks()) {
+			toast("Fix the highlighted links — they must start with https://", true);
+			return;
+		}
 		const res = await fetch("/api/admin/settings", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -245,4 +293,4 @@ const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
 	});
 </script>
 
-<script type="application/json" id="initial-recognitions" set:html={JSON.stringify(about.recognitions || [])} />
+<script type="application/json" id="initial-recognitions" set:html={initialRecognitionsJson} />

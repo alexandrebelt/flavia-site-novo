@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import Layout from "../../layouts/Layout.astro";
 import { loadProject, projectCover } from "../../lib/server/site-data";
 import { sanitizeRichText } from "../../lib/server/sanitize-rich-text.js";
+import { isVideoItem, videoEmbedUrl } from "../../data/video-embeds";
 
 // Looked up per request, so a project created or edited in the admin is
 // live right away — no build step lists the slugs ahead of time.
@@ -70,9 +71,27 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 			</div>
 			<div class="gallery">
 				{
-					project.images?.map((image) => (
-						<img src={image.url} alt={image.alt} loading="lazy" />
-					))
+					project.images?.map((item) =>
+						isVideoItem(item) ? (
+							// "loop": a silent moving image — muted, autoplaying,
+							// no controls, not clickable. "player": the regular
+							// player, the visitor presses play.
+							<div class:list={["gallery-video", `gallery-video--${item.mode}`]}>
+								<iframe
+									src={videoEmbedUrl(item, item.mode)}
+									title={`${project.client} — video`}
+									loading="lazy"
+									allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+									allowfullscreen={item.mode === "player"}
+									referrerpolicy="strict-origin-when-cross-origin"
+									tabindex={item.mode === "loop" ? -1 : undefined}
+									aria-hidden={item.mode === "loop" ? "true" : undefined}
+								/>
+							</div>
+						) : (
+							<img src={item.url} alt={item.alt} loading="lazy" />
+						),
+					)
 				}
 			</div>
 		</div>
@@ -81,6 +100,7 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 
 <script>
 	import gsap from "gsap";
+	import { textRevealHidden, textRevealVisible } from "../../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { whenPageSettled } from "../../scripts/scroll-timing";
 
@@ -101,10 +121,11 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 			document.querySelector<HTMLElement>(".project-text-content .facts"),
 			document.querySelector<HTMLElement>(".project-text-content-col"),
 		].filter((el): el is HTMLElement => !!el);
-		const images = document.querySelectorAll<HTMLElement>(".gallery img");
+		// Images and embedded videos alike.
+		const images = document.querySelectorAll<HTMLElement>(".gallery > *");
 
-		if (blocks.length) gsap.set(blocks, { opacity: 0 });
-		if (images.length) gsap.set(images, { opacity: 0 });
+		if (blocks.length) gsap.set(blocks, textRevealHidden());
+		if (images.length) gsap.set(images, textRevealHidden());
 
 		whenPageSettled(() => {
 			if (blocks.length) {
@@ -116,7 +137,7 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 					},
 				});
 				blocks.forEach((block) => {
-					timeline.to(block, { opacity: 1, duration: 0.6, ease: "power2.out" }, ">");
+					timeline.to(block, { ...textRevealVisible, duration: 0.6, ease: "power2.out" }, ">");
 				});
 				detailTrigger = timeline.scrollTrigger ?? null;
 			}
@@ -126,7 +147,7 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 			// scroll position.
 			images.forEach((img) => {
 				const tween = gsap.to(img, {
-					opacity: 1,
+					...textRevealVisible,
 					duration: 0.6,
 					ease: "power2.out",
 					scrollTrigger: {
@@ -203,6 +224,28 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 		border-radius: 4px;
 		object-fit: contain;
 		height: auto;
+	}
+
+	.gallery-video {
+		position: relative;
+		width: 100%;
+		aspect-ratio: 16 / 9;
+		border-radius: 4px;
+		overflow: hidden;
+		background: var(--color-black);
+	}
+
+	.gallery-video iframe {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		border: 0;
+	}
+
+	/* Loop videos behave like a moving image: no hover UI, no clicks. */
+	.gallery-video--loop iframe {
+		pointer-events: none;
 	}
 
 	.content {
