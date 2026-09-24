@@ -18,6 +18,45 @@ function row(label: string, value: string): string {
 	return `<tr><td style="padding:6px 12px 6px 0;color:#6d6d6d;white-space:nowrap;vertical-align:top;">${escapeHtml(label)}</td><td style="padding:6px 0;">${escapeHtml(value).replace(/\n/g, "<br>")}</td></tr>`;
 }
 
+const INQUIRIES_SEGMENT_NAME = "Inquires";
+
+// Best-effort: adds the inquirer to the "Inquires" segment in Resend (a
+// contact list, distinct from the notification email above), creating that
+// segment on first use if it doesn't exist yet. This never fails the
+// request — a broken segment/contact call shouldn't stop the studio from
+// getting notified, which is the part that actually matters.
+async function addToInquiriesSegment(resend: Resend, fullName: string, email: string) {
+	try {
+		const { data: segments, error: listError } = await resend.segments.list();
+		if (listError) throw listError;
+
+		let segmentId = segments?.data.find(
+			(s) => s.name.toLowerCase() === INQUIRIES_SEGMENT_NAME.toLowerCase(),
+		)?.id;
+
+		if (!segmentId) {
+			const { data: created, error: createError } = await resend.segments.create({
+				name: INQUIRIES_SEGMENT_NAME,
+			});
+			if (createError || !created) throw createError ?? new Error("No segment returned");
+			segmentId = created.id;
+		}
+
+		const [firstName, ...rest] = fullName.split(/\s+/).filter(Boolean);
+		const lastName = rest.join(" ") || undefined;
+
+		const { error: contactError } = await resend.contacts.create({
+			email,
+			firstName,
+			lastName,
+			segments: [{ id: segmentId }],
+		});
+		if (contactError) throw contactError;
+	} catch (err) {
+		console.error("Failed to add inquiry contact to Resend segment:", err);
+	}
+}
+
 export const POST: APIRoute = async ({ request }) => {
 	const apiKey = env.RESEND_API_KEY;
 	if (!apiKey) {
@@ -82,6 +121,8 @@ export const POST: APIRoute = async ({ request }) => {
 			console.error("Resend error:", error);
 			return Response.json({ error: "Falha ao enviar o email." }, { status: 502 });
 		}
+
+		await addToInquiriesSegment(resend, fullName, email);
 
 		return Response.json({ ok: true });
 	} catch (err) {

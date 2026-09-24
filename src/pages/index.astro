@@ -258,6 +258,12 @@ const letters = Object.entries(letterModules)
 	function playHeroReveal() {
 		const letters = document.querySelectorAll<HTMLElement>(".hero-letter");
 		if (!letters.length) return;
+
+		// Hidden immediately (not deferred below) so nothing flashes fully
+		// visible while waiting for the page-entrance transition to finish.
+		gsap.set(letters, { rotateY: -90, opacity: 0 });
+		gsap.set(".hero-section-wrapper h6", { opacity: 0 });
+
 		function enableHoverTilt() {
 			letters.forEach((letter) => {
 				letter.addEventListener("mouseenter", () => {
@@ -277,25 +283,34 @@ const letters = Object.entries(letterModules)
 			});
 		}
 
-		gsap.fromTo(
-			letters,
-			{ rotateY: -90, opacity: 0 },
-			{
-				rotateY: 0,
-				opacity: 1,
-				duration: 0.9,
-				ease: "power3.out",
-				stagger: 0.12,
-				onComplete: enableHoverTilt,
+		// Waits for the page-entrance transition to actually finish (see
+		// Layout.astro) — running immediately on astro:page-load instead
+		// would play this out mostly hidden during the fade.
+		document.addEventListener(
+			"astro:page-ready",
+			() => {
+				gsap.to(letters, {
+					rotateY: 0,
+					opacity: 1,
+					duration: 0.9,
+					ease: "power3.out",
+					stagger: 0.12,
+					onComplete: enableHoverTilt,
+				});
+				gsap.to(".hero-section-wrapper h6", {
+					opacity: 1,
+					duration: 1,
+					delay: 1,
+				});
 			},
-		);
-		gsap.fromTo(
-			".hero-section-wrapper h6",
-			{ opacity: 0 },
-			{ opacity: 1, duration: 1, delay: 1 },
+			{ once: true },
 		);
 	}
 
+	// Fires right as the page swaps in — playHeroReveal hides the letters
+	// synchronously at that point (before the fade has painted anything) and
+	// only starts actually animating them once astro:page-ready fires, once
+	// the page-entrance transition is done.
 	document.addEventListener("astro:page-load", playHeroReveal);
 
 	async function applyHomeSettings() {
@@ -457,6 +472,9 @@ const letters = Object.entries(letterModules)
 		// first and letting that fetch overwrite textContent afterwards
 		// would silently drop the letter spans.
 		buildSection5Timeline();
+		// Removed on astro:before-swap below — without that, navigating away
+		// before ExperiencesText's fetch resolves leaves this listener
+		// registered forever, stacking up one more each revisit.
 		document.addEventListener("experiences-text-ready", buildSection5Timeline, {
 			once: true,
 		});
@@ -508,6 +526,7 @@ const letters = Object.entries(letterModules)
 	document.addEventListener("astro:page-load", initSection6Reveal);
 
 	document.addEventListener("astro:before-swap", () => {
+		document.removeEventListener("experiences-text-ready", buildSection5Timeline);
 		section3Trigger?.kill();
 		section3Trigger = null;
 		section4Trigger?.kill();

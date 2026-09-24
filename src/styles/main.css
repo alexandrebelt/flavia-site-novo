@@ -191,15 +191,38 @@ h6 {
 	letter-spacing: 0.2em;
 }
 .btn-primary{
+	--btn-primary-underline-color: var(--color-black);
+	position: relative;
 	color:inherit;
-	border-bottom:1px solid var(--color-black);
 	width:fit-content;
 	text-decoration:none;
 	padding: 0 0.2em;
 	text-transform:uppercase;
 	font-weight:300;
+	cursor: pointer;
+}
+/* An overlay bar standing in for the border-bottom — absolutely positioned,
+   so it doesn't push on the element's height/padding or shift surrounding
+   layout. Fades out on hover instead of the underline itself moving. */
+.btn-primary::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 1px;
+	background: var(--btn-primary-underline-color);
+	transition: opacity 0.3s ease;
+}
+.btn-primary:hover::after {
+	opacity: 0;
 }
 .btn-secondary{
+	--btn-fill-color: var(--color-black);
+	--btn-fill-text-color: var(--color-offwhite);
+	position: relative;
+	overflow: hidden;
+	isolation: isolate;
 	color:inherit;
 	border:1px solid var(--color-black);
 	width:fit-content;
@@ -208,12 +231,39 @@ h6 {
 	text-transform:uppercase;
 	font-weight:300;
 	letter-spacing: 0.1em;;
+	background: none;
+	cursor: pointer;
+	transition: color 0.4s ease;
+}
+/* A bar that fills the button from the left edge on hover (anchored left,
+   scaleX 0→1) and exits toward the right when the mouse leaves — the anchor
+   itself switches to the right the instant :hover drops, so the shrink back
+   to scaleX 0 sweeps out the opposite side instead of retracing itself. */
+.btn-secondary::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: var(--btn-fill-color);
+	transform: scaleX(0);
+	transform-origin: right;
+	transition: transform 0.4s ease;
+	z-index: -1;
+	pointer-events: none;
+}
+.btn-secondary:hover {
+	color: var(--btn-fill-text-color);
+}
+.btn-secondary:hover::before {
+	transform: scaleX(1);
+	transform-origin: left;
 }
 .bg-black .btn-secondary, .bg-gray .btn-secondary, .bg-dark-gray .btn-secondary{
+	--btn-fill-color: var(--color-offwhite);
+	--btn-fill-text-color: var(--color-black);
 	border:1px solid white;
 }
 .bg-black .btn-primary, .bg-gray .btn-primary, .bg-dark-gray .btn-primary{
-	border-bottom:1px solid white;
+	--btn-primary-underline-color: white;
 }
 
 .bg-black {
@@ -298,4 +348,10 @@ section.full-height {
 .hero-reveal-letter {
 	display: inline-block;
 	backface-visibility: hidden;
+}
+
+@media(max-width:690px){
+	.limit{
+		padding:4em var(--padding-sides);
+	}
 }

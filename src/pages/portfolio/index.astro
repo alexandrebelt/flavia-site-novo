@@ -29,6 +29,49 @@ import ProjectsGrid from "../../components/ProjectsGrid.astro";
 	</section>
 </Layout>
 
+<script>
+	import gsap from "gsap";
+	import { ScrollTrigger } from "gsap/ScrollTrigger";
+	import { whenPageSettled } from "../../scripts/scroll-timing";
+
+	gsap.registerPlugin(ScrollTrigger);
+
+	let portfolioTopTrigger: ScrollTrigger | null = null;
+
+	function initPortfolioTopReveal() {
+		portfolioTopTrigger?.kill();
+		portfolioTopTrigger = null;
+
+		const cols = document.querySelectorAll<HTMLElement>(".portfolio-top-section-col");
+		if (!cols.length) return;
+
+		gsap.set(cols, { opacity: 0 });
+
+		whenPageSettled(() => {
+			const timeline = gsap.timeline({
+				scrollTrigger: {
+					trigger: ".portfolio-top-section-row",
+					start: "top 80%",
+					toggleActions: "play none none reverse",
+				},
+			});
+			timeline.to(cols, {
+				opacity: 1,
+				duration: 0.6,
+				ease: "power2.out",
+			});
+			portfolioTopTrigger = timeline.scrollTrigger ?? null;
+		});
+	}
+
+	document.addEventListener("astro:page-load", initPortfolioTopReveal);
+
+	document.addEventListener("astro:before-swap", () => {
+		portfolioTopTrigger?.kill();
+		portfolioTopTrigger = null;
+	});
+</script>
+
 <style>
 	.portfolio-top-section-row {
 		width: 100%;

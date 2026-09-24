@@ -11,7 +11,9 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 	description="Brand strategy, visual identity and brand applications — a considered process from discovery to delivery for founders ready to invest in their brand."
 >
 	<section class="full-height hero-services-section">
-		<div class="hero-services-wrapper hero-reveal-wrapper limit center-content">
+		<div
+			class="hero-services-wrapper hero-reveal-wrapper limit center-content"
+		>
 			<h1>
 				Every project is shaped around what the brand actually needs.
 			</h1>
@@ -171,11 +173,16 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 <script>
 	import gsap from "gsap";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
-	import { playHeroLetterReveal, splitPreservingMarkup } from "../scripts/hero-letter-reveal";
+	import {
+		playHeroLetterReveal,
+		splitPreservingMarkup,
+	} from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
 
 	gsap.registerPlugin(ScrollTrigger);
 
+	// Fires right as the page swaps in, same moment the entrance fade
+	// starts — see the identical note on index.astro's playHeroReveal.
 	document.addEventListener("astro:page-load", playHeroLetterReveal);
 
 	let section1Trigger: ScrollTrigger | null = null;
@@ -184,7 +191,9 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		section1Trigger?.kill();
 		section1Trigger = null;
 
-		const cols = document.querySelectorAll<HTMLElement>(".services-section-1-col");
+		const cols = document.querySelectorAll<HTMLElement>(
+			".services-section-1-col",
+		);
 		if (!cols.length) return;
 
 		gsap.set(cols, { opacity: 0 });
@@ -215,12 +224,20 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		section2Trigger?.kill();
 		section2Trigger = null;
 
-		const heading = document.querySelector<HTMLElement>(".services-section-2-col h2");
-		const subtext = document.querySelector<HTMLElement>(".services-section-2-col h6");
+		const heading = document.querySelector<HTMLElement>(
+			".services-section-2-col h2",
+		);
+		const subtext = document.querySelector<HTMLElement>(
+			".services-section-2-col h6",
+		);
 		if (!heading || !subtext) return;
 
 		const letters = splitPreservingMarkup(heading);
-		gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+		gsap.set(letters, {
+			rotateY: -90,
+			opacity: 0,
+			transformPerspective: 400,
+		});
 		gsap.set(subtext, { opacity: 0 });
 
 		whenPageSettled(() => {
@@ -239,7 +256,11 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 					ease: "power3.out",
 					stagger: { amount: 0.4 },
 				})
-				.to(subtext, { opacity: 1, duration: 0.6, ease: "power2.out" }, ">");
+				.to(
+					subtext,
+					{ opacity: 1, duration: 0.6, ease: "power2.out" },
+					">",
+				);
 			section2Trigger = timeline.scrollTrigger ?? null;
 		});
 	}
@@ -260,8 +281,12 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 			document.querySelector<HTMLElement>(
 				".services-section-3-main-col > .services-section-3-row",
 			),
-			document.querySelector<HTMLElement>(".services-section-3-deliverables"),
-			document.querySelector<HTMLElement>(".services-section-3-wrapper a"),
+			document.querySelector<HTMLElement>(
+				".services-section-3-deliverables",
+			),
+			document.querySelector<HTMLElement>(
+				".services-section-3-wrapper a",
+			),
 		].filter((el): el is HTMLElement => !!el);
 		if (!items.length) return;
 
@@ -279,7 +304,8 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 						toggleActions: "play none none reverse",
 					},
 				});
-				if (tween.scrollTrigger) section3Triggers.push(tween.scrollTrigger);
+				if (tween.scrollTrigger)
+					section3Triggers.push(tween.scrollTrigger);
 			});
 		});
 	}
@@ -292,7 +318,9 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		section4Trigger?.kill();
 		section4Trigger = null;
 
-		const cols = document.querySelectorAll<HTMLElement>(".services-section-4-col");
+		const cols = document.querySelectorAll<HTMLElement>(
+			".services-section-4-col",
+		);
 		if (!cols.length) return;
 
 		// Pinned, like the homepage's section 3/5 — created immediately
@@ -365,7 +393,7 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 	.services-section-3-row p {
 		max-width: 460px;
 	}
-
+	
 	.services-section-4-wrapper {
 		display: flex;
 		align-self: stretch;
@@ -384,6 +412,9 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 	.services-section-4-col.col ul {
 		padding-left: 0 !important;
 		list-style: none;
+	}
+	.services-section-4 ul li {
+		font-size: var(--font-size-body);
 	}
 	.services-section-4-col.col h6 {
 		/*font-size: var(--font-size-body);*/

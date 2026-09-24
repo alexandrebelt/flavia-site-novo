@@ -76,9 +76,15 @@ export function splitPreservingMarkup(el: HTMLElement): HTMLElement[] {
  */
 export function playHeroLetterReveal() {
 	const h1 = document.querySelector<HTMLElement>(".hero-reveal-wrapper h1");
+	const subtext = document.querySelector<HTMLElement>(".hero-reveal-wrapper h6");
 	if (!h1) return;
 
 	const letters = splitIntoLetterSpans(h1);
+
+	// Hidden immediately (not deferred below) so nothing flashes fully
+	// visible while waiting for the page-entrance transition to finish.
+	gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+	if (subtext) gsap.set(subtext, { opacity: 0 });
 
 	function enableHoverTilt() {
 		letters.forEach((letter) => {
@@ -97,34 +103,39 @@ export function playHeroLetterReveal() {
 		});
 	}
 
-	// Wrapped in a timeline so onComplete fires once for the whole reveal —
-	// a stagger built directly into gsap.fromTo() calls onComplete once per
-	// letter (one per generated sub-tween), which would attach the hover
-	// listeners once per letter, over and over.
-	//
-	// transformPerspective is GSAP's own 3D-depth property, baked straight
-	// into the matrix3d it generates. The CSS `perspective` property on an
-	// ancestor doesn't reach these letters (they're grandchildren: h1 > word
-	// > letter) even with preserve-3d on the word wrapper, so without this
-	// the rotateY applies but renders flat — no visible turn.
-	gsap
-		.timeline({ onComplete: enableHoverTilt })
-		.fromTo(
-			letters,
-			{ rotateY: -90, opacity: 0, transformPerspective: 400 },
-			{
+	// Waits for the page-entrance transition to actually finish (see
+	// Layout.astro) — running immediately on astro:page-load instead would
+	// play this out mostly hidden during the fade, finished (or nearly so)
+	// by the time the page is actually visible, for any hero short enough
+	// that its reveal fits inside the transition's own duration.
+	document.addEventListener(
+		"astro:page-ready",
+		() => {
+			// Wrapped in a timeline so onComplete fires once for the whole
+			// reveal — a stagger built directly into gsap.fromTo() calls
+			// onComplete once per letter (one per generated sub-tween), which
+			// would attach the hover listeners once per letter, over and over.
+			//
+			// transformPerspective is GSAP's own 3D-depth property, baked
+			// straight into the matrix3d it generates. The CSS `perspective`
+			// property on an ancestor doesn't reach these letters (they're
+			// grandchildren: h1 > word > letter) even with preserve-3d on the
+			// word wrapper, so without this the rotateY applies but renders
+			// flat — no visible turn.
+			gsap.timeline({ onComplete: enableHoverTilt }).to(letters, {
 				rotateY: 0,
 				opacity: 1,
 				duration: 0.7,
 				ease: "power3.out",
 				stagger: 0.025,
-			},
-		);
+			});
 
-	// Same fade-in as the homepage hero's subtitle, after the letters reveal.
-	gsap.fromTo(
-		".hero-reveal-wrapper h6",
-		{ opacity: 0 },
-		{ opacity: 1, duration: 1, delay: 1 },
+			// Same fade-in as the homepage hero's subtitle, after the letters
+			// reveal.
+			if (subtext) {
+				gsap.to(subtext, { opacity: 1, duration: 1, delay: 1 });
+			}
+		},
+		{ once: true },
 	);
 }

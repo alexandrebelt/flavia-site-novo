@@ -136,6 +136,34 @@ const settings = await getSettings(env.DB);
 	<div class="admin-form-actions">
 		<button type="button" id="save-all" class="admin-btn">Salvar</button>
 	</div>
+
+	<div class="admin-card" style="max-width: 480px; margin-top: 1.5rem;">
+		<h2 class="block-title">Segurança</h2>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			Altere a senha de acesso ao painel. A nova senha precisa ter pelo
+			menos 10 caracteres, com letra maiúscula, minúscula, número e
+			caractere especial.
+		</p>
+
+		<div class="admin-field">
+			<label for="f-current-password">Senha atual</label>
+			<input id="f-current-password" type="password" autocomplete="current-password" />
+		</div>
+
+		<div class="admin-field">
+			<label for="f-new-password">Nova senha</label>
+			<input id="f-new-password" type="password" autocomplete="new-password" />
+		</div>
+
+		<div class="admin-field">
+			<label for="f-confirm-password">Confirmar nova senha</label>
+			<input id="f-confirm-password" type="password" autocomplete="new-password" />
+		</div>
+
+		<div class="admin-form-actions">
+			<button type="button" id="change-password" class="admin-btn">Alterar senha</button>
+		</div>
+	</div>
 </AdminLayout>
 
 <div class="admin-toast" id="toast"></div>
@@ -240,6 +268,38 @@ const settings = await getSettings(env.DB);
 		});
 		if (res.ok) toast("Alterações salvas. Rode um novo build para publicar o SEO.");
 		else toast("Erro ao salvar.", true);
+	});
+
+	// ---- security / change password ----
+	document.getElementById("change-password")!.addEventListener("click", async () => {
+		const currentPassword = (document.getElementById("f-current-password") as HTMLInputElement).value;
+		const newPassword = (document.getElementById("f-new-password") as HTMLInputElement).value;
+		const confirmPassword = (document.getElementById("f-confirm-password") as HTMLInputElement).value;
+
+		if (!currentPassword || !newPassword) {
+			toast("Preencha a senha atual e a nova senha.", true);
+			return;
+		}
+		if (newPassword !== confirmPassword) {
+			toast("A confirmação não é igual à nova senha.", true);
+			return;
+		}
+
+		const res = await fetch("/api/admin/change-password", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ currentPassword, newPassword }),
+		});
+		const data = await res.json().catch(() => ({}));
+
+		if (res.ok) {
+			toast("Senha alterada. Faça login novamente.");
+			setTimeout(() => {
+				window.location.href = "/admin/login";
+			}, 1500);
+		} else {
+			toast(data.error || "Erro ao alterar a senha.", true);
+		}
 	});
 </script>
 

@@ -240,19 +240,21 @@ const showViewAll = typeof limit === "number";
 
 	function createTriggers(prepared: PreparedItem[]) {
 		prepared.forEach(({ item, row, number, letters, meta }) => {
-			// The item fades in in lockstep with scroll position as it enters
-			// the viewport.
+			// The item fades in with its own eased duration as it enters the
+			// viewport, instead of snapping opacity directly to scroll
+			// position (which read as an abrupt, scroll-scrubbed cut rather
+			// than a fade).
 			const settle = gsap.fromTo(
 				row,
 				{ opacity: 0 },
 				{
 					opacity: 1,
-					ease: "none",
+					duration: 0.8,
+					ease: "power2.out",
 					scrollTrigger: {
 						trigger: item,
 						start: "top 95%",
-						end: "bottom bottom",
-						scrub: true,
+						toggleActions: "play none none reverse",
 					},
 				},
 			);

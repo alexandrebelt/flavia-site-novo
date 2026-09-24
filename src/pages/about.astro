@@ -137,22 +137,35 @@ import CtaInquire from "../components/CtaInquire.astro";
 		const allLetters = spanLetters.flat();
 		gsap.set(allLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
 
-		const timeline = gsap.timeline();
-		spanLetters.forEach((letters, i) => {
-			timeline.to(
-				letters,
-				{
-					rotateY: 0,
-					opacity: 1,
-					duration: 0.6,
-					ease: "power3.out",
-					stagger: { amount: 0.5 },
-				},
-				i === 0 ? undefined : ">",
-			);
-		});
+		// Waits for the page-entrance transition to actually finish (see
+		// Layout.astro) — running immediately on astro:page-load instead
+		// would play this out mostly hidden during the fade.
+		document.addEventListener(
+			"astro:page-ready",
+			() => {
+				const timeline = gsap.timeline();
+				spanLetters.forEach((letters, i) => {
+					timeline.to(
+						letters,
+						{
+							rotateY: 0,
+							opacity: 1,
+							duration: 0.6,
+							ease: "power3.out",
+							stagger: { amount: 0.5 },
+						},
+						i === 0 ? undefined : ">",
+					);
+				});
+			},
+			{ once: true },
+		);
 	}
 
+	// Fires right as the page swaps in — playHeroAboutReveal hides the
+	// letters synchronously at that point (before the fade has painted
+	// anything) and only starts actually animating them once
+	// astro:page-ready fires, once the page-entrance transition is done.
 	document.addEventListener("astro:page-load", playHeroAboutReveal);
 
 	// Pinned + scrubbed, one continuous sequence: heading letters spin in,
@@ -160,10 +173,13 @@ import CtaInquire from "../components/CtaInquire.astro";
 	// paragraphs fade in one by one, and finally the achievements line
 	// (shared with the homepage) spins in the same way as the heading.
 	let aboutSection2Trigger: ScrollTrigger | null = null;
+	let aboutSection2Mm: gsap.MatchMedia | null = null;
 
 	function buildAboutSection2Timeline() {
 		aboutSection2Trigger?.kill();
 		aboutSection2Trigger = null;
+		aboutSection2Mm?.revert();
+		aboutSection2Mm = null;
 
 		const heading = document.querySelector<HTMLElement>(".about-section-2-col h4");
 		const socialItems = document.querySelectorAll<HTMLElement>(
@@ -189,38 +205,55 @@ import CtaInquire from "../components/CtaInquire.astro";
 			gsap.set(experiencesLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
 		}
 
-		// Pinned — created immediately (not deferred), so its scroll space is
-		// reserved before the user can start scrolling instead of being
-		// inserted underneath them mid-scroll.
-		const timeline = gsap.timeline({
-			scrollTrigger: {
-				trigger: ".full-height.about-section-2",
-				start: "top top",
-				end: "+=2500",
-				pin: true,
-				pinSpacing: true,
-				scrub: true,
-				anticipatePin: 1,
+		// Pinned on desktop — created immediately (not deferred), so its
+		// scroll space is reserved before the user can start scrolling
+		// instead of being inserted underneath them mid-scroll. Below 886px
+		// the content collapses to a single column, so pinning would just
+		// hold a tall column on screen for way too long a scroll — instead
+		// it plays unpinned, scrubbed to the section's own scroll passage.
+		const mm = gsap.matchMedia();
+		mm.add(
+			{ isDesktop: "(min-width: 886px)", isMobile: "(max-width: 885px)" },
+			(context) => {
+				const { isDesktop } = context.conditions as { isDesktop: boolean };
+
+				const timeline = gsap.timeline({
+					scrollTrigger: {
+						trigger: ".full-height.about-section-2",
+						start: isDesktop ? "top top" : "top 65%",
+						end: isDesktop ? "+=2500" : "bottom bottom",
+						pin: isDesktop,
+						pinSpacing: isDesktop,
+						scrub: isDesktop ? true : 0.8,
+						anticipatePin: isDesktop ? 1 : 0,
+					},
+				});
+
+				timeline
+					.to(headingLetters, { rotateY: 0, opacity: 1, stagger: { amount: 0.5 } })
+					.to(socialItems, { opacity: 1, stagger: { amount: 0.3 } }, ">")
+					.to(paragraphs, { opacity: 1, stagger: { amount: 0.4 } }, ">");
+				if (experiencesLetters.length) {
+					timeline.to(
+						experiencesLetters,
+						{ rotateY: 0, opacity: 1, stagger: { amount: 0.5 } },
+						">",
+					);
+				}
+
+				aboutSection2Trigger = timeline.scrollTrigger ?? null;
 			},
-		});
+		);
 
-		timeline
-			.to(headingLetters, { rotateY: 0, opacity: 1, stagger: { amount: 0.5 } })
-			.to(socialItems, { opacity: 1, stagger: { amount: 0.3 } }, ">")
-			.to(paragraphs, { opacity: 1, stagger: { amount: 0.4 } }, ">");
-		if (experiencesLetters.length) {
-			timeline.to(
-				experiencesLetters,
-				{ rotateY: 0, opacity: 1, stagger: { amount: 0.5 } },
-				">",
-			);
-		}
-
-		aboutSection2Trigger = timeline.scrollTrigger ?? null;
+		aboutSection2Mm = mm;
 	}
 
 	function initAboutSection2Reveal() {
 		buildAboutSection2Timeline();
+		// Removed on astro:before-swap below — without that, navigating away
+		// before ExperiencesText's fetch resolves leaves this listener
+		// registered forever, and it stacks up one more each time the user
+		// revisits the page.
 		document.addEventListener("experiences-text-ready", buildAboutSection2Timeline, {
 			once: true,
 		});
@@ -260,8 +293,11 @@ import CtaInquire from "../components/CtaInquire.astro";
 	document.addEventListener("astro:page-load", initAboutSection3Reveal);
 
 	document.addEventListener("astro:before-swap", () => {
+		document.removeEventListener("experiences-text-ready", buildAboutSection2Timeline);
 		aboutSection2Trigger?.kill();
 		aboutSection2Trigger = null;
+		aboutSection2Mm?.revert();
+		aboutSection2Mm = null;
 		aboutSection3Trigger?.kill();
 		aboutSection3Trigger = null;
 	});

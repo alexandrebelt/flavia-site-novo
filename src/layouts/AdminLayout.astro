@@ -54,6 +54,7 @@ const isActive = (href: string) =>
 					}
 				</nav>
 				<a href="/" class="admin-back">&larr; Ver site</a>
+				<button type="button" id="admin-logout" class="admin-back admin-logout">Sair</button>
 			</aside>
 			<div class="admin-main">
 				<header class="admin-header">
@@ -66,6 +67,13 @@ const isActive = (href: string) =>
 		</div>
 	</body>
 </html>
+
+<script>
+	document.getElementById("admin-logout")?.addEventListener("click", async () => {
+		await fetch("/api/admin/logout", { method: "POST" });
+		window.location.href = "/admin/login";
+	});
+</script>
 
 <style>
 	html,

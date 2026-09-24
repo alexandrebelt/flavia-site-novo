@@ -76,6 +76,111 @@ const { project } = Astro.props;
 	</section>
 </Layout>
 
+<script>
+	import gsap from "gsap";
+	import { ScrollTrigger } from "gsap/ScrollTrigger";
+	import { splitIntoLetterSpans } from "../../scripts/hero-letter-reveal";
+	import { whenPageSettled } from "../../scripts/scroll-timing";
+
+	gsap.registerPlugin(ScrollTrigger);
+
+	let detailTrigger: ScrollTrigger | null = null;
+	let galleryTriggers: ScrollTrigger[] = [];
+
+	function initProjectDetailReveal() {
+		detailTrigger?.kill();
+		detailTrigger = null;
+		galleryTriggers.forEach((trigger) => trigger.kill());
+		galleryTriggers = [];
+
+		const dds = document.querySelectorAll<HTMLElement>(".project-text-content dd");
+		const heading = document.querySelector<HTMLElement>(".short-description");
+		const description = document.querySelector<HTMLElement>(".description");
+		const images = document.querySelectorAll<HTMLElement>(".gallery img");
+
+		if (dds.length) gsap.set(dds, { opacity: 0 });
+
+		const headingLetters = heading ? splitIntoLetterSpans(heading) : [];
+		if (headingLetters.length) {
+			gsap.set(headingLetters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+		}
+
+		if (description) gsap.set(description, { opacity: 0 });
+		if (images.length) gsap.set(images, { opacity: 0 });
+
+		whenPageSettled(() => {
+			// The dd's reveal one at a time, then the short-description
+			// heading spins in letter by letter, then the description
+			// paragraph fades in — one continuous sequence.
+			if (dds.length || headingLetters.length || description) {
+				const timeline = gsap.timeline({
+					scrollTrigger: {
+						trigger: ".project-text-content",
+						start: "top 80%",
+						toggleActions: "play none none reverse",
+					},
+				});
+				if (dds.length) {
+					timeline.to(dds, {
+						opacity: 1,
+						duration: 0.4,
+						ease: "power2.out",
+						stagger: { amount: 0.5 },
+					});
+				}
+				if (headingLetters.length) {
+					timeline.to(
+						headingLetters,
+						{
+							rotateY: 0,
+							opacity: 1,
+							duration: 0.5,
+							ease: "power3.out",
+							stagger: { amount: 0.5 },
+						},
+						">",
+					);
+				}
+				if (description) {
+					timeline.to(
+						description,
+						{ opacity: 1, duration: 0.6, ease: "power2.out" },
+						">",
+					);
+				}
+				detailTrigger = timeline.scrollTrigger ?? null;
+			}
+
+			// Further down, each gallery image fades in on its own as it
+			// scrolls into view — tied to a real duration, not scrubbed to
+			// scroll position.
+			images.forEach((img) => {
+				const tween = gsap.to(img, {
+					opacity: 1,
+					duration: 0.6,
+					ease: "power2.out",
+					scrollTrigger: {
+						trigger: img,
+						start: "top 85%",
+						toggleActions: "play none none reverse",
+					},
+				});
+				if (tween.scrollTrigger) galleryTriggers.push(tween.scrollTrigger);
+			});
+		});
+	}
+
+	function cleanupProjectDetailReveal() {
+		detailTrigger?.kill();
+		detailTrigger = null;
+		galleryTriggers.forEach((trigger) => trigger.kill());
+		galleryTriggers = [];
+	}
+
+	document.addEventListener("astro:page-load", initProjectDetailReveal);
+	document.addEventListener("astro:before-swap", cleanupProjectDetailReveal);
+</script>
+
 <style>
 	.back {
 		display: inline-block;

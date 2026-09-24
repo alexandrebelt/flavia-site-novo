@@ -32,10 +32,44 @@ const metaImage = rawMetaImage && siteUrl && rawMetaImage.startsWith('/')
 	? new URL(rawMetaImage, siteUrl).toString()
 	: rawMetaImage;
 const shouldIndex = seo.allowIndexing !== false && !noindex;
+
+// Astro's built-in "fade" preset crossfades in 180ms — the old and new page
+// briefly overlap, and that's not much of a window for the scroll-to-top
+// reset (see the client script's astro:before-swap listener) to actually
+// settle before the new page becomes visible. This instead fades the old
+// page out, then (only once that's fully done) fades the new one in — the
+// swap and scroll reset happen right at the start of this, during the old
+// page's fade-out, so by the time the new page is revealed it's already
+// sitting at the top with nothing left to catch up on. Reuses the
+// astroFadeIn/astroFadeOut keyframes the "fade" preset itself uses (built
+// into <ClientRouter />, no extra CSS needed here).
+const FADE_DURATION_MS = 350;
+const fadeOutThenIn = {
+	old: {
+		name: "astroFadeOut",
+		duration: `${FADE_DURATION_MS}ms`,
+		easing: "cubic-bezier(0.76, 0, 0.24, 1)",
+		fillMode: "both",
+	},
+	new: {
+		name: "astroFadeIn",
+		duration: `${FADE_DURATION_MS}ms`,
+		delay: `${FADE_DURATION_MS}ms`,
+		easing: "cubic-bezier(0.76, 0, 0.24, 1)",
+		fillMode: "both",
+	},
+};
+const pageTransition = { forwards: fadeOutThenIn, backwards: fadeOutThenIn };
+// Total time the entrance takes to finish becoming fully visible (old page's
+// fade-out, then new page's fade-in) — read client-side to hold back
+// anything that's meant to be the first thing the visitor actually sees
+// (the hero letter reveals) until the page is done fading in, instead of it
+// running mostly hidden during the fade and never being seen.
+const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-page-transition-ms={PAGE_TRANSITION_MS}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
@@ -70,7 +104,7 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 	</head>
 	<body>
 		<Header transition:persist />
-		<main transition:animate="fade">
+		<main transition:animate={pageTransition}>
 			<slot />
 		</main>
 		<Footer transition:persist />
@@ -81,8 +115,30 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 	import LocomotiveScroll from "locomotive-scroll";
 	import gsap from "gsap";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
+	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 
 	gsap.registerPlugin(ScrollTrigger);
+
+	// astro:page-load fires as soon as the new page is swapped in — still
+	// hidden behind the fade-out/fade-in transition (see the frontmatter
+	// above) — not once it's actually visible. Anything that's meant to be
+	// the first thing the visitor sees (a hero letter reveal) should wait
+	// for this instead, or it plays out mostly hidden during the fade and
+	// is never actually seen running. The very first hard page load has no
+	// transition to wait for, so it fires immediately.
+	const pageTransitionMs = Number(document.documentElement.dataset.pageTransitionMs) || 0;
+	let hasLoadedOnce = false;
+	document.addEventListener("astro:page-load", () => {
+		if (!hasLoadedOnce) {
+			hasLoadedOnce = true;
+			document.dispatchEvent(new CustomEvent("astro:page-ready"));
+			return;
+		}
+		setTimeout(
+			() => document.dispatchEvent(new CustomEvent("astro:page-ready")),
+			pageTransitionMs,
+		);
+	});
 
 	// Stop the browser from restoring the previous scroll position on
 	// refresh/back-forward — every load/navigation should start at the top,
@@ -99,18 +155,43 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 	// DOM is enough to pick up the new scrollable height.
 	let locomotiveScroll: LocomotiveScroll | null = null;
 
-	function initSmoothScroll() {
-		// Reset native scroll first so Locomotive/Lenis (created or resized
-		// right after) picks up from the top rather than wherever the
-		// previous page happened to leave off.
+	// Runs as early as possible — right when the swap itself happens, still
+	// during the old page's fade-out — so the reset has the whole rest of
+	// the (now longer) transition to settle before the new page's fade-in
+	// ever reveals it. If it ran only after astro:page-load instead, it'd be
+	// racing the new page's very first visible frame.
+	document.addEventListener("astro:before-swap", () => {
 		window.scrollTo(0, 0);
+		if (!locomotiveScroll) return;
+		// If the user was still mid-scroll (wheel/touch momentum) the instant
+		// they navigated, Lenis's own animation loop is still decaying that
+		// velocity — scrollTo(0, {immediate:true}) alone doesn't cancel it,
+		// so the old momentum keeps nudging the position afterwards instead
+		// of it snapping. stop() resets Lenis's internal velocity/animation
+		// state; start() resumes it — that sequence is what makes the jump
+		// to top actually instant.
+		const lenis = locomotiveScroll.lenisInstance;
+		lenis?.stop();
+		lenis?.start();
+		locomotiveScroll.scrollTo(0, { immediate: true });
+	});
 
+	function initSmoothScroll() {
 		if (locomotiveScroll) {
+			// The jump to top already happened on astro:before-swap, above —
+			// this just needs the new page's own scrollable height and
+			// ScrollTrigger's trigger positions recalculated against it.
 			locomotiveScroll.resize();
-			locomotiveScroll.scrollTo(0, { immediate: true });
 			ScrollTrigger.refresh();
 			return;
 		}
+
+		// First hard load: no previous page to reset scroll on before a
+		// swap, so it happens here instead — the browser already starts a
+		// fresh load at the top on its own, but this covers a restored
+		// scroll position (back/forward, bfcache) just in case.
+		window.scrollTo(0, 0);
+
 		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 		locomotiveScroll = new LocomotiveScroll();
 
@@ -132,6 +213,36 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 	// every trigger against the final layout.
 	window.addEventListener("load", () => ScrollTrigger.refresh());
 
+	// That single "load" refresh only covers what's already loading by the
+	// time the page first settles. It misses anything that changes the
+	// page's height afterwards: a `loading="lazy"` image (gallery, project
+	// grid thumbnails) that only starts fetching once it nears the
+	// viewport, or an admin-configured hero image/video swapped in later via
+	// a site-settings fetch (about.astro, index.astro, Header.astro all do
+	// this). Left uncorrected, every trigger below that element keeps the
+	// stale position it was created with. Listening here, once, for the
+	// whole session — instead of every page remembering to refresh after
+	// its own async media — catches all of it, on every page, including
+	// ones added after this listener was registered. `load`/`loadedmetadata`
+	// don't bubble, but a capturing-phase listener on `document` still sees
+	// them from any descendant.
+	let mediaRefreshRaf = 0;
+	function scheduleMediaRefresh() {
+		if (mediaRefreshRaf) return;
+		mediaRefreshRaf = requestAnimationFrame(() => {
+			mediaRefreshRaf = 0;
+			ScrollTrigger.refresh();
+		});
+	}
+	function handleMediaSettle(event: Event) {
+		if (event.target instanceof HTMLImageElement || event.target instanceof HTMLVideoElement) {
+			scheduleMediaRefresh();
+		}
+	}
+	document.addEventListener("load", handleMediaSettle, true);
+	document.addEventListener("loadedmetadata", handleMediaSettle, true);
+	document.fonts?.ready.then(() => scheduleMediaRefresh());
+
 	document.addEventListener("astro:page-load", initSmoothScroll);
 
 	async function applyCustomFavicon() {
@@ -150,6 +261,37 @@ const shouldIndex = seo.allowIndexing !== false && !noindex;
 	}
 
 	document.addEventListener("astro:page-load", applyCustomFavicon);
+
+	// .btn-primary's hover: each letter dims slightly, one after another,
+	// and undims the same way on mouseleave — the underline itself thickens
+	// via pure CSS (see main.css), this only handles the per-letter opacity.
+	function bindBtnPrimaryLetterHover() {
+		document.querySelectorAll<HTMLElement>(".btn-primary").forEach((btn) => {
+			if (btn.dataset.letterHoverBound) return;
+			btn.dataset.letterHoverBound = "true";
+
+			const letters = splitIntoLetterSpans(btn);
+
+			btn.addEventListener("mouseenter", () => {
+				gsap.to(letters, {
+					opacity: 0.5,
+					duration: 0.3,
+					ease: "power2.out",
+					stagger: 0.02,
+				});
+			});
+			btn.addEventListener("mouseleave", () => {
+				gsap.to(letters, {
+					opacity: 1,
+					duration: 0.3,
+					ease: "power2.out",
+					stagger: 0.02,
+				});
+			});
+		});
+	}
+
+	document.addEventListener("astro:page-load", bindBtnPrimaryLetterHover);
 </script>
 
 <style>

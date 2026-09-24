@@ -35,7 +35,8 @@ const scopeOptions = [
 	</section>
 	<section class="inquire-section-2">
 		<div class="inquire-section-2-wrapper limit">
-			<form class="inquire-form" id="inquiry-form">
+			<div class="inquire-form-stage">
+			<form class="inquire-form" id="inquiry-form" novalidate>
 				<div class="inquire-form-col">
 					<div class="field">
 						<input
@@ -55,6 +56,7 @@ const scopeOptions = [
 							name="location"
 							placeholder="Location | Country"
 							aria-label="Location and Country"
+							required
 						/>
 					</div>
 
@@ -76,6 +78,7 @@ const scopeOptions = [
 							name="phone"
 							placeholder="Contact Phone"
 							aria-label="Contact Phone"
+							required
 						/>
 					</div>
 
@@ -86,6 +89,7 @@ const scopeOptions = [
 							name="website"
 							placeholder="Website | Instagram"
 							aria-label="Website and Instagram"
+							required
 						/>
 					</div>
 
@@ -96,6 +100,7 @@ const scopeOptions = [
 							name="foundStudio"
 							placeholder="How did you find the studio?"
 							aria-label="How did you find the studio?"
+							required
 						/>
 					</div>
 
@@ -104,6 +109,7 @@ const scopeOptions = [
 							id="proposal-method"
 							name="proposalMethod"
 							aria-label="How would you prefer to receive the proposal?"
+							required
 						>
 							<option value="" selected disabled
 								>How would you prefer to receive the proposal?</option
@@ -171,6 +177,7 @@ const scopeOptions = [
 							name="business"
 							placeholder="Business | Brand Name"
 							aria-label="Business and Brand Name"
+							required
 						/>
 					</div>
 
@@ -180,7 +187,8 @@ const scopeOptions = [
 							name="businessDescription"
 							rows="3"
 							placeholder="What does your business do?"
-							aria-label="What does your business do?"></textarea>
+							aria-label="What does your business do?"
+							required></textarea>
 					</div>
 
 					<div class="field">
@@ -188,6 +196,7 @@ const scopeOptions = [
 							id="project-type"
 							name="projectType"
 							aria-label="Project Type"
+							required
 						>
 							<option value="" selected disabled
 								>Project Type</option
@@ -202,6 +211,7 @@ const scopeOptions = [
 							id="launch-timing"
 							name="launchTiming"
 							aria-label="When would you like to launch?"
+							required
 						>
 							<option value="" selected disabled
 								>When would you like to launch?</option
@@ -221,6 +231,7 @@ const scopeOptions = [
 							name="investmentRange"
 							placeholder="Investment range"
 							aria-label="Investment range"
+							required
 						/>
 					</div>
 
@@ -230,14 +241,22 @@ const scopeOptions = [
 							name="projectDetails"
 							rows="3"
 							placeholder="Tell me about your project"
-							aria-label="Tell me about your project"></textarea>
+							aria-label="Tell me about your project"
+							required></textarea>
 					</div>
 
 					<div class="inquire-submit-row">
-						<button type="submit" class="btn-secondary" id="inquiry-submit-btn"
-							>Send Inquiry</button
+						<button
+							type="submit"
+							class="btn-secondary"
+							id="inquiry-submit-btn">Send Inquiry</button
 						>
-						<p id="inquiry-status" class="inquire-status" role="status"></p>
+						<p
+							id="inquiry-status"
+							class="inquire-status"
+							role="status"
+						>
+						</p>
 					</div>
 
 					<div class="inquire-contact-info">
@@ -256,6 +275,12 @@ const scopeOptions = [
 					</div>
 				</div>
 			</form>
+
+			<div class="inquire-success" id="inquiry-success" aria-hidden="true">
+				<h1 class="inquire-success-heading">Thank you!</h1>
+				<h6 class="inquire-success-subtext">Thanks for sharing your project, I’ll be in touch soon.</h6>
+			</div>
+			</div>
 		</div>
 	</section>
 </Layout>
@@ -263,11 +288,13 @@ const scopeOptions = [
 <script>
 	import gsap from "gsap";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
-	import { playHeroLetterReveal } from "../scripts/hero-letter-reveal";
+	import { playHeroLetterReveal, splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
 
 	gsap.registerPlugin(ScrollTrigger);
 
+	// Fires right as the page swaps in, same moment the entrance fade
+	// starts — see the identical note on index.astro's playHeroReveal.
 	document.addEventListener("astro:page-load", playHeroLetterReveal);
 
 	let formRevealTrigger: ScrollTrigger | null = null;
@@ -276,7 +303,9 @@ const scopeOptions = [
 		formRevealTrigger?.kill();
 		formRevealTrigger = null;
 
-		const items = document.querySelectorAll<HTMLElement>(".inquire-form-col > *");
+		const items = document.querySelectorAll<HTMLElement>(
+			".inquire-form-col > *",
+		);
 		if (!items.length) return;
 
 		gsap.set(items, { opacity: 0 });
@@ -286,7 +315,7 @@ const scopeOptions = [
 				scrollTrigger: {
 					trigger: ".inquire-form",
 					start: "top 45%",
-					toggleActions: "play none none reverse",
+					toggleActions: "play none none none",
 				},
 			});
 			timeline.to(items, {
@@ -348,15 +377,217 @@ const scopeOptions = [
 		clockInterval = null;
 	});
 
+	// Writes (or clears) an English error message right after whatever it
+	// belongs to — a field's own box, the scope fieldset as a whole, or (for
+	// the Social Media Kit sub-option rule) that one scope item. Passing
+	// `null` clears it. Reusing the same element on repeat calls keeps this
+	// idempotent, so it's safe to call on every input/change.
+	function setFieldError(container: Element | null, message: string | null) {
+		if (!container) return;
+		let el = container.querySelector<HTMLElement>(":scope > .field-error");
+		if (message) {
+			if (!el) {
+				el = document.createElement("p");
+				el.className = "field-error";
+				// Astro's scoped styles work by stamping a per-component
+				// data-astro-cid-* attribute onto every element in the
+				// template at build time, and scoping each CSS rule to match
+				// it — an element created here in JS never gets one, so its
+				// class alone wouldn't be enough to match .field-error's
+				// (scoped) rule without copying the attribute from a sibling
+				// that already has it.
+				for (const attr of Array.from(container.attributes)) {
+					if (attr.name.startsWith("data-astro-cid-")) {
+						el.setAttribute(attr.name, attr.value);
+					}
+				}
+				container.appendChild(el);
+			}
+			el.textContent = message;
+		} else {
+			el?.remove();
+		}
+	}
+
+	// Fades the form out, then plays the same letter-spin reveal used for
+	// the site's hero headings on the success message underneath it — the
+	// form is still in the DOM (just invisible), which is what keeps the
+	// success message centered in the same spot rather than the page
+	// reflowing to fill the gap.
+	function playSuccessReveal(successEl: HTMLElement) {
+		// Selected by class, not tag — so this doesn't silently stop working
+		// again if the heading level changes for semantic/SEO reasons.
+		const heading = successEl.querySelector<HTMLElement>(".inquire-success-heading");
+		const subtext = successEl.querySelector<HTMLElement>(".inquire-success-subtext");
+		if (!heading || !subtext) return;
+
+		const letters = splitIntoLetterSpans(heading);
+		gsap.set(letters, { rotateY: -90, opacity: 0, transformPerspective: 400 });
+		gsap.set(subtext, { opacity: 0 });
+
+		successEl.removeAttribute("aria-hidden");
+		successEl.classList.add("active");
+
+		gsap
+			.timeline()
+			.to(successEl, { opacity: 1, duration: 0.3, ease: "power2.out" })
+			.to(
+				letters,
+				{
+					rotateY: 0,
+					opacity: 1,
+					duration: 0.5,
+					ease: "power3.out",
+					stagger: { amount: 0.4 },
+				},
+				"-=0.1",
+			)
+			.to(subtext, { opacity: 1, duration: 0.5, ease: "power2.out" }, ">");
+	}
+
+	function showSuccess(form: HTMLFormElement, successEl: HTMLElement) {
+		gsap.to(form, {
+			opacity: 0,
+			duration: 0.4,
+			ease: "power2.out",
+			onComplete: () => {
+				form.classList.add("is-hidden");
+				// The reset (clearing values, dropping error messages) only
+				// happens once the form is actually faded out and hidden —
+				// doing it earlier would flash the fields empty for a beat
+				// while they're still visible, mid-fade.
+				form.reset();
+				form.querySelectorAll(".field-error").forEach((el) => el.remove());
+				playSuccessReveal(successEl);
+			},
+		});
+	}
+
 	function bindInquiryForm() {
-		const form = document.getElementById("inquiry-form") as HTMLFormElement | null;
-		const submitBtn = document.getElementById("inquiry-submit-btn") as HTMLButtonElement | null;
+		const form = document.getElementById(
+			"inquiry-form",
+		) as HTMLFormElement | null;
+		const submitBtn = document.getElementById(
+			"inquiry-submit-btn",
+		) as HTMLButtonElement | null;
 		const status = document.getElementById("inquiry-status");
-		if (!form || !submitBtn || !status || form.dataset.bound) return;
+		const success = document.getElementById("inquiry-success");
+		if (!form || !submitBtn || !status || !success || form.dataset.bound)
+			return;
 		form.dataset.bound = "true";
+
+		// Some browsers restore previously typed values on a hard refresh
+		// (and the status text/error messages from a prior fill), so every
+		// time this page is shown — first load, refresh, or navigating back
+		// to it — it starts from a genuinely blank form. That includes a
+		// prior success: the form itself comes back too, not the message.
+		form.reset();
+		status.textContent = "";
+		status.classList.remove("error");
+		form.querySelectorAll(".field-error").forEach((el) => el.remove());
+		gsap.set(form, { opacity: 1 });
+		form.classList.remove("is-hidden");
+		gsap.set(success, { opacity: 0 });
+		success.classList.remove("active");
+		success.setAttribute("aria-hidden", "true");
+		// reset() doesn't fire "change", so the Social Media Kit sub-options
+		// panel (expanded by bindScopeToggles off that event) needs its own
+		// re-sync here, or it'd stay visually expanded after a reset that
+		// unchecked its box.
+		form.querySelectorAll<HTMLElement>(".scope-item").forEach((item) => {
+			const input = item.querySelector<HTMLInputElement>(
+				".scope-parent-input.has-children",
+			);
+			item.classList.toggle("expanded", !!input?.checked);
+		});
+
+		// Every plain input/select/textarea in the form is required — one
+		// generic check (via the browser's own constraint validation, native
+		// popup suppressed by novalidate on the form) covers all of them
+		// instead of a bespoke function per field.
+		const requiredFields = Array.from(
+			form.querySelectorAll<HTMLInputElement>(".field [required]"),
+		);
+		const validateField = (el: HTMLInputElement) => {
+			const box = el.closest(".field");
+			if (el.validity.valueMissing) {
+				setFieldError(box, "This field is required.");
+				return false;
+			}
+			if (el.validity.typeMismatch) {
+				setFieldError(box, "Please enter a valid email address.");
+				return false;
+			}
+			setFieldError(box, null);
+			return true;
+		};
+		requiredFields.forEach((el) => {
+			el.addEventListener(
+				el.tagName === "SELECT" ? "change" : "input",
+				() => validateField(el),
+			);
+		});
+
+		// Scope isn't marked on individual checkboxes (there's no native
+		// "at least one of this group" validity) — at least one of them has
+		// to be checked, or the message goes at the end of the fieldset as a
+		// whole rather than on any one option.
+		const scopeField = form.querySelector(".scope-field");
+		const validateScope = () => {
+			const anyChecked = !!form.querySelector<HTMLInputElement>(
+				'input[name="scope"]:checked',
+			);
+			setFieldError(
+				scopeField,
+				anyChecked ? null : "Select at least one option.",
+			);
+			return anyChecked;
+		};
+
+		// Social Media Kit is only actually invalid once at least one of its
+		// sub-options (Digital, Print & Stationery, ...) is required to go
+		// with it — checked with none of those checked.
+		const socialKitInput = form.querySelector<HTMLInputElement>(
+			'.scope-parent-input[value="Social Media Kit"]',
+		);
+		const socialKitItem = socialKitInput?.closest(".scope-item") ?? null;
+		const validateSocialKit = () => {
+			if (!socialKitInput) return true;
+			if (!socialKitInput.checked) {
+				setFieldError(socialKitItem, null);
+				return true;
+			}
+			const hasChildChecked =
+				!!socialKitItem?.querySelector<HTMLInputElement>(
+					".scope-suboptions input:checked",
+				);
+			setFieldError(
+				socialKitItem,
+				hasChildChecked
+					? null
+					: "Select at least one Social Media Kit sub-option.",
+			);
+			return hasChildChecked;
+		};
+
+		form.querySelectorAll<HTMLInputElement>('input[name="scope"]').forEach(
+			(cb) =>
+				cb.addEventListener("change", () => {
+					validateScope();
+					validateSocialKit();
+				}),
+		);
 
 		form.addEventListener("submit", async (e) => {
 			e.preventDefault();
+
+			const fieldsValid = requiredFields
+				.map(validateField)
+				.every(Boolean);
+			const validScope = validateScope();
+			const validSocialKit = validateSocialKit();
+			if (!fieldsValid || !validScope || !validSocialKit) return;
+
 			submitBtn.disabled = true;
 			status.textContent = "Sending…";
 			status.classList.remove("error");
@@ -376,14 +607,17 @@ const scopeOptions = [
 				});
 				const data = await res.json().catch(() => ({}));
 
-				if (!res.ok) throw new Error(data.error || "Something went wrong.");
+				if (!res.ok)
+					throw new Error(data.error || "Something went wrong.");
 
-				status.textContent = "Thanks — I’ll be in touch soon.";
-				form.reset();
+				status.textContent = "";
+				showSuccess(form, success);
 			} catch (err) {
 				status.classList.add("error");
 				status.textContent =
-					err instanceof Error ? err.message : "Something went wrong. Please try again.";
+					err instanceof Error
+						? err.message
+						: "Something went wrong. Please try again.";
 			} finally {
 				submitBtn.disabled = false;
 			}
@@ -413,6 +647,10 @@ const scopeOptions = [
 		padding-bottom: 4em;
 	}
 
+	.inquire-form-stage {
+		position: relative;
+	}
+
 	.inquire-form {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
@@ -420,6 +658,38 @@ const scopeOptions = [
 		align-items: start;
 		max-width: 1100px;
 		margin: 0 auto;
+		transition: opacity 0.4s ease;
+	}
+
+	.inquire-form.is-hidden {
+		opacity: 0;
+		pointer-events: none;
+		/* Shrinks the space the (now invisible) form's box still reserves —
+		   .inquire-success is absolutely positioned to fill .inquire-form-stage,
+		   which is sized off this box, so this is what keeps the success
+		   message from centering in a tall gap left over from the full form. */
+		max-height: 300px;
+		overflow: hidden;
+	}
+
+	/* Sits over the form (same stacking area, via position: absolute) so it
+	   can fade in centered in its place once the form fades out, instead of
+	   the page reflowing to make room for it. */
+	.inquire-success {
+		position: absolute;
+		inset: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 1rem;
+		text-align: center;
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.inquire-success.active {
+		pointer-events: auto;
 	}
 
 	.inquire-form-col {
@@ -432,6 +702,15 @@ const scopeOptions = [
 		display: flex;
 		flex-direction: column;
 		width: 100%;
+	}
+
+	.field-error {
+		font-size: 11px;
+		margin: 0;
+		height: 0;
+		transform: translateY(4px);
+		font-weight: 500;
+		color: #5e1115;
 	}
 
 	.scope-field legend {
@@ -672,6 +951,15 @@ const scopeOptions = [
 		.inquire-form {
 			grid-template-columns: 1fr;
 			gap: 2rem;
+		}
+		.inquiry-success h6{
+			max-width: 230px;
+		}
+	}
+	@media (max-width: 690px) {
+		.inquire-hero-wrapper h1{
+			font-size: clamp(4.5rem, 1.25rem + 6.25vw, 6.575rem); /* 40px → 110px */;
+			line-height: 1.2em;
 		}
 	}
 </style>
