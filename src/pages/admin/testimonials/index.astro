@@ -7,7 +7,7 @@ import { loadSiteSettings } from "../../../lib/server/site-data";
 import { normalizeTestimonials } from "../../../data/testimonials";
 
 const settings = await loadSiteSettings(env.DB);
-// "<" escaped so no saved text can close the <script> it's embedded in.
+// "<" escaped so no saved text can close the script tag it's embedded in.
 const initialJson = JSON.stringify(normalizeTestimonials(settings.testimonials)).replace(
 	/</g,
 	"\\u003c",

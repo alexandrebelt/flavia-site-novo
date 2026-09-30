@@ -59,6 +59,8 @@ const isActive = (href: string) =>
 </header>
 
 <script>
+	import { setMenuOpen } from "../scripts/menu";
+
 	function syncActiveLink() {
 		const path = window.location.pathname;
 		document
@@ -68,19 +70,6 @@ const isActive = (href: string) =>
 				const active = href === "/" ? path === "/" : path.startsWith(href);
 				link.classList.toggle("active", active);
 			});
-	}
-
-	// Always acts on whichever header is currently in the DOM — every SPA
-	// navigation swaps in a fresh one, so nothing here may hold on to the
-	// previous page's elements.
-	function setMenuOpen(open: boolean) {
-		const btn = document.querySelector<HTMLButtonElement>(".btn-menu");
-		const menu = document.querySelector<HTMLElement>(".menu-content");
-		if (!btn || !menu) return;
-		menu.classList.toggle("active-menu", open);
-		btn.classList.toggle("active-btn", open);
-		btn.setAttribute("aria-expanded", String(open));
-		document.body.classList.toggle("menu-open", open);
 	}
 
 	// Document-level listeners are registered once for the whole session;
@@ -111,9 +100,9 @@ const isActive = (href: string) =>
 		btn.addEventListener("click", () =>
 			setMenuOpen(!menu.classList.contains("active-menu")),
 		);
-		menu.querySelectorAll("a").forEach((a) =>
-			a.addEventListener("click", () => setMenuOpen(false)),
-		);
+		// No close-on-click for the menu's links: Layout.astro's page
+		// transition closes it (and waits for the slide-out) before fading
+		// the page, which also covers back/forward while it's open.
 	}
 
 	document.addEventListener("astro:page-load", () => {

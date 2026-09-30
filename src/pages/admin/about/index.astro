@@ -8,7 +8,7 @@ import { normalizeRecognitions } from "../../../data/recognitions";
 
 const settings = await getSettings(env.DB);
 const about = settings.about ?? { heroImageUrl: "", recognitions: [] };
-// "<" escaped so no saved text can close the <script> it's embedded in.
+// "<" escaped so no saved text can close the script tag it's embedded in.
 const initialRecognitionsJson = JSON.stringify(normalizeRecognitions(about.recognitions)).replace(
 	/</g,
 	"\\u003c",

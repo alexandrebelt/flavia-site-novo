@@ -57,6 +57,7 @@ const showViewAll = typeof limit === "number";
 
 						<div class="project-col project-col--meta col">
 							<span class="project-year">{project.year}</span>
+							<span class="project-country">{project.country}</span>
 							<p class="project-tags">
 								{[project.category, ...project.tags].join(", ")}
 							</p>
@@ -160,6 +161,11 @@ const showViewAll = typeof limit === "number";
 	}
 
 	.project-year {
+		font-size: var(--font-size-h6);
+		color: var(--color-gray);
+	}
+
+	.project-country {
 		font-size: var(--font-size-h6);
 		color: var(--color-gray);
 	}

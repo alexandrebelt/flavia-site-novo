@@ -16,9 +16,12 @@ interface Props {
 	description?: string;
 	ogImage?: string;
 	noindex?: boolean;
+	/** Standalone page (e.g. /links): no header, banner or footer, on a
+	 *  black background. */
+	bare?: boolean;
 }
 
-const { title: pageTitle, description, ogImage, noindex } = Astro.props;
+const { title: pageTitle, description, ogImage, noindex, bare } = Astro.props;
 
 // Rendered per request from what the admin saved in D1 (see
 // lib/server/site-data.ts) — a save there shows up on the next page view,
@@ -59,43 +62,29 @@ const structuredData = {
 // Escaped so a "</script>" inside any admin-entered value can't end the tag.
 const structuredDataJson = JSON.stringify(structuredData).replace(/</g, '\\u003c');
 
-// Astro's built-in "fade" preset crossfades in 180ms — the old and new page
-// briefly overlap, and that's not much of a window for the scroll-to-top
-// reset (see the client script's astro:before-swap listener) to actually
-// settle before the new page becomes visible. This instead fades the old
-// page out, then (only once that's fully done) fades the new one in — the
-// swap and scroll reset happen right at the start of this, during the old
-// page's fade-out, so by the time the new page is revealed it's already
-// sitting at the top with nothing left to catch up on. Reuses the
-// astroFadeIn/astroFadeOut keyframes the "fade" preset itself uses (built
-// into <ClientRouter />, no extra CSS needed here).
+// Page transitions fade the whole <body> (header and footer included)
+// rather than a view-transition crossfade: on click it fades out while the
+// next page loads, the swap (and the scroll-to-top reset) happens while
+// everything is invisible, then the new page fades in after a short pause.
+// Driven by the client script below; the timings reach it (and the CSS,
+// see main.css) through data attributes on <html>.
 const FADE_DURATION_MS = 350;
-const fadeOutThenIn = {
-	old: {
-		name: "astroFadeOut",
-		duration: `${FADE_DURATION_MS}ms`,
-		easing: "cubic-bezier(0.76, 0, 0.24, 1)",
-		fillMode: "both",
-	},
-	new: {
-		name: "astroFadeIn",
-		duration: `${FADE_DURATION_MS}ms`,
-		delay: `${FADE_DURATION_MS}ms`,
-		easing: "cubic-bezier(0.76, 0, 0.24, 1)",
-		fillMode: "both",
-	},
-};
-const pageTransition = { forwards: fadeOutThenIn, backwards: fadeOutThenIn };
-// Total time the entrance takes to finish becoming fully visible (old page's
-// fade-out, then new page's fade-in) — read client-side to hold back
-// anything that's meant to be the first thing the visitor actually sees
-// (the hero letter reveals) until the page is done fading in, instead of it
-// running mostly hidden during the fade and never being seen.
-const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
+const FADE_IN_DELAY_MS = 200;
+// Time from the new page being swapped in until it's fully visible — read
+// client-side to hold back anything that's meant to be the first thing the
+// visitor actually sees (the hero letter reveals) until the page is done
+// fading in, instead of it running mostly hidden during the fade.
+const PAGE_TRANSITION_MS = FADE_IN_DELAY_MS + FADE_DURATION_MS;
 ---
 
 <!doctype html>
-<html lang="en" data-page-transition-ms={PAGE_TRANSITION_MS}>
+<html
+	lang="en"
+	data-page-transition-ms={PAGE_TRANSITION_MS}
+	data-page-fade-ms={FADE_DURATION_MS}
+	data-page-fade-delay-ms={FADE_IN_DELAY_MS}
+	style={`--page-fade-ms: ${FADE_DURATION_MS}ms`}
+>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
@@ -139,12 +128,12 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 
 		<ClientRouter />
 	</head>
-	<body>
-		<Header />
-		<main transition:animate={pageTransition}>
+	<body class:list={{ "bare-page": bare }}>
+		{!bare && <Header />}
+		<main transition:animate="none">
 			<slot />
 		</main>
-		<Footer />
+		{!bare && <Footer />}
 	</body>
 </html>
 
@@ -154,6 +143,7 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { TEXT_REVEAL } from "../scripts/text-reveal";
+	import { closeMenuAndWait } from "../scripts/menu";
 
 	// Hands the reveal blur to CSS-only fades too (e.g. the Services cover
 	// carousel), so text-reveal.ts stays the single place to change it.
@@ -165,6 +155,37 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 	document.addEventListener("astro:page-load", shareRevealBlur);
 
 	gsap.registerPlugin(ScrollTrigger);
+
+	// Whole-page fade (see the frontmatter): the old body fades out while the
+	// next page is fetched in parallel — the swap waits for whichever takes
+	// longer — and the new body arrives already hidden, then fades back in
+	// FADE_IN_DELAY after it's in place.
+	const fadeMs = Number(document.documentElement.dataset.pageFadeMs) || 0;
+	const fadeInDelayMs = Number(document.documentElement.dataset.pageFadeDelayMs) || 0;
+	let fadeInTimer = 0;
+	document.addEventListener("astro:before-preparation", (event) => {
+		clearTimeout(fadeInTimer);
+		const loadNextPage = event.loader;
+		event.loader = async () => {
+			// Fetch starts right away; if the menu is open it first slides
+			// away like a normal close, and only then does the page fade.
+			const nextPage = loadNextPage();
+			await closeMenuAndWait();
+			document.body.classList.add("page-hidden");
+			await Promise.all([
+				nextPage,
+				new Promise((resolve) => setTimeout(resolve, fadeMs)),
+			]);
+		};
+	});
+	document.addEventListener("astro:before-swap", (event) => {
+		event.newDocument.body.classList.add("page-hidden");
+	});
+	document.addEventListener("astro:after-swap", () => {
+		fadeInTimer = window.setTimeout(() => {
+			document.body.classList.remove("page-hidden");
+		}, fadeInDelayMs);
+	});
 
 	// astro:page-load fires as soon as the new page is swapped in — still
 	// hidden behind the fade-out/fade-in transition (see the frontmatter
@@ -367,5 +388,14 @@ const PAGE_TRANSITION_MS = FADE_DURATION_MS * 2;
 	main {
 		flex: 1;
 		padding-top: var(--header-total-height);
+	}
+
+	body.bare-page {
+		background: var(--color-black);
+		color: var(--color-offwhite);
+	}
+
+	.bare-page main {
+		padding-top: 0;
 	}
 </style>

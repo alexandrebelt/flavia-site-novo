@@ -3,18 +3,20 @@ import { env } from "cloudflare:workers";
 import Layout from "../layouts/Layout.astro";
 import { turnstileSiteKey } from "../lib/server/turnstile.js";
 import { STUDIO_PHONE } from "../data/contact";
+import i18n from "../data/inquire-i18n.json";
 
-// All plain, independent checkboxes, shown in two columns.
-const scopeOptions = [
-	"Brand Strategy",
-	"Brand Identity",
-	"Social Media Kit",
-	"Digital",
-	"Print & Stationery",
-	"Packaging",
-	"Motion",
-	"Illustration",
-];
+// Rendered in English; the EN/BR switch swaps every [data-i18n*] text
+// client-side from the same JSON (see applyLanguage below).
+const t = i18n.en;
+
+// All plain, independent checkboxes, shown in two columns. The submitted
+// value stays English whatever language is showing, so the studio's email
+// reads the same either way — only the visible label is translated.
+const scopeOptions = Object.entries(t.scope).map(([key, label]) => ({
+	key,
+	value: label,
+	label,
+}));
 ---
 
 <Layout title="Inquire">
@@ -33,15 +35,31 @@ const scopeOptions = [
 	</section>
 	<section class="inquire-section-2">
 		<div class="inquire-section-2-wrapper limit">
-			<div class="inquire-form-stage">
-			<form
+			<div class="inquire-lang-row">
+				<div class="inquire-lang-switch">
+					<span class="inquire-lang-label is-active" data-lang-label="en">EN</span>
+					<button
+						type="button"
+						class="inquire-lang-toggle"
+						id="inquiry-lang-toggle"
+						role="switch"
+						aria-checked="false"
+						aria-label="Português (Brasil)"
+					>
+						<span class="inquire-lang-knob"></span>
+					</button>
+					<span class="inquire-lang-label" data-lang-label="pt">BR</span>
+				</div>
+			</div>
+			<div class="inquire-form-stage" id="inquiry-stage" lang={t.lang}>
+				<form
 				class="inquire-form"
 				id="inquiry-form"
 				data-turnstile-sitekey={turnstileSiteKey(env)}
 				novalidate
-			>
+				>
 				<!-- Honeypot: invisible to people (and skipped by keyboard and
-				     screen readers); a bot that fills it is silently dropped
+				screen readers); a bot that fills it is silently dropped
 				     by /api/inquiry. -->
 				<div class="inquire-hp" aria-hidden="true">
 					<label for="inquiry-company">Company</label>
@@ -53,8 +71,9 @@ const scopeOptions = [
 							type="text"
 							id="full-name"
 							name="fullName"
-							placeholder="Full Name"
-							aria-label="Full Name"
+							placeholder={t.fullName}
+							aria-label={t.fullName}
+							data-i18n-placeholder="fullName"
 							required
 						/>
 					</div>
@@ -64,8 +83,9 @@ const scopeOptions = [
 							type="text"
 							id="location"
 							name="location"
-							placeholder="Location | Country"
-							aria-label="Location and Country"
+							placeholder={t.location}
+							aria-label={t.location}
+							data-i18n-placeholder="location"
 							required
 						/>
 					</div>
@@ -75,8 +95,9 @@ const scopeOptions = [
 							type="email"
 							id="email"
 							name="email"
-							placeholder="Email Address"
-							aria-label="Email Address"
+							placeholder={t.email}
+							aria-label={t.email}
+							data-i18n-placeholder="email"
 							required
 						/>
 					</div>
@@ -86,8 +107,9 @@ const scopeOptions = [
 							type="tel"
 							id="phone"
 							name="phone"
-							placeholder="Contact Phone"
-							aria-label="Contact Phone"
+							placeholder={t.phone}
+							aria-label={t.phone}
+							data-i18n-placeholder="phone"
 							required
 						/>
 					</div>
@@ -97,8 +119,9 @@ const scopeOptions = [
 							type="text"
 							id="website"
 							name="website"
-							placeholder="Website | Instagram"
-							aria-label="Website and Instagram"
+							placeholder={t.website}
+							aria-label={t.website}
+							data-i18n-placeholder="website"
 							required
 						/>
 					</div>
@@ -108,8 +131,9 @@ const scopeOptions = [
 							type="text"
 							id="found-studio"
 							name="foundStudio"
-							placeholder="How did you find the studio?"
-							aria-label="How did you find the studio?"
+							placeholder={t.foundStudio}
+							aria-label={t.foundStudio}
+							data-i18n-placeholder="foundStudio"
 							required
 						/>
 					</div>
@@ -118,26 +142,27 @@ const scopeOptions = [
 						<select
 							id="proposal-method"
 							name="proposalMethod"
-							aria-label="How would you prefer to receive the proposal?"
+							aria-label={t.proposalMethod}
+							data-i18n-aria="proposalMethod"
 							required
 						>
-							<option value="" selected disabled
-								>How would you prefer to receive the proposal?</option
+							<option value="" selected disabled data-i18n="proposalMethod"
+								>{t.proposalMethod}</option
 							>
-							<option value="email">Email</option>
-							<option value="whatsapp">Whatsapp</option>
+							<option value="email" data-i18n="proposalEmail">{t.proposalEmail}</option>
+							<option value="whatsapp" data-i18n="proposalWhatsapp">{t.proposalWhatsapp}</option>
 						</select>
 					</div>
 
 					<fieldset class="field scope-field">
-						<legend>Scope (select all that apply)</legend>
+						<legend data-i18n="scopeLegend">{t.scopeLegend}</legend>
 						<div class="scope-options">
 							{
 								scopeOptions.map((option) => (
 									<label class="scope-option">
-										<input type="checkbox" name="scope" value={option} />
+										<input type="checkbox" name="scope" value={option.value} />
 										<span class="scope-dot" />
-										{option}
+										<span data-i18n={`scope.${option.key}`}>{option.label}</span>
 									</label>
 								))
 							}
@@ -151,8 +176,9 @@ const scopeOptions = [
 							type="text"
 							id="business"
 							name="business"
-							placeholder="Business | Brand Name"
-							aria-label="Business and Brand Name"
+							placeholder={t.business}
+							aria-label={t.business}
+							data-i18n-placeholder="business"
 							required
 						/>
 					</div>
@@ -162,8 +188,9 @@ const scopeOptions = [
 							id="business-description"
 							name="businessDescription"
 							rows="3"
-							placeholder="What does your business do?"
-							aria-label="What does your business do?"
+							placeholder={t.businessDescription}
+							aria-label={t.businessDescription}
+							data-i18n-placeholder="businessDescription"
 							required></textarea>
 					</div>
 
@@ -171,14 +198,15 @@ const scopeOptions = [
 						<select
 							id="project-type"
 							name="projectType"
-							aria-label="Project Type"
+							aria-label={t.projectType}
+							data-i18n-aria="projectType"
 							required
 						>
-							<option value="" selected disabled
-								>Project Type</option
+							<option value="" selected disabled data-i18n="projectType"
+								>{t.projectType}</option
 							>
-							<option value="new-brand">New brand</option>
-							<option value="redesign">Redesign</option>
+							<option value="new-brand" data-i18n="projectTypeNewBrand">{t.projectTypeNewBrand}</option>
+							<option value="redesign" data-i18n="projectTypeRedesign">{t.projectTypeRedesign}</option>
 						</select>
 					</div>
 
@@ -186,17 +214,18 @@ const scopeOptions = [
 						<select
 							id="launch-timing"
 							name="launchTiming"
-							aria-label="When would you like to launch?"
+							aria-label={t.launchTiming}
+							data-i18n-aria="launchTiming"
 							required
 						>
-							<option value="" selected disabled
-								>When would you like to launch?</option
+							<option value="" selected disabled data-i18n="launchTiming"
+								>{t.launchTiming}</option
 							>
-							<option value="asap">As soon as possible</option>
-							<option value="45-days">Within 45 days</option>
-							<option value="60-days">Within 60 days</option>
-							<option value="90-days">Within 90 days</option>
-							<option value="flexible">I’m flexible</option>
+							<option value="asap" data-i18n="launchAsap">{t.launchAsap}</option>
+							<option value="45-days" data-i18n="launch45">{t.launch45}</option>
+							<option value="60-days" data-i18n="launch60">{t.launch60}</option>
+							<option value="90-days" data-i18n="launch90">{t.launch90}</option>
+							<option value="flexible" data-i18n="launchFlexible">{t.launchFlexible}</option>
 						</select>
 					</div>
 
@@ -205,8 +234,9 @@ const scopeOptions = [
 							type="text"
 							id="investment-range"
 							name="investmentRange"
-							placeholder="Investment range"
-							aria-label="Investment range"
+							placeholder={t.investmentRange}
+							aria-label={t.investmentRange}
+							data-i18n-placeholder="investmentRange"
 							required
 						/>
 					</div>
@@ -216,8 +246,9 @@ const scopeOptions = [
 							id="project-details"
 							name="projectDetails"
 							rows="3"
-							placeholder="Tell me about your project"
-							aria-label="Tell me about your project"
+							placeholder={t.projectDetails}
+							aria-label={t.projectDetails}
+							data-i18n-placeholder="projectDetails"
 							required></textarea>
 					</div>
 
@@ -226,7 +257,8 @@ const scopeOptions = [
 						<button
 							type="submit"
 							class="btn-secondary"
-							id="inquiry-submit-btn">Send Inquiry</button
+							id="inquiry-submit-btn"
+							data-i18n="submit">{t.submit}</button
 						>
 						<p
 							id="inquiry-status"
@@ -238,7 +270,7 @@ const scopeOptions = [
 
 					<div class="inquire-contact-info">
 						<h5>
-							Brazil · UTC−3 · <span id="brazil-clock">--:--</span
+							<span data-i18n="brazil">{t.brazil}</span> · UTC−3 · <span id="brazil-clock">--:--</span
 							>
 						</h5>
 						<p>
@@ -254,8 +286,8 @@ const scopeOptions = [
 			</form>
 
 			<div class="inquire-success" id="inquiry-success" aria-hidden="true">
-				<h1 class="inquire-success-heading">Thank you!</h1>
-				<h6 class="inquire-success-subtext">Thanks for sharing your project, I’ll be in touch soon.</h6>
+				<h1 class="inquire-success-heading" data-i18n="successHeading">{t.successHeading}</h1>
+				<h6 class="inquire-success-subtext" data-i18n="successSubtext">{t.successSubtext}</h6>
 			</div>
 			</div>
 		</div>
@@ -269,8 +301,120 @@ const scopeOptions = [
 	import { playHeroLetterReveal, splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
 	import { mountTurnstile, type TurnstileWidget } from "../scripts/turnstile";
+	import i18n from "../data/inquire-i18n.json";
 
 	gsap.registerPlugin(ScrollTrigger);
+
+	type Lang = keyof typeof i18n;
+	const LANG_STORAGE_KEY = "inquire-lang";
+	let lang: Lang = "en";
+
+	// Looks up a dotted key ("errors.required", "scope.motion") in the
+	// current language, falling back to English, then to the key itself.
+	function tr(key: string, forLang: Lang = lang): string {
+		const find = (dict: unknown) =>
+			key
+				.split(".")
+				.reduce<unknown>(
+					(node, part) =>
+						node && typeof node === "object"
+							? (node as Record<string, unknown>)[part]
+							: undefined,
+					dict,
+				);
+		const value = find(i18n[forLang]) ?? find(i18n.en);
+		return typeof value === "string" ? value : key;
+	}
+
+	// Rewrites every translatable text under the form stage (and the
+	// field errors / status line, which carry data-i18n too once shown).
+	function applyLanguage(next: Lang) {
+		lang = next;
+		const stage = document.getElementById("inquiry-stage");
+		if (!stage) return;
+		stage.setAttribute("lang", i18n[next].lang);
+
+		stage.querySelectorAll<HTMLElement>("[data-i18n]").forEach((el) => {
+			const text = tr(el.dataset.i18n!);
+			el.textContent = text;
+			// The success heading keeps an aria-label once it's been split
+			// into letter spans — keep it in step with the visible text.
+			if (el.hasAttribute("aria-label")) el.setAttribute("aria-label", text);
+		});
+		stage
+			.querySelectorAll<HTMLInputElement>("[data-i18n-placeholder]")
+			.forEach((el) => {
+				const text = tr(el.dataset.i18nPlaceholder!);
+				el.placeholder = text;
+				el.setAttribute("aria-label", text);
+			});
+		stage.querySelectorAll<HTMLElement>("[data-i18n-aria]").forEach((el) => {
+			el.setAttribute("aria-label", tr(el.dataset.i18nAria!));
+		});
+
+		const toggle = document.getElementById("inquiry-lang-toggle");
+		toggle?.setAttribute("aria-checked", String(next === "pt"));
+		toggle?.setAttribute(
+			"aria-label",
+			next === "pt" ? "Switch to English" : "Mudar para português",
+		);
+		document
+			.querySelectorAll<HTMLElement>("[data-lang-label]")
+			.forEach((el) =>
+				el.classList.toggle("is-active", el.dataset.langLabel === next),
+			);
+	}
+
+	function readStoredLang(): Lang {
+		try {
+			return localStorage.getItem(LANG_STORAGE_KEY) === "pt" ? "pt" : "en";
+		} catch {
+			return "en";
+		}
+	}
+
+	function bindLanguageSwitch() {
+		const toggle = document.getElementById("inquiry-lang-toggle");
+		const stage = document.getElementById("inquiry-stage");
+		if (!toggle || !stage || toggle.dataset.bound) return;
+		toggle.dataset.bound = "true";
+
+		// A remembered choice is applied instantly on load — the fade is
+		// only for switching while looking at the form.
+		applyLanguage(readStoredLang());
+
+		let switching = false;
+		toggle.addEventListener("click", () => {
+			if (switching) return;
+			switching = true;
+			const next: Lang = lang === "en" ? "pt" : "en";
+			try {
+				localStorage.setItem(LANG_STORAGE_KEY, next);
+			} catch {}
+
+			// Knob and labels move right away; the texts fade out, swap
+			// while invisible, then fade back in.
+			toggle.setAttribute("aria-checked", String(next === "pt"));
+			gsap.to(stage, {
+				opacity: 0,
+				duration: 0.3,
+				ease: "power2.in",
+				onComplete: () => {
+					applyLanguage(next);
+					gsap.to(stage, {
+						opacity: 1,
+						duration: 0.3,
+						ease: "power2.out",
+						onComplete: () => {
+							switching = false;
+						},
+					});
+				},
+			});
+		});
+	}
+
+	document.addEventListener("astro:page-load", bindLanguageSwitch);
 
 	// Fires right as the page swaps in, same moment the entrance fade
 	// starts — see the identical note on index.astro's playHeroReveal.
@@ -283,7 +427,7 @@ const scopeOptions = [
 		formRevealTrigger = null;
 
 		const items = document.querySelectorAll<HTMLElement>(
-			".inquire-form-col > *",
+			".inquire-lang-switch, .inquire-form-col > *",
 		);
 		if (!items.length) return;
 
@@ -340,14 +484,16 @@ const scopeOptions = [
 		clockInterval = null;
 	});
 
-	// Writes (or clears) an English error message right after whatever it
-	// belongs to — a field's own box or the scope fieldset as a whole.
-	// Passing `null` clears it. Reusing the same element on repeat calls keeps this
+	// Writes (or clears) an error message right after whatever it belongs
+	// to — a field's own box or the scope fieldset as a whole. Takes a key
+	// under "errors" in inquire-i18n.json (kept on the element as
+	// data-i18n, so switching language retranslates it). Passing `null`
+	// clears it. Reusing the same element on repeat calls keeps this
 	// idempotent, so it's safe to call on every input/change.
-	function setFieldError(container: Element | null, message: string | null) {
+	function setFieldError(container: Element | null, errorKey: string | null) {
 		if (!container) return;
 		let el = container.querySelector<HTMLElement>(":scope > .field-error");
-		if (message) {
+		if (errorKey) {
 			if (!el) {
 				el = document.createElement("p");
 				el.className = "field-error";
@@ -365,7 +511,8 @@ const scopeOptions = [
 				}
 				container.appendChild(el);
 			}
-			el.textContent = message;
+			el.dataset.i18n = `errors.${errorKey}`;
+			el.textContent = tr(el.dataset.i18n);
 		} else {
 			el?.remove();
 		}
@@ -437,6 +584,20 @@ const scopeOptions = [
 			return;
 		form.dataset.bound = "true";
 
+		// Status keys go through data-i18n like everything else, so a
+		// shown message retranslates on a language switch; a raw
+		// (untranslatable) server message is written as-is.
+		const setStatus = (key: string | null, isError = false, raw = "") => {
+			status.classList.toggle("error", isError);
+			if (key) {
+				status.dataset.i18n = key;
+				status.textContent = tr(key);
+			} else {
+				delete status.dataset.i18n;
+				status.textContent = raw;
+			}
+		};
+
 		const turnstileContainer = document.getElementById("inquiry-turnstile");
 		turnstile?.remove();
 		turnstile =
@@ -450,8 +611,7 @@ const scopeOptions = [
 		// to it — it starts from a genuinely blank form. That includes a
 		// prior success: the form itself comes back too, not the message.
 		form.reset();
-		status.textContent = "";
-		status.classList.remove("error");
+		setStatus(null);
 		form.querySelectorAll(".field-error").forEach((el) => el.remove());
 		gsap.set(form, { opacity: 1 });
 		form.classList.remove("is-hidden");
@@ -468,11 +628,11 @@ const scopeOptions = [
 		const validateField = (el: HTMLInputElement) => {
 			const box = el.closest(".field");
 			if (el.validity.valueMissing) {
-				setFieldError(box, "This field is required.");
+				setFieldError(box, "required");
 				return false;
 			}
 			if (el.validity.typeMismatch) {
-				setFieldError(box, "Please enter a valid email address.");
+				setFieldError(box, "invalidEmail");
 				return false;
 			}
 			setFieldError(box, null);
@@ -496,7 +656,7 @@ const scopeOptions = [
 			);
 			setFieldError(
 				scopeField,
-				anyChecked ? null : "Select at least one option.",
+				anyChecked ? null : "scopeRequired",
 			);
 			return anyChecked;
 		};
@@ -516,8 +676,7 @@ const scopeOptions = [
 			if (!fieldsValid || !validScope) return;
 
 			submitBtn.disabled = true;
-			status.textContent = "Sending…";
-			status.classList.remove("error");
+			setStatus("sending");
 
 			const formData = new FormData(form);
 			const scope = formData.getAll("scope");
@@ -536,19 +695,26 @@ const scopeOptions = [
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify(payload),
 				});
-				const data = (await res.json().catch(() => ({}))) as { error?: string };
+				const data = (await res.json().catch(() => ({}))) as {
+					error?: string;
+					code?: string;
+				};
 
-				if (!res.ok)
-					throw new Error(data.error || "Something went wrong.");
+				if (!res.ok) {
+					// Known API codes are translated; anything else shows the
+					// server's own (English) message as-is.
+					const key = data.code && `errors.${data.code}`;
+					if (key && tr(key, "en") !== key) setStatus(key, true);
+					else if (data.error) setStatus(null, true, data.error);
+					else setStatus("errors.generic", true);
+					return;
+				}
 
-				status.textContent = "";
+				setStatus(null);
 				showSuccess(form, success);
-			} catch (err) {
-				status.classList.add("error");
-				status.textContent =
-					err instanceof Error
-						? err.message
-						: "Something went wrong. Please try again.";
+			} catch {
+				// Network failure (fetch itself threw).
+				setStatus("errors.generic", true);
 			} finally {
 				submitBtn.disabled = false;
 				// Each token is single-use, success or not.
@@ -588,6 +754,63 @@ const scopeOptions = [
 
 	.inquire-form-stage {
 		position: relative;
+	}
+
+	/* EN/BR switch — sits above the form, aligned to its right edge. */
+	.inquire-lang-row {
+		display: flex;
+		justify-content: flex-end;
+		max-width: 1100px;
+		margin: 0 auto 2.5rem;
+	}
+
+	.inquire-lang-switch {
+		display: flex;
+		align-items: center;
+		gap: 0.2rem;
+	}
+
+	.inquire-lang-label {
+		font-size: var(--font-size-h6);
+		letter-spacing: 0.02em;
+		color: var(--color-gray);
+		transition: color 0.3s ease;
+		user-select: none;
+	}
+
+	.inquire-lang-label.is-active {
+		color: var(--color-black);
+	}
+
+	.inquire-lang-toggle {
+		position: relative;
+		width: 34px;
+		height: 18px;
+		padding: 0;
+		border: 1px solid var(--color-black);
+		border-radius: 999px;
+		background: transparent;
+		cursor: pointer;
+	}
+
+	.inquire-lang-knob {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		background: var(--color-black);
+		transition: transform 0.3s ease;
+	}
+
+	.inquire-lang-toggle[aria-checked="true"] .inquire-lang-knob {
+		transform: translateX(16px);
+	}
+
+	.inquire-lang-toggle:focus-visible {
+		outline: 2px solid var(--color-black);
+		outline-offset: 2px;
 	}
 
 	.inquire-form {

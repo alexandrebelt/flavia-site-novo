@@ -73,7 +73,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 	if (!apiKey) {
 		console.error("RESEND_API_KEY is not set — inquiry emails cannot be sent.");
 		return Response.json(
-			{ error: "Inquiries are temporarily unavailable. Please email us directly." },
+			{ error: "Inquiries are temporarily unavailable. Please email us directly.", code: "unavailable" },
 			{ status: 503 },
 		);
 	}
@@ -82,7 +82,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 	try {
 		data = await request.json();
 	} catch {
-		return Response.json({ error: "Invalid request." }, { status: 400 });
+		return Response.json({ error: "Invalid request.", code: "invalidRequest" }, { status: 400 });
 	}
 
 	// Pretend it worked, so the bot has nothing to learn from.
@@ -95,7 +95,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 	const human = await verifyTurnstile(env, String(data.turnstileToken ?? ""), ip);
 	if (!human) {
 		return Response.json(
-			{ error: "We couldn't verify your submission. Please try again." },
+			{ error: "We couldn't verify your submission. Please try again.", code: "verificationFailed" },
 			{ status: 403 },
 		);
 	}
@@ -104,16 +104,16 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 	const fullName = field("fullName");
 	const email = field("email");
 	if (!fullName || !email) {
-		return Response.json({ error: "Name and email are required." }, { status: 400 });
+		return Response.json({ error: "Name and email are required.", code: "nameEmailRequired" }, { status: 400 });
 	}
 	if (!EMAIL_PATTERN.test(email) || email.length > MAX_SHORT_FIELD_LENGTH) {
-		return Response.json({ error: "Please enter a valid email address." }, { status: 400 });
+		return Response.json({ error: "Please enter a valid email address.", code: "invalidEmail" }, { status: 400 });
 	}
 	const tooLong = Object.entries(data).some(
 		([, value]) => typeof value === "string" && value.length > MAX_FIELD_LENGTH,
 	);
 	if (tooLong || fullName.length > MAX_SHORT_FIELD_LENGTH) {
-		return Response.json({ error: "One of the fields is too long." }, { status: 400 });
+		return Response.json({ error: "One of the fields is too long.", code: "fieldTooLong" }, { status: 400 });
 	}
 
 	const scope = Array.isArray(data.scope)
@@ -123,7 +123,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 	// Checked last, so only submissions that would otherwise go out count.
 	if (!(await consumeInquiryQuota(env.SESSION, ip))) {
 		return Response.json(
-			{ error: "Too many inquiries from this connection. Please try again later or email us directly." },
+			{ error: "Too many inquiries from this connection. Please try again later or email us directly.", code: "rateLimited" },
 			{ status: 429 },
 		);
 	}
@@ -165,7 +165,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 
 		if (error) {
 			console.error("Resend error:", error);
-			return Response.json({ error: "We couldn't send your inquiry. Please try again or email us directly." }, { status: 502 });
+			return Response.json({ error: "We couldn't send your inquiry. Please try again or email us directly.", code: "sendFailed" }, { status: 502 });
 		}
 
 		await addToInquiriesSegment(resend, fullName, email);
@@ -173,6 +173,6 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
 		return Response.json({ ok: true });
 	} catch (err) {
 		console.error("Inquiry send failed:", err);
-		return Response.json({ error: "We couldn't send your inquiry. Please try again or email us directly." }, { status: 500 });
+		return Response.json({ error: "We couldn't send your inquiry. Please try again or email us directly.", code: "sendFailed" }, { status: 500 });
 	}
 };

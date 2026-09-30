@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { getSession } from "./lib/server/session.js";
 import { loadOrderedProjects, loadSiteSettings } from "./lib/server/site-data";
 import { applySecurityHeaders, isForeignWrite } from "./lib/server/security-headers";
+import { addDiscoveryHeaders, isPublicPage, toMarkdown, wantsMarkdown } from "./lib/server/agent-discovery";
 
 function memo<T>(load: () => Promise<T>): () => Promise<T> {
 	let pending: Promise<T> | undefined;
@@ -32,7 +33,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	const isAdminApi = pathname.startsWith("/api/admin");
 
 	if (!isAdminPage && !isAdminApi) {
-		return finish(await next(), url);
+		const response = await next();
+		return finish(isPublicPage(pathname) && wantsMarkdown(request) ? await toMarkdown(response) : response, url);
 	}
 
 	if (PUBLIC_ADMIN_PATHS.has(pathname) || PUBLIC_API_PATHS.has(pathname)) {
@@ -55,10 +57,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
 });
 
 function finish(response: Response, url: URL): Response {
+	const apply = (res: Response) => {
+		if (isPublicPage(url.pathname)) addDiscoveryHeaders(res);
+		return applySecurityHeaders(res, url, import.meta.env.PROD);
+	};
 	try {
-		return applySecurityHeaders(response, url, import.meta.env.PROD);
+		return apply(response);
 	} catch {
 		// Some responses (e.g. a proxied fetch) come with immutable headers.
-		return applySecurityHeaders(new Response(response.body, response), url, import.meta.env.PROD);
+		return apply(new Response(response.body, response));
 	}
 }

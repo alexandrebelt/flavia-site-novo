@@ -137,6 +137,32 @@ body {
 	font-weight: 300;
 }
 
+/* Whole-page transition (see Layout.astro): the body fades out on
+   navigation and back in once the next page is in. <html> shares the
+   body's background so the page doesn't flash white while it's hidden. */
+html {
+	background: var(--color-offwhite);
+}
+
+/* Standalone black pages (Layout bare, e.g. /links). */
+html:has(body.bare-page) {
+	background: var(--color-black);
+}
+
+body {
+	transition: opacity var(--page-fade-ms, 350ms) cubic-bezier(0.76, 0, 0.24, 1);
+}
+
+body.page-hidden {
+	opacity: 0;
+}
+
+/* The body fade replaces the router's own snapshot crossfade. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation: none;
+}
+
 p {
 	font-size: var(--font-size-body);
 }
