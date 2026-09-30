@@ -54,7 +54,8 @@ const initialRecognitionsJson = JSON.stringify(normalizeRecognitions(about.recog
 		<p class="admin-hint" style="margin-bottom: 1.25rem;">
 			List shown in the About page's "Selected Recognition" section. Add a
 			link (https://…) to make an item clickable — it opens in a new tab.
-			Items without a link show as plain text.
+			Items without a link show as plain text. Drag by the
+			<span aria-hidden="true">⠿</span> handle to set the order.
 		</p>
 		<div id="recognitions-list"></div>
 		<button type="button" class="admin-btn secondary" id="add-recognition" style="width: fit-content;">
@@ -152,6 +153,18 @@ const initialRecognitionsJson = JSON.stringify(normalizeRecognitions(about.recog
 		box-shadow: 0 0 0 3px rgba(14, 14, 14, 0.08);
 	}
 
+	.recognition-row.dragging {
+		opacity: 0.4;
+	}
+
+	.recognition-row .drag-handle {
+		cursor: grab;
+	}
+
+	.recognition-row .drag-handle:active {
+		cursor: grabbing;
+	}
+
 	#add-recognition {
 		margin-bottom: 1.5rem;
 	}
@@ -231,6 +244,16 @@ const initialRecognitionsJson = JSON.stringify(normalizeRecognitions(about.recog
 		const row = document.createElement("div");
 		row.className = "recognition-row";
 		row.innerHTML = `
+			<button type="button" class="icon-btn drag-handle" title="Drag to reorder">
+				<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+					<circle cx="9" cy="6" r="1.6"></circle>
+					<circle cx="15" cy="6" r="1.6"></circle>
+					<circle cx="9" cy="12" r="1.6"></circle>
+					<circle cx="15" cy="12" r="1.6"></circle>
+					<circle cx="9" cy="18" r="1.6"></circle>
+					<circle cx="15" cy="18" r="1.6"></circle>
+				</svg>
+			</button>
 			<input type="text" class="recognition-text" placeholder="E.g. Behance — Featured Project" aria-label="Recognition" />
 			<input type="url" class="recognition-url" placeholder="Link (optional) — https://…" aria-label="Link" />
 			<button type="button" class="icon-btn danger row-remove" title="Remove">
@@ -245,8 +268,46 @@ const initialRecognitionsJson = JSON.stringify(normalizeRecognitions(about.recog
 			if (urlInput.getAttribute("aria-invalid") === "true") validateRecognitionLinks();
 		});
 		row.querySelector(".row-remove")!.addEventListener("click", () => row.remove());
+
+		// Drag-to-reorder: only the handle starts a drag (same as testimonials).
+		row.querySelector(".drag-handle")!.addEventListener("mousedown", () => {
+			row.draggable = true;
+		});
+		row.addEventListener("dragstart", (e) => {
+			e.dataTransfer?.setData("text/plain", "");
+			row.classList.add("dragging");
+		});
+		row.addEventListener("dragend", () => {
+			row.draggable = false;
+			row.classList.remove("dragging");
+		});
+
 		recognitionsList.appendChild(row);
 	}
+
+	function getDragAfterRow(y: number): HTMLElement | null {
+		const rows = Array.from(
+			recognitionsList.querySelectorAll<HTMLElement>(".recognition-row:not(.dragging)"),
+		);
+		return rows.reduce(
+			(closest, row) => {
+				const box = row.getBoundingClientRect();
+				const offset = y - box.top - box.height / 2;
+				if (offset < 0 && offset > closest.offset) return { offset, element: row };
+				return closest;
+			},
+			{ offset: Number.NEGATIVE_INFINITY, element: null as HTMLElement | null },
+		).element;
+	}
+
+	recognitionsList.addEventListener("dragover", (e) => {
+		const dragging = recognitionsList.querySelector<HTMLElement>(".dragging");
+		if (!dragging) return;
+		e.preventDefault();
+		const after = getDragAfterRow(e.clientY);
+		if (after) recognitionsList.insertBefore(dragging, after);
+		else recognitionsList.appendChild(dragging);
+	});
 
 	(initialRecognitions as Recognition[]).forEach((item) => addRecognitionRow(item));
 	document.getElementById("add-recognition")!.addEventListener("click", () => {

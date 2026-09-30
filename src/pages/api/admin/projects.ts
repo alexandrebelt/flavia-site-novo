@@ -1,6 +1,12 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
-import { countFeaturedProjects, createProject, listProjects } from "../../../lib/server/projects-store.js";
+import {
+	countFeaturedProjects,
+	createProject,
+	findConflict,
+	listProjects,
+} from "../../../lib/server/projects-store.js";
+import { buildProjectId, randomIdSuffix, slugify } from "../../../data/project-ids";
 import { MAX_FEATURED_PROJECTS } from "../../../lib/server/site-data";
 import { normalizeGallery } from "../../../data/video-embeds";
 
@@ -20,8 +26,28 @@ export const POST: APIRoute = async ({ request }) => {
 		project.featured === true && (await countFeaturedProjects(env.DB)) < MAX_FEATURED_PROJECTS;
 	project.featuredAt = project.featured ? Date.now() : null;
 
-	if (!project.id || !project.slug || !project.client) {
-		return Response.json({ error: "id, slug and client are required." }, { status: 400 });
+	// The admin form fills both in, but they're derived here too so a
+	// project can never be saved without them (or with unsafe characters).
+	project.slug = slugify(String(project.slug || project.client || ""));
+	project.id = project.id
+		? slugify(String(project.id))
+		: buildProjectId(project.slug as string, randomIdSuffix());
+
+	if (!project.client || !project.slug) {
+		return Response.json({ error: "Client and slug are required." }, { status: 400 });
+	}
+
+	const conflict = await findConflict(env.DB, { id: project.id, slug: project.slug });
+	if (conflict) {
+		return Response.json(
+			{
+				error:
+					conflict === "slug"
+						? `Another project already uses the slug "${project.slug}" — change it.`
+						: `Another project already uses the ID "${project.id}" — change it.`,
+			},
+			{ status: 409 },
+		);
 	}
 
 	try {

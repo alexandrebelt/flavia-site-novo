@@ -9,7 +9,7 @@ import { renderPagesAsText } from "./page-text";
 
 const FALLBACK_SUMMARY =
 	"Flávia Jackeline is an independent Brazilian brand studio creating refined, distinctive identities for founders and businesses worldwide.";
-const CONTACT_EMAIL = "hello@flaviajackeline.com";
+const CONTACT_EMAIL = "studio@flaviajackeline.com";
 
 async function header(locals: App.Locals, url: URL) {
 	const settings = await locals.siteSettings();

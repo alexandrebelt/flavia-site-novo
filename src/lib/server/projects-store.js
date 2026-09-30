@@ -51,15 +51,30 @@ export async function createProject(db, project) {
 	return clean;
 }
 
+/** Whether another project (not `exceptId`) already uses this id or slug. */
+export async function findConflict(db, { id, slug }, exceptId) {
+	const row = await db
+		.prepare("SELECT id, slug FROM projects WHERE (id = ? OR slug = ?) AND id != ?")
+		.bind(id ?? "", slug ?? "", exceptId ?? "")
+		.first();
+	if (!row) return null;
+	return row.id === id ? "id" : "slug";
+}
+
+/**
+ * Applies `patch`; a `patch.id` different from `id` renames the project
+ * (the caller checks the new id is free first).
+ */
 export async function updateProject(db, id, patch) {
 	const current = await getProjectById(db, id);
 	if (!current) return null;
 	const cleanPatch = { ...patch };
 	if (patch.description) cleanPatch.description = sanitizeDescription(patch.description);
-	const updated = { ...current, ...cleanPatch, id };
+	const newId = typeof patch.id === "string" && patch.id ? patch.id : id;
+	const updated = { ...current, ...cleanPatch, id: newId };
 	await db
-		.prepare("UPDATE projects SET slug = ?, data = ? WHERE id = ?")
-		.bind(updated.slug, JSON.stringify(updated), id)
+		.prepare("UPDATE projects SET id = ?, slug = ?, data = ? WHERE id = ?")
+		.bind(newId, updated.slug, JSON.stringify(updated), id)
 		.run();
 	return updated;
 }

@@ -40,8 +40,12 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 		for (const file of files) {
 			const item = document.createElement("div");
 			item.className = "admin-media-item";
+			// Videos get a muted preview (first frame) instead of a broken <img>.
+			const preview = /\.(mp4|webm|mov)$/i.test(file.filename)
+				? `<video src="${file.url}" muted playsinline preload="metadata" title="${file.filename}"></video>`
+				: `<img src="${file.url}" alt="${file.filename}" loading="lazy" />`;
 			item.innerHTML = `
-				<img src="${file.url}" alt="${file.filename}" loading="lazy" />
+				${preview}
 				<div class="admin-media-item-info">
 					<span title="${file.filename}">${file.filename}</span>
 					<button type="button" class="icon-btn danger" title="Delete">
@@ -49,9 +53,9 @@ import AdminLayout from "../../../layouts/AdminLayout.astro";
 					</button>
 				</div>
 			`;
-			item.querySelector("img")!.addEventListener("click", () => {
+			item.querySelector("img, video")!.addEventListener("click", () => {
 				navigator.clipboard.writeText(file.url);
-				toast("URL copiada.");
+				toast("URL copied.");
 			});
 			item.querySelector("button")!.addEventListener("click", async () => {
 				if (!confirm("Delete this file?")) return;

@@ -76,7 +76,10 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 							// "loop": a silent moving image — muted, autoplaying,
 							// no controls, not clickable. "player": the regular
 							// player, the visitor presses play.
-							<div class:list={["gallery-video", `gallery-video--${item.mode}`]}>
+							<div
+								class:list={["gallery-video", `gallery-video--${item.mode}`]}
+								data-provider={item.provider}
+							>
 								<iframe
 									src={videoEmbedUrl(item, item.mode)}
 									title={`${project.client} — video`}
@@ -103,6 +106,7 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 	import { textRevealHidden, textRevealVisible } from "../../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { whenPageSettled } from "../../scripts/scroll-timing";
+	import { cleanupYouTubeCleanLoops, initYouTubeCleanLoops } from "../../scripts/youtube-clean-loop";
 
 	gsap.registerPlugin(ScrollTrigger);
 
@@ -170,6 +174,8 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 
 	document.addEventListener("astro:page-load", initProjectDetailReveal);
 	document.addEventListener("astro:before-swap", cleanupProjectDetailReveal);
+	document.addEventListener("astro:page-load", initYouTubeCleanLoops);
+	document.addEventListener("astro:before-swap", cleanupYouTubeCleanLoops);
 </script>
 
 <style>
@@ -246,6 +252,21 @@ const blockTag = (type: string) => (BLOCK_TAGS.has(type) ? type : "p");
 	/* Loop videos behave like a moving image: no hover UI, no clicks. */
 	.gallery-video--loop iframe {
 		pointer-events: none;
+	}
+
+	/* YouTube loops: the iframe is taller than the frame, so YouTube's title
+	   bar (top) and control bar (bottom) land in the cropped-off area while
+	   the video itself — fitted to the width — fills the 16:9 frame exactly.
+	   Hidden until it's actually playing (scripts/youtube-clean-loop.ts). */
+	.gallery-video--loop[data-provider="youtube"] iframe {
+		top: -120px;
+		height: calc(100% + 240px);
+		opacity: 0;
+		transition: opacity 0.4s ease;
+	}
+
+	.gallery-video--loop[data-provider="youtube"].is-playing iframe {
+		opacity: 1;
 	}
 
 	.content {

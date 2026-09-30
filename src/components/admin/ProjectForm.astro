@@ -32,16 +32,26 @@ const initial = {
 	<div class="admin-card" style="margin-bottom: 1.5rem;">
 		<div class="admin-field-row">
 			<div class="admin-field">
-				<label for="f-id">ID</label>
-				<input id="f-id" name="id" required disabled={mode === "edit"} placeholder="0004-project-name" />
+				<label for="f-client">Client</label>
+				<input id="f-client" name="client" required />
 			</div>
 			<div class="admin-field">
 				<label for="f-slug">Slug</label>
-				<input id="f-slug" name="slug" required placeholder="project-name" />
+				<input id="f-slug" name="slug" required placeholder="filled in from the client" />
+				<p class="admin-hint">The page address: /portfolio/<span id="slug-preview">…</span></p>
 			</div>
 			<div class="admin-field">
-				<label for="f-client">Client</label>
-				<input id="f-client" name="client" required />
+				<label for="f-id">ID</label>
+				<input
+					id="f-id"
+					name="id"
+					class="is-locked"
+					readonly
+					required
+					aria-describedby="id-hint"
+					title="Generated automatically"
+				/>
+				<p class="admin-hint" id="id-hint">Generated automatically.</p>
 			</div>
 			<div class="admin-field">
 				<label for="f-year">Year</label>
@@ -88,8 +98,8 @@ const initial = {
 		<div class="image-guidelines">
 			<strong>Image guidelines</strong>
 			<ul>
-				<li><strong>Formats:</strong> JPG, PNG, WebP or AVIF. GIF and SVG are accepted too, but kept exactly as uploaded (no compression).</li>
-				<li><strong>Size:</strong> ideally under 5 MB per file (max 25 MB).</li>
+				<li><strong>Formats:</strong> JPG, PNG, WebP or AVIF. <strong>Animated GIFs</strong> work too — they're kept exactly as uploaded (no compression), so they stay animated; SVG is kept as-is as well.</li>
+				<li><strong>Size:</strong> ideally under 5 MB per file (max 25 MB for photos, 15 MB for GIFs — keep GIFs small, they aren't compressed).</li>
 				<li><strong>Dimensions:</strong> at least 2000px on the longest side for full-width gallery images; the thumbnail looks best at 1600×1200px (4:3) or larger.</li>
 				<li><strong>Automatic compression:</strong> every photo is resized to at most 2560px and converted to WebP before uploading — usually 200–600 KB — so the site stays fast whatever you upload.</li>
 			</ul>
@@ -109,7 +119,7 @@ const initial = {
 				tabindex="0"
 				aria-describedby="gallery-dropzone-status"
 			>
-				<p>Drag images here, or click to choose several at once</p>
+				<p>Drag images or GIFs here, or click to choose several at once</p>
 				<p class="admin-hint" id="gallery-dropzone-status">
 					Compressed to WebP automatically (see the guidelines above). They're
 					added to the gallery below, in the order you drop them.
@@ -152,6 +162,19 @@ const initial = {
 	   lands on those elements — everything here has to be global, with class
 	   names specific enough (admin-*, thumb-tile, gallery-row) not to collide
 	   outside this page. */
+	/* Auto-generated ID: looks read-only until unlocked (10 clicks). */
+	#f-id.is-locked {
+		background: var(--color-offwhite);
+		color: var(--color-gray);
+		cursor: default;
+		user-select: none;
+	}
+
+	#f-id.is-locked:focus {
+		border-color: rgba(14, 14, 14, 0.14);
+		box-shadow: none;
+	}
+
 	#description-editor .ql-toolbar.ql-snow {
 		border-color: rgba(14, 14, 14, 0.14);
 		border-radius: 8px 8px 0 0;
@@ -394,6 +417,7 @@ const initial = {
 <script>
 	import { compressImage } from "../../scripts/admin/image-compression";
 	import { parseVideoUrl, type VideoMode } from "../../data/video-embeds";
+	import { buildProjectId, randomIdSuffix, slugify } from "../../data/project-ids";
 	import Quill from "quill";
 	import "quill/dist/quill.snow.css";
 
@@ -423,6 +447,67 @@ const initial = {
 		el.classList.add("visible");
 		setTimeout(() => el.classList.remove("visible"), 2500);
 	}
+
+	// ---- slug & id ----
+	// The slug follows the client name until it's edited by hand (clearing
+	// it hands it back to the client name). An existing project keeps its
+	// slug, so its published address doesn't change by itself.
+	// The ID is generated from the slug and locked; 10 clicks on it unlock
+	// it for the rare case it has to be changed.
+	const clientInput = form.querySelector("#f-client") as HTMLInputElement;
+	const slugInput = form.querySelector("#f-slug") as HTMLInputElement;
+	const idInput = form.querySelector("#f-id") as HTMLInputElement;
+	const idHint = $("#id-hint");
+	const slugPreview = $("#slug-preview");
+	const ID_UNLOCK_CLICKS = 10;
+	const idSuffix = randomIdSuffix();
+	let slugEdited = mode === "edit" && Boolean(initial.slug);
+	let idUnlocked = false;
+	let idClicks = 0;
+
+	function syncSlugAndId() {
+		if (!slugEdited) slugInput.value = slugify(clientInput.value);
+		slugPreview.textContent = slugify(slugInput.value) || "…";
+		if (mode === "create" && !idUnlocked) {
+			idInput.value = slugInput.value ? buildProjectId(slugInput.value, idSuffix) : "";
+		}
+	}
+
+	clientInput.addEventListener("input", syncSlugAndId);
+	slugInput.addEventListener("input", () => {
+		slugEdited = slugInput.value.trim() !== "";
+		syncSlugAndId();
+	});
+	// Only letters, numbers and hyphens make it into an address.
+	slugInput.addEventListener("blur", () => {
+		if (slugInput.value) slugInput.value = slugify(slugInput.value);
+		syncSlugAndId();
+	});
+
+	idInput.addEventListener("click", () => {
+		if (idUnlocked) return;
+		idClicks++;
+		const left = ID_UNLOCK_CLICKS - idClicks;
+		if (left > 0) {
+			if (idClicks >= 5) idHint.textContent = `Click ${left} more time${left === 1 ? "" : "s"} to edit.`;
+			return;
+		}
+		idUnlocked = true;
+		idInput.readOnly = false;
+		idInput.classList.remove("is-locked");
+		idInput.title = "";
+		idHint.textContent =
+			mode === "edit"
+				? "Unlocked. Only letters, numbers and hyphens; must be unique."
+				: "Unlocked — no longer follows the slug. Only letters, numbers and hyphens.";
+		idInput.focus();
+		idInput.select();
+	});
+	idInput.addEventListener("blur", () => {
+		if (idUnlocked && idInput.value) idInput.value = slugify(idInput.value);
+	});
+
+	syncSlugAndId();
 
 	async function uploadFile(file: File): Promise<string> {
 		// Photos are resized and converted to WebP first (videos pass through).

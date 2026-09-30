@@ -88,9 +88,13 @@ export function videoEmbedUrl(video: ParsedVideo, mode: VideoMode): string {
 				? {
 						autoplay: "1",
 						mute: "1",
+						// Native loop is only the fallback: it flashes the player UI on
+						// every restart, so scripts/youtube-clean-loop.ts (via the JS
+						// API enabled here) rewinds just before the end instead.
 						loop: "1",
 						// YouTube only loops a single video when it's also its own playlist.
 						playlist: video.id,
+						enablejsapi: "1",
 						controls: "0",
 						disablekb: "1",
 						modestbranding: "1",

@@ -101,7 +101,9 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 						</ul>
 					</div>
 				</div>
-				<a href="/inquire" class="btn-primary">start a project</a>
+				<div class="services-section-3-row row">
+					<a href="/inquire" class="btn-primary">start a project</a>
+				</div>
 			</div>
 			<div class="services-section-3-main-col col">
 				<ProjectsCoverFade />
@@ -170,7 +172,10 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 
 <script>
 	import gsap from "gsap";
-	import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
+	import {
+		textRevealHidden,
+		textRevealVisible,
+	} from "../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import {
 		playHeroLetterReveal,
@@ -321,23 +326,19 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		// (not deferred through whenPageSettled) so its scroll space is
 		// reserved before the user can start scrolling, instead of being
 		// inserted underneath them mid-scroll.
-		const tween = gsap.fromTo(
-			cols,
-			textRevealHidden(),
-			{
-				...textRevealVisible,
-				stagger: 1,
-				scrollTrigger: {
-					trigger: ".full-height.services-section-4",
-					start: "top top",
-					end: "+=1500",
-					pin: true,
-					pinSpacing: true,
-					scrub: true,
-					anticipatePin: 1,
-				},
+		const tween = gsap.fromTo(cols, textRevealHidden(), {
+			...textRevealVisible,
+			stagger: 1,
+			scrollTrigger: {
+				trigger: ".full-height.services-section-4",
+				start: "top top",
+				end: "+=1500",
+				pin: true,
+				pinSpacing: true,
+				scrub: true,
+				anticipatePin: 1,
 			},
-		);
+		});
 		section4Trigger = tween.scrollTrigger ?? null;
 	}
 
@@ -370,27 +371,34 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		max-width: 370px;
 	}
 	.services-section-2-col h6 {
-		max-width: 430px;
+		max-width: 380px;
 		padding-top: 1rem;
 	}
+	.services-section-3-main-col.col.limit {
+		align-items: end;
+	}
 	.services-section-3-wrapper.row {
+		width: 100%;
+	}
+	.services-section-3-row {
+		max-width: 595px;
 		width: 100%;
 	}
 	.services-section-3-row ul {
 		column-count: 2;
 	}
 	.services-section-3-main-col {
-		width: 60%;
+		width: 50%;
 		align-self: stretch;
 		justify-content: space-between;
 	}
 	.services-section-3-main-col:nth-of-type(2) {
-		width: 40%;
+		width: 50%;
 	}
 	.services-section-3-row p {
 		max-width: 460px;
 	}
-	
+
 	.services-section-4-wrapper {
 		display: flex;
 		align-self: stretch;
@@ -431,7 +439,7 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		.services-section-3-main-col.col:nth-of-type(2) {
 			padding-top: 0;
 		}
-		.services-section-3-row p {
+		p {
 			max-width: 100%;
 		}
 	}

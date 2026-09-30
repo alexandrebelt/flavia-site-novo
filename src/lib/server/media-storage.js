@@ -4,6 +4,7 @@
  * "cloudflare:workers") rather than this module reaching for it itself.
  */
 import path from "node:path";
+import { MAX_VIDEO_MB } from "../../data/upload-limits";
 
 const PUBLIC_PREFIX = "/media/";
 
@@ -22,9 +23,9 @@ const ALLOWED_TYPES = {
 	".avif": { type: "image/avif", maxBytes: 15 * MB },
 	".svg": { type: "image/svg+xml", maxBytes: 2 * MB },
 	".ico": { type: "image/x-icon", maxBytes: 1 * MB },
-	".mp4": { type: "video/mp4", maxBytes: 95 * MB },
-	".webm": { type: "video/webm", maxBytes: 95 * MB },
-	".mov": { type: "video/quicktime", maxBytes: 95 * MB },
+	".mp4": { type: "video/mp4", maxBytes: MAX_VIDEO_MB * MB },
+	".webm": { type: "video/webm", maxBytes: MAX_VIDEO_MB * MB },
+	".mov": { type: "video/quicktime", maxBytes: MAX_VIDEO_MB * MB },
 };
 
 const ascii = (bytes, start, end) => String.fromCharCode(...bytes.slice(start, end));
@@ -90,8 +91,8 @@ function safeFilename(originalName) {
 /** Stores an upload already approved by checkUpload. */
 export async function saveMedia(bucket, file, contentType) {
 	const filename = safeFilename(file.name);
-	const buffer = await file.arrayBuffer();
-	await bucket.put(filename, buffer, {
+	// The File itself, not a copied ArrayBuffer — no second copy in memory.
+	await bucket.put(filename, file, {
 		httpMetadata: { contentType },
 	});
 	return { url: `${PUBLIC_PREFIX}${filename}`, filename };
@@ -104,8 +105,15 @@ export async function deleteMedia(bucket, url) {
 
 /** @returns {Promise<Array<{ url: string, filename: string, size: number, uploadedAt: string }>>} */
 export async function listMedia(bucket) {
-	const listed = await bucket.list();
-	return listed.objects.map((obj) => ({
+	// R2 returns at most 1000 objects per call — follow the cursor for the rest.
+	const objects = [];
+	let cursor;
+	do {
+		const listed = await bucket.list({ cursor });
+		objects.push(...listed.objects);
+		cursor = listed.truncated ? listed.cursor : undefined;
+	} while (cursor);
+	return objects.map((obj) => ({
 		url: `${PUBLIC_PREFIX}${obj.key}`,
 		filename: obj.key,
 		size: obj.size,

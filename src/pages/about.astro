@@ -52,7 +52,7 @@ const recognitions = normalizeRecognitions(about.recognitions);
 					</h4>
 					<div class="about-section-2-contact-row">
 						<ul class="about-section-social-media-ul">
-							<li><a href="mailto:hello@flaviajackeline.com">Email</a></li>
+							<li><a href="mailto:studio@flaviajackeline.com">Email</a></li>
 							<li>
 								<a
 									href={resolveSocialUrl("instagram", socialLinks)}
@@ -401,6 +401,11 @@ const recognitions = normalizeRecognitions(about.recognitions);
 	}
 	.about-section-3-row.row {
 		justify-content: space-between;
+	}
+	#about-recognitions-list {
+		gap: 0.3rem;
+		display: flex;
+		flex-direction: column;
 	}
 	#about-recognitions-list li {
 		display: flex;
