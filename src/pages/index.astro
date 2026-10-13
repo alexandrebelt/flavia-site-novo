@@ -222,7 +222,7 @@ const defaultPoster = await getImage({ src: videoHomePoster, format: "webp", wid
 	import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
-	import { whenPageSettled } from "../scripts/scroll-timing";
+	import { holdAtEnd, whenPageSettled } from "../scripts/scroll-timing";
 	import { onPageReady } from "../scripts/page-ready";
 
 	gsap.registerPlugin(ScrollTrigger);
@@ -358,24 +358,20 @@ const defaultPoster = await getImage({ src: videoHomePoster, format: "webp", wid
 		// which is what was breaking/jumping. Its "+=1500" end is a relative
 		// offset, not a percentage of the viewport, so it doesn't need the
 		// settled-layout wait the others do — this one creates immediately.
-		const tween = gsap.fromTo(
-			cols,
-			textRevealHidden(),
-			{
-				...textRevealVisible,
-				stagger: 1,
-				scrollTrigger: {
-					trigger: ".full-height.index-section-3",
-					start: "bottom bottom",
-					end: "+=1500",
-					pin: true,
-					pinSpacing: true,
-					scrub: true,
-					anticipatePin: 1,
-				},
+		const timeline = gsap.timeline({
+			scrollTrigger: {
+				trigger: ".full-height.index-section-3",
+				start: "bottom bottom",
+				end: "+=1500",
+				pin: true,
+				pinSpacing: true,
+				scrub: true,
+				anticipatePin: 1,
 			},
-		);
-		section3Trigger = tween.scrollTrigger ?? null;
+		});
+		timeline.fromTo(cols, textRevealHidden(), { ...textRevealVisible, stagger: 1 });
+		holdAtEnd(timeline);
+		section3Trigger = timeline.scrollTrigger ?? null;
 	}
 
 	document.addEventListener("astro:page-load", initSection3Reveal);
@@ -402,8 +398,12 @@ const defaultPoster = await getImage({ src: videoHomePoster, format: "webp", wid
 					ease: "power2.out",
 					scrollTrigger: {
 						trigger: ".index-section-4-row.row",
+						// Without an end it defaults to "bottom top": the
+						// cols only finished clearing up once the row was
+						// already leaving the top of the screen.
 						start: "top 85%",
-						scrub: 1
+						end: "top 45%",
+						scrub: 1,
 					},
 				},
 			);
@@ -454,6 +454,7 @@ const defaultPoster = await getImage({ src: videoHomePoster, format: "webp", wid
 		if (letters.length) {
 			timeline.to(letters, { ...textRevealVisible, stagger: { amount: 0.5 } }, ">");
 		}
+		holdAtEnd(timeline);
 
 		section5Trigger = timeline.scrollTrigger ?? null;
 	}
@@ -783,7 +784,8 @@ const defaultPoster = await getImage({ src: videoHomePoster, format: "webp", wid
 			gap: 2rem;*/
 		}
 		.index-section-3-wrapper.limit {
-			gap: 3rem;
+			gap: 1.5rem;
+			align-self: center;
 		}
 	}
 	@media (max-width: 800px) {
@@ -821,13 +823,17 @@ const defaultPoster = await getImage({ src: videoHomePoster, format: "webp", wid
 			padding-right: calc(var(--padding-sides) + 0.6rem);
 		}
 		.index-section-5-row.row.center-content {
-			padding-top: 3rem;
+			padding-top: 0rem;
 			max-width: 500px;
+		}
+		.experiences-text{
+			padding-top: 0 !important;
 		}
 	}
 	@media (max-width: 695px) {
 		.hero-section h6 {
-			max-width: 320px;
+			max-width: 300px;
+			font-size: 10px;
 		}
 		.index-section-3-col p {
 			font-size: var(--font-size-body);

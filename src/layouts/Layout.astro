@@ -144,6 +144,7 @@ const PAGE_TRANSITION_MS = FADE_IN_DELAY_MS + FADE_DURATION_MS;
 	import { splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { TEXT_REVEAL } from "../scripts/text-reveal";
 	import { closeMenuAndWait } from "../scripts/menu";
+	import { refreshScrollTriggers, watchPageHeight } from "../scripts/scroll-timing";
 
 	// Hands the reveal blur to CSS-only fades too (e.g. the Services cover
 	// carousel), so text-reveal.ts stays the single place to change it.
@@ -290,7 +291,7 @@ const PAGE_TRANSITION_MS = FADE_IN_DELAY_MS + FADE_DURATION_MS;
 	// wrong scroll offset, or never during a normal scroll. Refreshing once
 	// everything (including the video) has actually loaded recalculates
 	// every trigger against the final layout.
-	window.addEventListener("load", () => ScrollTrigger.refresh());
+	window.addEventListener("load", refreshScrollTriggers);
 
 	// That single "load" refresh only covers what's already loading by the
 	// time the page first settles. It misses anything that changes the
@@ -302,23 +303,20 @@ const PAGE_TRANSITION_MS = FADE_IN_DELAY_MS + FADE_DURATION_MS;
 	// its own async media — catches all of it, on every page, including
 	// ones added after this listener was registered. `load`/`loadedmetadata`
 	// don't bubble, but a capturing-phase listener on `document` still sees
-	// them from any descendant.
-	let mediaRefreshRaf = 0;
-	function scheduleMediaRefresh() {
-		if (mediaRefreshRaf) return;
-		mediaRefreshRaf = requestAnimationFrame(() => {
-			mediaRefreshRaf = 0;
-			ScrollTrigger.refresh();
-		});
-	}
+	// them from any descendant. (refreshScrollTriggers also re-sorts first,
+	// so a trigger created out of document order still gets measured below
+	// the pin spacers above it.)
 	function handleMediaSettle(event: Event) {
 		if (event.target instanceof HTMLImageElement || event.target instanceof HTMLVideoElement) {
-			scheduleMediaRefresh();
+			refreshScrollTriggers();
 		}
 	}
 	document.addEventListener("load", handleMediaSettle, true);
 	document.addEventListener("loadedmetadata", handleMediaSettle, true);
-	document.fonts?.ready.then(() => scheduleMediaRefresh());
+	document.fonts?.ready.then(() => refreshScrollTriggers());
+
+	// And any other later change to the page's height (see scroll-timing.ts).
+	watchPageHeight();
 
 	document.addEventListener("astro:page-load", initSmoothScroll);
 

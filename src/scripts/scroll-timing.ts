@@ -30,6 +30,50 @@ export function refreshScrollTriggers() {
 }
 
 /**
+ * Share of a pinned, scrubbed timeline's scroll distance spent holding
+ * the finished state, after everything has revealed and before the pin
+ * releases. Without it the last item only turns fully sharp on the exact
+ * pixel the section starts scrolling away — so it reads as never quite
+ * clearing up in time.
+ */
+export const PIN_HOLD = 0.2;
+
+/** Pads `timeline` with an empty stretch so PIN_HOLD of it is the hold. */
+export function holdAtEnd(timeline: gsap.core.Timeline) {
+	const revealDuration = timeline.duration();
+	timeline.to({}, { duration: (revealDuration * PIN_HOLD) / (1 - PIN_HOLD) });
+	return timeline;
+}
+
+/**
+ * Keeps every ScrollTrigger measured against the page's real, final height.
+ *
+ * The one-off refreshes (window load, fonts, media load) only cover what
+ * changes at those exact moments. Anything that grows or shrinks the page
+ * afterwards — a lazy image, an embed, text arriving late, a reflow —
+ * left every trigger below it with stale start/end positions, so reveals
+ * fired late and stayed blurred while already on screen. Instead, this
+ * watches the document's height and re-measures whenever it actually
+ * changes, once it's been stable for a moment. A refresh that leaves the
+ * height as it was (pin spacers re-applied at the same size) doesn't
+ * trigger another one.
+ */
+export function watchPageHeight(settleMs = 150) {
+	let lastHeight = document.documentElement.scrollHeight;
+	let timer = 0;
+	const observer = new ResizeObserver(() => {
+		clearTimeout(timer);
+		timer = window.setTimeout(() => {
+			const height = document.documentElement.scrollHeight;
+			if (height === lastHeight) return;
+			lastHeight = height;
+			refreshScrollTriggers();
+		}, settleMs);
+	});
+	observer.observe(document.body);
+}
+
+/**
  * Runs `callback` only once the page's layout has actually settled —
  * `window.load` (images, video, fonts) plus a fixed extra wait for
  * everything above (pinned sections' spacers, etc.) to finish resolving

@@ -152,7 +152,7 @@ const recognitions = normalizeRecognitions(about.recognitions);
 	import { textRevealHidden, textRevealVisible } from "../scripts/text-reveal";
 	import { ScrollTrigger } from "gsap/ScrollTrigger";
 	import { splitIntoLetterSpans, splitPreservingMarkup } from "../scripts/hero-letter-reveal";
-	import { whenPageSettled } from "../scripts/scroll-timing";
+	import { holdAtEnd, whenPageSettled } from "../scripts/scroll-timing";
 	import { onPageReady } from "../scripts/page-ready";
 
 	gsap.registerPlugin(ScrollTrigger);
@@ -266,6 +266,9 @@ const recognitions = normalizeRecognitions(about.recognitions);
 						">",
 					);
 				}
+				// Only while pinned — unpinned (mobile) its end already sits
+				// where the section is fully on screen.
+				if (isDesktop) holdAtEnd(timeline);
 
 				aboutSection2Trigger = timeline.scrollTrigger ?? null;
 			},

@@ -181,7 +181,7 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		playHeroLetterReveal,
 		splitPreservingMarkup,
 	} from "../scripts/hero-letter-reveal";
-	import { whenPageSettled } from "../scripts/scroll-timing";
+	import { holdAtEnd, whenPageSettled } from "../scripts/scroll-timing";
 
 	gsap.registerPlugin(ScrollTrigger);
 
@@ -326,9 +326,7 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 		// (not deferred through whenPageSettled) so its scroll space is
 		// reserved before the user can start scrolling, instead of being
 		// inserted underneath them mid-scroll.
-		const tween = gsap.fromTo(cols, textRevealHidden(), {
-			...textRevealVisible,
-			stagger: 1,
+		const timeline = gsap.timeline({
 			scrollTrigger: {
 				trigger: ".full-height.services-section-4",
 				start: "top top",
@@ -339,7 +337,9 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 				anticipatePin: 1,
 			},
 		});
-		section4Trigger = tween.scrollTrigger ?? null;
+		timeline.fromTo(cols, textRevealHidden(), { ...textRevealVisible, stagger: 1 });
+		holdAtEnd(timeline);
+		section4Trigger = timeline.scrollTrigger ?? null;
 	}
 
 	document.addEventListener("astro:page-load", initServicesSection4Reveal);
