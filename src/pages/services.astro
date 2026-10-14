@@ -2,6 +2,13 @@
 import Layout from "../layouts/Layout.astro";
 import CtaInquire from "../components/CtaInquire.astro";
 import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
+import { isVideoUrl } from "../data/services-media";
+
+// admin › Services — a GIF or video; until one is uploaded the space keeps
+// showing the rotating project covers.
+const { services } = await Astro.locals.siteSettings();
+const mediaUrl = services?.mediaUrl ?? "";
+const mediaPosterUrl = services?.mediaPosterUrl ?? "";
 ---
 
 <Layout
@@ -106,7 +113,28 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 				</div>
 			</div>
 			<div class="services-section-3-main-col col">
-				<ProjectsCoverFade />
+				{
+					!mediaUrl ? (
+						<ProjectsCoverFade />
+					) : isVideoUrl(mediaUrl) ? (
+						<div class="services-media">
+							<video
+								src={mediaUrl}
+								poster={mediaPosterUrl || undefined}
+								autoplay
+								muted
+								loop
+								playsinline
+								preload="auto"
+								aria-hidden="true"
+							/>
+						</div>
+					) : (
+						<div class="services-media">
+							<img src={mediaUrl} alt="" decoding="async" />
+						</div>
+					)
+				}
 			</div>
 		</div>
 	</section>
@@ -399,6 +427,23 @@ import ProjectsCoverFade from "../components/ProjectsCoverFade.astro";
 	}
 	.services-section-3-row p {
 		max-width: 460px;
+	}
+
+	/* Same square, fill-and-crop space the project-cover carousel takes. */
+	.services-media {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		aspect-ratio: 1;
+		overflow: hidden;
+	}
+	.services-media video,
+	.services-media img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 
 	.services-section-4-wrapper {

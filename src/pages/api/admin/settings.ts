@@ -33,6 +33,7 @@ const EDITABLE_KEYS = new Set([
 	"bannerText",
 	"home",
 	"about",
+	"services",
 	"seo",
 	"projects",
 	"testimonials",

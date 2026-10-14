@@ -1,0 +1,252 @@
+---
+export const prerender = false;
+
+import { env } from "cloudflare:workers";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import { getSettings } from "../../../lib/server/settings-store.js";
+import { MAX_VIDEO_MB } from "../../../data/upload-limits";
+
+const settings = await getSettings(env.DB);
+const services = settings.services ?? {};
+---
+
+<AdminLayout title="Services">
+	<div class="admin-card" style="margin-bottom: 1.5rem;">
+		<h2 class="block-title">Media — Brand Identity section</h2>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			GIF or video shown next to the "Brand Identity" deliverables on the
+			Services page. It fills a square space (cropped to fit). While nothing
+			is uploaded, the page keeps showing the rotating project covers.
+		</p>
+		<ul class="spec-list">
+			<li><strong>Shape:</strong> square (1:1), at least 1200×1200</li>
+			<li><strong>Video:</strong> MP4 (H.264), looping, muted, no controls — up to ~5MB (max {MAX_VIDEO_MB} MB)</li>
+			<li><strong>GIF:</strong> up to 15 MB — a video is much lighter for the same animation</li>
+		</ul>
+
+		<div class="media-field">
+			<div class="media-preview">
+				<video id="video-preview" muted loop playsinline autoplay hidden></video>
+				<img id="image-preview" alt="" hidden />
+			</div>
+			<div class="media-controls">
+				<div class="admin-field">
+					<label>GIF or video</label>
+					<div class="upload-row">
+						<span id="media-filename" class="admin-hint">
+							{services.mediaUrl || "Using the rotating project covers"}
+						</span>
+						<label class="admin-btn secondary" style="cursor: pointer;">
+							Upload GIF or video
+							<input
+								type="file"
+								id="media-input"
+								accept="image/gif,video/mp4,video/webm,video/quicktime"
+								style="display:none;"
+							/>
+						</label>
+					</div>
+				</div>
+				<div class="admin-field" id="poster-field">
+					<label>Poster (image shown before the video loads — optional)</label>
+					<div class="upload-row">
+						<span id="poster-filename" class="admin-hint">
+							{services.mediaPosterUrl || "No poster"}
+						</span>
+						<label class="admin-btn secondary" style="cursor: pointer;">
+							Upload poster
+							<input type="file" id="poster-input" accept="image/*" style="display:none;" />
+						</label>
+					</div>
+				</div>
+				<div class="admin-form-actions">
+					<button type="button" id="reset-media" class="admin-btn secondary">
+						Remove and show project covers
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="admin-form-actions">
+		<button type="button" id="save-all" class="admin-btn">Save</button>
+	</div>
+</AdminLayout>
+
+<div class="admin-toast" id="toast"></div>
+
+<style>
+	.block-title {
+		font-size: 1.1rem;
+		font-family: var(--font-sans);
+		font-weight: 600;
+		margin-bottom: 0.5rem;
+	}
+
+	.spec-list {
+		margin: 0 0 1.5rem;
+		padding-left: 1.25rem;
+		font-size: 0.85rem;
+		color: var(--color-dark-gray);
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.media-field {
+		display: flex;
+		gap: 1.5rem;
+		flex-wrap: wrap;
+	}
+
+	.media-preview {
+		width: 220px;
+		aspect-ratio: 1;
+		background: var(--color-offwhite);
+		border-radius: 6px;
+		overflow: hidden;
+		flex-shrink: 0;
+	}
+
+	.media-preview video,
+	.media-preview img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+
+	.media-controls {
+		flex: 1;
+		min-width: 240px;
+	}
+
+	.upload-row {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.upload-row span {
+		overflow-wrap: anywhere;
+	}
+</style>
+
+<script>
+	import { compressImage } from "../../../scripts/admin/image-compression";
+	import { MAX_VIDEO_MB } from "../../../data/upload-limits";
+	import { isVideoUrl } from "../../../data/services-media";
+	const DEFAULT_MEDIA_LABEL = "Using the rotating project covers";
+	const DEFAULT_POSTER_LABEL = "No poster";
+
+	function readUrlFromLabel(elId: string, defaultLabel: string) {
+		const text = document.getElementById(elId)?.textContent?.trim() ?? "";
+		return text === defaultLabel ? "" : text;
+	}
+
+	let mediaUrl = readUrlFromLabel("media-filename", DEFAULT_MEDIA_LABEL);
+	let mediaPosterUrl = readUrlFromLabel("poster-filename", DEFAULT_POSTER_LABEL);
+
+	const videoPreview = document.getElementById("video-preview") as HTMLVideoElement;
+	const imagePreview = document.getElementById("image-preview") as HTMLImageElement;
+	const mediaInput = document.getElementById("media-input") as HTMLInputElement;
+	const posterInput = document.getElementById("poster-input") as HTMLInputElement;
+	const mediaFilename = document.getElementById("media-filename")!;
+	const posterFilename = document.getElementById("poster-filename")!;
+	const posterField = document.getElementById("poster-field")!;
+
+	function updatePreview() {
+		const isVideo = !!mediaUrl && isVideoUrl(mediaUrl);
+		// A poster only means something for a video.
+		posterField.hidden = !isVideo;
+		videoPreview.hidden = !isVideo;
+		imagePreview.hidden = !mediaUrl || isVideo;
+		if (isVideo) {
+			if (videoPreview.getAttribute("src") !== mediaUrl) videoPreview.src = mediaUrl;
+			if (mediaPosterUrl) videoPreview.poster = mediaPosterUrl;
+			else videoPreview.removeAttribute("poster");
+		} else {
+			videoPreview.removeAttribute("src");
+			if (mediaUrl) imagePreview.src = mediaUrl;
+		}
+	}
+	updatePreview();
+
+	function toast(message: string, isError = false) {
+		const el = document.getElementById("toast")!;
+		el.textContent = message;
+		el.classList.toggle("error", isError);
+		el.classList.add("visible");
+		setTimeout(() => el.classList.remove("visible"), 2500);
+	}
+
+	async function uploadFile(file: File): Promise<string> {
+		const body = new FormData();
+		body.append("file", file);
+		const res = await fetch("/api/admin/upload", { method: "POST", body });
+		if (!res.ok) {
+			// The server says why (type not allowed, too large...).
+			const err = (await res.json().catch(() => ({}))) as { error?: string };
+			throw new Error(err.error || "Upload failed.");
+		}
+		const data = (await res.json()) as { url: string };
+		return data.url;
+	}
+
+	mediaInput.addEventListener("change", async () => {
+		const file = mediaInput.files?.[0];
+		if (!file) return;
+		if (file.type.startsWith("video/") && file.size > MAX_VIDEO_MB * 1024 * 1024) {
+			toast(`The video is larger than ${MAX_VIDEO_MB} MB — export a shorter or more compressed version.`, true);
+			mediaInput.value = "";
+			return;
+		}
+		try {
+			// GIFs and videos are uploaded as-is (re-encoding would drop the animation).
+			mediaUrl = await uploadFile(file);
+			mediaFilename.textContent = mediaUrl;
+			updatePreview();
+			toast("Uploaded. Click Save to publish.");
+		} catch (err) {
+			toast(err instanceof Error ? err.message : "Couldn't upload the file.", true);
+		}
+	});
+
+	posterInput.addEventListener("change", async () => {
+		const file = posterInput.files?.[0];
+		if (!file) return;
+		try {
+			mediaPosterUrl = await uploadFile(await compressImage(file));
+			posterFilename.textContent = mediaPosterUrl;
+			updatePreview();
+			toast("Poster uploaded. Click Save to publish.");
+		} catch (err) {
+			toast(err instanceof Error ? err.message : "Couldn't upload the poster.", true);
+		}
+	});
+
+	document.getElementById("reset-media")!.addEventListener("click", async () => {
+		mediaUrl = "";
+		mediaPosterUrl = "";
+		mediaFilename.textContent = DEFAULT_MEDIA_LABEL;
+		posterFilename.textContent = DEFAULT_POSTER_LABEL;
+		updatePreview();
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ services: { mediaUrl: "", mediaPosterUrl: "" } }),
+		});
+		if (res.ok) toast("Removed — the project covers are back.");
+		else toast("Couldn't save.", true);
+	});
+
+	document.getElementById("save-all")!.addEventListener("click", async () => {
+		const res = await fetch("/api/admin/settings", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ services: { mediaUrl, mediaPosterUrl } }),
+		});
+		if (res.ok) toast("Changes saved.");
+		else toast("Couldn't save.", true);
+	});
+</script>

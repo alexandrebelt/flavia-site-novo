@@ -21,6 +21,10 @@
 			"Abduzeedo — Bruno X ↑"
 		]
 	},
+	"services": {
+		"mediaUrl": "",
+		"mediaPosterUrl": ""
+	},
 	"testimonials": [
 		{
 			"id": "linen-handmade-studio",
