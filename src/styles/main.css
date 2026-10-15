@@ -156,6 +156,11 @@ body {
 body.page-hidden {
 	opacity: 0;
 }
+section{
+	margin-top:-2px;
+	margin-bottom:-2px;
+}
+
 
 /* The body fade replaces the router's own snapshot crossfade. */
 ::view-transition-old(root),
