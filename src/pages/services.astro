@@ -387,8 +387,11 @@ const mediaPosterUrl = services?.mediaPosterUrl ?? "";
 <style>
 	.full-height.services-section-3 {
 		min-height: 100%;
+		margin-top: 0px;
+		margin-bottom: 0px;
 	}
 
+	
 	.hero-services-wrapper h6 {
 		max-width: 480px;
 	}
@@ -476,6 +479,9 @@ const mediaPosterUrl = services?.mediaPosterUrl ?? "";
 		.services-section-3-wrapper {
 			flex-direction: column-reverse;
 		}
+		.services-section-3-wrapper.row {
+		max-height: unset;
+	}
 		.services-section-3-main-col.col {
 			width: 100%;
 			aspect-ratio: 4/3;

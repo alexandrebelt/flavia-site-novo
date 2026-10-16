@@ -156,9 +156,15 @@ body {
 body.page-hidden {
 	opacity: 0;
 }
-section{
+.full-height.index-section-2{
 	margin-top:-2px;
 	margin-bottom:-2px;
+}
+@media(max-width: 990px){
+	.full-height.services-section-3{
+		margin-top:-2px;
+		margin-bottom:-2px;
+	}
 }
 
 
