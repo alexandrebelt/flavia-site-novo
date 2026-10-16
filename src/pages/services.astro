@@ -476,12 +476,16 @@ const mediaPosterUrl = services?.mediaPosterUrl ?? "";
 	}
 
 	@media (max-width: 990px) {
+		.full-height.services-section-3 {
+			margin-top: -2px;
+			margin-bottom: -2px;
+		}
 		.services-section-3-wrapper {
 			flex-direction: column-reverse;
 		}
 		.services-section-3-wrapper.row {
-		max-height: unset;
-	}
+			max-height: unset;
+		}
 		.services-section-3-main-col.col {
 			width: 100%;
 			aspect-ratio: 4/3;
