@@ -165,10 +165,16 @@ body.page-hidden {
    the <noscript> in Layout.astro). */
 body.is-loading {
 	opacity: 0;
-	animation: is-loading-failsafe 0s 4s forwards;
+	/* `both` holds the 0% keyframe through the delay too, and a real
+	   duration (not 0s) — Safari can treat a zero-length delayed animation
+	   as already finished and show the page immediately. */
+	animation: is-loading-failsafe 0.4s ease 4s both;
 }
 
 @keyframes is-loading-failsafe {
+	from {
+		opacity: 0;
+	}
 	to {
 		opacity: 1;
 	}
