@@ -3,6 +3,10 @@
 	"name": "flavia-site-novo",
 	"compatibility_date": "2026-09-01",
 	"compatibility_flags": ["nodejs_compat"],
+	"routes": [
+		{ "pattern": "flaviajackeline.com", "custom_domain": true },
+		{ "pattern": "www.flaviajackeline.com", "custom_domain": true }
+	],
 	"d1_databases": [
 		{
 			"binding": "DB",

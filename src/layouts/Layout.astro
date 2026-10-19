@@ -127,8 +127,9 @@ const PAGE_TRANSITION_MS = FADE_IN_DELAY_MS + FADE_DURATION_MS;
 		<script type="application/ld+json" is:inline set:html={structuredDataJson} />
 
 		<ClientRouter />
+		<noscript><style is:inline>body.is-loading { opacity: 1; animation: none; }</style></noscript>
 	</head>
-	<body class:list={{ "bare-page": bare }}>
+	<body class:list={{ "bare-page": bare, "is-loading": true }}>
 		{!bare && <Header />}
 		<main transition:animate="none">
 			<slot />
@@ -213,6 +214,16 @@ const PAGE_TRANSITION_MS = FADE_IN_DELAY_MS + FADE_DURATION_MS;
 		}
 		pageReadyTimer = window.setTimeout(markPageReady, pageTransitionMs);
 	});
+	// Pages are served with body.is-loading (opacity 0, see main.css). Every
+	// page's own astro:page-load handlers run synchronously in this same
+	// dispatch and gsap.set() their elements to the hidden starting state;
+	// waiting one frame lets all of them finish before the body fades in, so
+	// the first hard load never flashes the text fully visible first.
+	// (On client-side navigation, page-hidden keeps the body hidden anyway.)
+	document.addEventListener("astro:page-load", () => {
+		requestAnimationFrame(() => document.body.classList.remove("is-loading"));
+	});
+
 	// A navigation that starts before the previous page's timer fired must
 	// not let that stale timer mark the incoming page ready mid-fade.
 	document.addEventListener("astro:before-swap", () => {

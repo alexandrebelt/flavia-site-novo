@@ -18,6 +18,14 @@ const PUBLIC_API_PATHS = new Set(["/api/admin/login"]);
 export const onRequest = defineMiddleware(async (context, next) => {
 	const { url, request } = context;
 
+	// One canonical host: www.* answers with a permanent redirect to the bare
+	// domain, so search engines and the admin session cookie see a single site.
+	if (url.hostname.startsWith("www.")) {
+		const target = new URL(url);
+		target.hostname = url.hostname.slice(4);
+		return Response.redirect(target.toString(), 301);
+	}
+
 	if (isForeignWrite(request, url)) {
 		return finish(Response.json({ error: "Forbidden." }, { status: 403 }), url);
 	}
