@@ -157,28 +157,14 @@ body.page-hidden {
 	opacity: 0;
 }
 
-/* Every page is served hidden and only fades in once its scripts have put
-   the reveal animations in their starting state (Layout.astro removes the
-   class) — otherwise the first hard load paints all the text fully visible,
-   then hides it, then animates it in. Failsafe: if the scripts never run,
-   the page still shows after a few seconds (and right away without JS, via
-   the <noscript> in Layout.astro). */
-body.is-loading {
-	opacity: 0;
-	/* `both` holds the 0% keyframe through the delay too, and a real
-	   duration (not 0s) — Safari can treat a zero-length delayed animation
-	   as already finished and show the page immediately. */
-	animation: is-loading-failsafe 0.4s ease 4s both;
-}
-
-@keyframes is-loading-failsafe {
-	from {
-		opacity: 0;
-	}
-	to {
-		opacity: 1;
-	}
-}
+/* body.is-loading — every page is served hidden and only fades in once its
+   scripts have put the reveal animations in their starting state. Its rule
+   is inlined at the top of Layout.astro's <head> (not here) so it applies
+   before the very first paint. Failsafe: if the scripts never run, the page
+   still shows after a few seconds (and right away without JS, via the
+   <noscript> in Layout.astro). The animation has a real duration and fills
+   `both`: Safari can treat a zero-length delayed animation as already
+   finished and show the page immediately. */
 .full-height.index-section-2{
 	margin-top:-2px;
 	margin-bottom:-2px;

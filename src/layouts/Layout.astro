@@ -88,6 +88,15 @@ const PAGE_TRANSITION_MS = FADE_IN_DELAY_MS + FADE_DURATION_MS;
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width" />
+		<!-- Inline, first thing in <head>, so the page is hidden from the very
+		     first paint — Safari can paint before every external stylesheet has
+		     arrived, which flashed the text before the reveal animations. The
+		     rest of the page-fade rules live in main.css. -->
+		<style is:inline>
+			html { background: rgba(249, 247, 242, 1); }
+			body.is-loading { opacity: 0; animation: is-loading-failsafe 0.4s ease 4s both; }
+			@keyframes is-loading-failsafe { from { opacity: 0; } to { opacity: 1; } }
+		</style>
 		{settings.siteFaviconUrl ? (
 			<link rel="icon" href={settings.siteFaviconUrl} />
 		) : (
