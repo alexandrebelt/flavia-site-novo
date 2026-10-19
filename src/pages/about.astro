@@ -170,11 +170,24 @@ const recognitions = normalizeRecognitions(about.recognitions);
 		const allLetters = spanLetters.flat();
 		gsap.set(allLetters, textRevealHidden());
 
+		// The background photo reveals the same way (fade + blur clearing),
+		// first — otherwise it just pops in, at full strength, whenever it
+		// finishes loading.
+		const photo = document.querySelector<HTMLImageElement>("#about-hero-img");
+		if (photo) gsap.set(photo, textRevealHidden());
+		// Resolves once the photo can actually be painted (or failed to load),
+		// so its fade never plays out over an empty frame.
+		const photoReady = photo ? photo.decode().catch(() => {}) : Promise.resolve();
+
 		// Waits for the page-entrance transition to actually finish (see
 		// Layout.astro) — running immediately on astro:page-load instead
 		// would play this out mostly hidden during the fade.
-		onPageReady(() => {
+		onPageReady(async () => {
+			await photoReady;
 			const timeline = gsap.timeline();
+			if (photo) {
+				timeline.to(photo, { ...textRevealVisible, duration: 1.2, ease: "power2.out" });
+			}
 			spanLetters.forEach((letters, i) => {
 				timeline.to(
 					letters,
@@ -184,7 +197,8 @@ const recognitions = normalizeRecognitions(about.recognitions);
 						ease: "power3.out",
 						stagger: { amount: 0.5 },
 					},
-					i === 0 ? undefined : ">",
+					// The phrases start while the photo is still settling in.
+					i === 0 ? (photo ? "-=0.6" : undefined) : ">",
 				);
 			});
 		});
