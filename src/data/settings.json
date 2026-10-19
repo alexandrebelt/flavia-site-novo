@@ -21,6 +21,14 @@
 			"Abduzeedo — Bruno X ↑"
 		]
 	},
+	"marketing": {
+		"ga4Id": "",
+		"googleAdsId": "",
+		"googleAdsLeadLabel": "",
+		"metaPixelId": "",
+		"tiktokPixelId": "",
+		"linkedinPartnerId": ""
+	},
 	"services": {
 		"mediaUrl": "",
 		"mediaPosterUrl": ""

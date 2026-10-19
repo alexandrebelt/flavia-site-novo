@@ -4,6 +4,8 @@ import { getSession } from "./lib/server/session.js";
 import { loadOrderedProjects, loadSiteSettings } from "./lib/server/site-data";
 import { applySecurityHeaders, isForeignWrite } from "./lib/server/security-headers";
 import { addDiscoveryHeaders, isPublicPage, toMarkdown, wantsMarkdown } from "./lib/server/agent-discovery";
+import { marketingCspSources, normalizeMarketing } from "./data/marketing";
+import type { ExtraCspSources } from "./lib/server/security-headers";
 
 function memo<T>(load: () => Promise<T>): () => Promise<T> {
 	let pending: Promise<T> | undefined;
@@ -42,7 +44,19 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
 	if (!isAdminPage && !isAdminApi) {
 		const response = await next();
-		return finish(isPublicPage(pathname) && wantsMarkdown(request) ? await toMarkdown(response) : response, url);
+		// Public pages load the ad/analytics tags set in the admin; the CSP
+		// opens just those platforms' domains (settings are already loaded —
+		// memoized — by the Layout that rendered the page).
+		const extraCsp = response.headers.get("content-type")?.includes("text/html")
+			? await siteSettings()
+					.then((settings) => marketingCspSources(normalizeMarketing(settings.marketing)))
+					.catch(() => undefined)
+			: undefined;
+		return finish(
+			isPublicPage(pathname) && wantsMarkdown(request) ? await toMarkdown(response) : response,
+			url,
+			extraCsp,
+		);
 	}
 
 	if (PUBLIC_ADMIN_PATHS.has(pathname) || PUBLIC_API_PATHS.has(pathname)) {
@@ -64,10 +78,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	return finish(await next(), url);
 });
 
-function finish(response: Response, url: URL): Response {
+function finish(response: Response, url: URL, extraCsp?: ExtraCspSources): Response {
 	const apply = (res: Response) => {
 		if (isPublicPage(url.pathname)) addDiscoveryHeaders(res);
-		return applySecurityHeaders(res, url, import.meta.env.PROD);
+		return applySecurityHeaders(res, url, import.meta.env.PROD, extraCsp);
 	};
 	try {
 		return apply(response);

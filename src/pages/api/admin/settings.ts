@@ -5,6 +5,7 @@ import { SOCIAL_NETWORKS, isValidSocialUrl } from "../../../data/social-links";
 import { isProjectOrder } from "../../../lib/server/site-data";
 import { normalizeRecognitions } from "../../../data/recognitions";
 import { normalizeTestimonials } from "../../../data/testimonials";
+import { MARKETING_FIELDS, invalidMarketingKeys, normalizeMarketing } from "../../../data/marketing";
 
 // Only known networks, each either blank or a valid URL on its own domain —
 // the same rule the admin form enforces, re-checked here.
@@ -34,6 +35,7 @@ const EDITABLE_KEYS = new Set([
 	"home",
 	"about",
 	"services",
+	"marketing",
 	"seo",
 	"projects",
 	"testimonials",
@@ -52,6 +54,16 @@ export const POST: APIRoute = async ({ request }) => {
 	const about = patch.about as Record<string, unknown> | undefined;
 	if (about && "recognitions" in about) {
 		about.recognitions = normalizeRecognitions(about.recognitions);
+	}
+	// Marketing tags: each ID blank or in its platform's format — a wrong
+	// one is refused (not silently dropped) so the admin sees which.
+	if ("marketing" in patch) {
+		const invalid = invalidMarketingKeys(patch.marketing);
+		if (invalid.length) {
+			const labels = invalid.map((key) => MARKETING_FIELDS.find((f) => f.key === key)?.label);
+			return Response.json({ error: `Invalid ID: ${labels.join(", ")}.` }, { status: 400 });
+		}
+		patch.marketing = normalizeMarketing(patch.marketing);
 	}
 	// Testimonials: a quote is required; text trimmed and length-capped.
 	if ("testimonials" in patch) {

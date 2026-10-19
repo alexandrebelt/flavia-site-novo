@@ -301,6 +301,7 @@ const scopeOptions = Object.entries(t.scope).map(([key, label]) => ({
 	import { playHeroLetterReveal, splitIntoLetterSpans } from "../scripts/hero-letter-reveal";
 	import { whenPageSettled } from "../scripts/scroll-timing";
 	import { mountTurnstile, type TurnstileWidget } from "../scripts/turnstile";
+	import { LEAD_EVENT } from "../scripts/marketing";
 	import i18n from "../data/inquire-i18n.json";
 
 	gsap.registerPlugin(ScrollTrigger);
@@ -554,6 +555,8 @@ const scopeOptions = Object.entries(t.scope).map(([key, label]) => ({
 	}
 
 	function showSuccess(form: HTMLFormElement, successEl: HTMLElement) {
+		// Counted as a lead/conversion by the ad platforms (scripts/marketing.ts).
+		document.dispatchEvent(new CustomEvent(LEAD_EVENT));
 		gsap.to(form, {
 			opacity: 0,
 			duration: 0.4,

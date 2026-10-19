@@ -5,8 +5,10 @@ import { env } from "cloudflare:workers";
 import AdminLayout from "../../../layouts/AdminLayout.astro";
 import { getSettings } from "../../../lib/server/settings-store.js";
 import { SOCIAL_NETWORKS } from "../../../data/social-links";
+import { MARKETING_FIELDS, normalizeMarketing } from "../../../data/marketing";
 
 const settings = await getSettings(env.DB);
+const marketing = normalizeMarketing(settings.marketing);
 ---
 
 <AdminLayout title="Settings">
@@ -37,6 +39,34 @@ const settings = await getSettings(env.DB);
 				</div>
 			</div>
 		</div>
+	</div>
+
+	<div class="admin-card" style="max-width: 640px;">
+		<h2 class="block-title">Marketing &amp; Analytics</h2>
+		<p class="admin-hint" style="margin-bottom: 1.25rem;">
+			Paste only each platform's ID — no code. The site loads the official
+			tag itself, counts a page view on every page change and reports each
+			inquiry sent as a lead/conversion. Leave a field empty to turn that
+			platform off. Saving publishes right away.
+		</p>
+		{
+			MARKETING_FIELDS.map((field) => (
+				<div class="admin-field">
+					<label for={`f-mkt-${field.key}`}>{field.label}</label>
+					<input
+						id={`f-mkt-${field.key}`}
+						class="marketing-input"
+						data-marketing-key={field.key}
+						value={marketing[field.key]}
+						placeholder={field.placeholder}
+						autocomplete="off"
+						spellcheck="false"
+					/>
+					<p class="admin-hint">{field.hint}</p>
+					<p class="admin-hint marketing-error" hidden></p>
+				</div>
+			))
+		}
 	</div>
 
 	<div class="admin-card" style="max-width: 640px; margin-top: 1.5rem;">
@@ -193,6 +223,7 @@ const settings = await getSettings(env.DB);
 
 <script>
 	import { SOCIAL_NETWORKS, isValidSocialUrl, type SocialKey } from "../../../data/social-links";
+	import { MARKETING_FIELDS, isValidMarketingId, type MarketingKey } from "../../../data/marketing";
 
 	function toast(message: string, isError = false) {
 		const el = document.getElementById("toast")!;
@@ -304,11 +335,45 @@ const settings = await getSettings(env.DB);
 		}),
 	);
 
+	// ---- marketing & analytics ----
+	const marketingInputs = Array.from(document.querySelectorAll<HTMLInputElement>(".marketing-input"));
+
+	// Each ID must be empty or in its platform's format (the server re-checks).
+	function validateMarketing(): boolean {
+		let valid = true;
+		marketingInputs.forEach((input) => {
+			const key = input.dataset.marketingKey as MarketingKey;
+			const value = input.value.trim();
+			const ok = !value || isValidMarketingId(key, value);
+			const error = input.parentElement?.querySelector<HTMLElement>(".marketing-error");
+			if (error) {
+				const field = MARKETING_FIELDS.find((f) => f.key === key);
+				error.hidden = ok;
+				error.textContent = ok ? "" : `That doesn't look like this ID — expected something like ${field?.placeholder}`;
+			}
+			input.setAttribute("aria-invalid", String(!ok));
+			if (!ok) valid = false;
+		});
+		return valid;
+	}
+	marketingInputs.forEach((input) =>
+		input.addEventListener("input", () => {
+			if (input.getAttribute("aria-invalid") === "true") validateMarketing();
+		}),
+	);
+
 	document.getElementById("save-all")!.addEventListener("click", async () => {
 		if (!validateSocialLinks()) {
 			toast("Fix the highlighted social media links.", true);
 			return;
 		}
+		if (!validateMarketing()) {
+			toast("Fix the highlighted Marketing & Analytics IDs.", true);
+			return;
+		}
+		const marketing = Object.fromEntries(
+			marketingInputs.map((input) => [input.dataset.marketingKey, input.value.trim()]),
+		);
 		const siteTitle = (document.getElementById("f-seo-site-title") as HTMLInputElement).value.trim();
 		const seo = {
 			siteUrl: (document.getElementById("f-seo-site-url") as HTMLInputElement).value.trim(),
@@ -331,10 +396,13 @@ const settings = await getSettings(env.DB);
 		const res = await fetch("/api/admin/settings", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ siteTitle, siteFaviconUrl, seo }),
+			body: JSON.stringify({ siteTitle, siteFaviconUrl, seo, marketing }),
 		});
 		if (res.ok) toast("Changes saved and published.");
-		else toast("Couldn't save.", true);
+		else {
+			const err = (await res.json().catch(() => ({}))) as { error?: string };
+			toast(err.error || "Couldn't save.", true);
+		}
 	});
 
 	// ---- security / change password ----

@@ -9,36 +9,47 @@
  * and styles can't execute code.
  */
 import { VIDEO_EMBED_ORIGINS } from "../../data/video-embeds";
+import type { marketingCspSources } from "../../data/marketing";
+
+/** Extra sources per directive — the ad/analytics platforms set in the admin. */
+export type ExtraCspSources = ReturnType<typeof marketingCspSources>;
 
 const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 
-const CONTENT_SECURITY_POLICY = [
-	"default-src 'self'",
-	`script-src 'self' ${TURNSTILE_ORIGIN}`,
-	"style-src 'self' 'unsafe-inline'",
-	"img-src 'self' data: blob:",
-	"media-src 'self' blob:",
-	"font-src 'self' data:",
-	"connect-src 'self'",
-	// Turnstile, plus the YouTube / Vimeo players embedded in project galleries.
-	`frame-src ${TURNSTILE_ORIGIN} ${VIDEO_EMBED_ORIGINS.join(" ")}`,
-	"worker-src 'self' blob:",
-	"object-src 'none'",
-	"base-uri 'self'",
-	"form-action 'self'",
-	"frame-ancestors 'none'",
-].join("; ");
+function contentSecurityPolicy(extra?: ExtraCspSources): string {
+	const more = (directive: keyof ExtraCspSources) =>
+		extra?.[directive].length ? ` ${extra[directive].join(" ")}` : "";
+	return [
+		"default-src 'self'",
+		`script-src 'self' ${TURNSTILE_ORIGIN}${more("script-src")}`,
+		"style-src 'self' 'unsafe-inline'",
+		`img-src 'self' data: blob:${more("img-src")}`,
+		"media-src 'self' blob:",
+		"font-src 'self' data:",
+		`connect-src 'self'${more("connect-src")}`,
+		// Turnstile, plus the YouTube / Vimeo players embedded in project galleries.
+		`frame-src ${TURNSTILE_ORIGIN} ${VIDEO_EMBED_ORIGINS.join(" ")}${more("frame-src")}`,
+		"worker-src 'self' blob:",
+		"object-src 'none'",
+		"base-uri 'self'",
+		"form-action 'self'",
+		"frame-ancestors 'none'",
+	].join("; ");
+}
 
-export function applySecurityHeaders(response: Response, url: URL, isProduction: boolean): Response {
+export function applySecurityHeaders(
+	response: Response,
+	url: URL,
+	isProduction: boolean,
+	extraCsp?: ExtraCspSources,
+): Response {
 	const headers = response.headers;
 	const isHttps = url.protocol === "https:";
 
 	// Dev runs Vite's inline HMR client, which a strict CSP would block.
 	if (isProduction && !headers.has("Content-Security-Policy")) {
-		headers.set(
-			"Content-Security-Policy",
-			isHttps ? `${CONTENT_SECURITY_POLICY}; upgrade-insecure-requests` : CONTENT_SECURITY_POLICY,
-		);
+		const policy = contentSecurityPolicy(extraCsp);
+		headers.set("Content-Security-Policy", isHttps ? `${policy}; upgrade-insecure-requests` : policy);
 	}
 	headers.set("X-Content-Type-Options", "nosniff");
 	headers.set("X-Frame-Options", "DENY");

@@ -5,6 +5,7 @@ import Footer from '../components/Footer.astro';
 import { SOCIAL_NETWORKS, resolveSocialUrl } from '../data/social-links';
 import defaultShareImage from '../assets/video-home-poster.jpg';
 import { siteOrigin as resolveSiteOrigin } from '../lib/server/site-data';
+import { normalizeMarketing } from '../data/marketing';
 import '../styles/main.css';
 import 'locomotive-scroll/dist/locomotive-scroll.css';
 
@@ -61,6 +62,14 @@ const structuredData = {
 };
 // Escaped so a "</script>" inside any admin-entered value can't end the tag.
 const structuredDataJson = JSON.stringify(structuredData).replace(/</g, '\\u003c');
+
+// Ad / analytics IDs (admin › Settings › Marketing & Analytics), read by
+// scripts/marketing.ts. Only rendered when at least one is set. The IDs are
+// format-checked on save, and escaped here anyway.
+const marketing = normalizeMarketing(settings.marketing);
+const marketingJson = Object.values(marketing).some(Boolean)
+	? JSON.stringify(marketing).replace(/</g, '\\u003c')
+	: '';
 
 // Page transitions fade the whole <body> (header and footer included)
 // rather than a view-transition crossfade: on click it fades out while the
@@ -134,6 +143,7 @@ const PAGE_TRANSITION_MS = FADE_IN_DELAY_MS + FADE_DURATION_MS;
 		)}
 
 		<script type="application/ld+json" is:inline set:html={structuredDataJson} />
+		{marketingJson && <script type="application/json" id="marketing-config" is:inline set:html={marketingJson} />}
 
 		<ClientRouter />
 		<noscript><style is:inline>body.is-loading { opacity: 1; animation: none; }</style></noscript>
@@ -146,6 +156,12 @@ const PAGE_TRANSITION_MS = FADE_IN_DELAY_MS + FADE_DURATION_MS;
 		{!bare && <Footer />}
 	</body>
 </html>
+
+<script>
+	import { initMarketing } from "../scripts/marketing";
+
+	initMarketing();
+</script>
 
 <script>
 	import LocomotiveScroll from "locomotive-scroll";
